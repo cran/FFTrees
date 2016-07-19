@@ -2,13 +2,11 @@
 library(FFTrees)
 
 ## ---- fig.width = 6, fig.height = 6, echo = F, fig.align='center'--------
-heart.fft <- fft(heartdisease[,names(heartdisease) != "diagnosis"],
-                 heartdisease$diagnosis,
-                 train.p = .5
+bcancer.fft <- fft(diagnosis ~.,
+                   data = breastcancer
                  )
 
-plot(heart.fft,
-     description = "Heart Disease",
-     decision.names = c("Healthy", "Disease")
-)
+plot(bcancer.fft,
+     description = "Breast Cancer",
+     decision.names = c("Absent", "Present"))
 

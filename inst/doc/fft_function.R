@@ -5,13 +5,16 @@ library(FFTrees)
 head(heartdisease)
 
 ## ------------------------------------------------------------------------
-set.seed(100) # For reproducability
+set.seed(100)
+samples <- sample(c(T, F), size = nrow(heartdisease), replace = T)
+heartdisease.train <- heartdisease[samples,]
+heartdisease.test <- heartdisease[samples == 0,]
 
+## ------------------------------------------------------------------------
 heart.fft <- fft(
-  train.cue.df = heartdisease[,names(heartdisease) != "diagnosis"],
-  train.criterion.v = heartdisease$diagnosis,
-  train.p = .5,
-  max.levels = 4
+  formula = diagnosis ~.,
+  data = heartdisease.train,
+  data.test = heartdisease.test
   )
 
 ## ------------------------------------------------------------------------
@@ -24,7 +27,10 @@ names(heart.fft)
 heart.fft$cue.accuracies
 
 ## ------------------------------------------------------------------------
-heart.fft$trees[,1:6]   # Tree info are in columns 1:6
+heart.fft$trees
+
+## ---- eval = F-----------------------------------------------------------
+#  summary(heart.fft)
 
 ## ------------------------------------------------------------------------
 heart.fft$trees[,7:15]   # Training stats are in columns 7:15
@@ -33,29 +39,16 @@ heart.fft$trees[,7:15]   # Training stats are in columns 7:15
 heart.fft$trees[,16:24]   # Test stats are in columns 16:24
 
 ## ------------------------------------------------------------------------
-# which tree had the best training statistics?
-heart.fft$best.train.tree
+heart.fft$trees.auc
 
 ## ------------------------------------------------------------------------
-# Which tree had the best testing statistics?
-heart.fft$best.test.tree
+heart.fft$decision.train[1:5,]
 
 ## ------------------------------------------------------------------------
-heart.fft$train.decision.df[1:5,]
-
-## ------------------------------------------------------------------------
-heart.fft$train.levelout.df[1:5,]
-
-## ------------------------------------------------------------------------
-heart.fft$cart
-
-## ------------------------------------------------------------------------
-heart.fft$lr
+heart.fft$levelout.train[1:5,]
 
 ## ---- fig.width = 6, fig.height = 6--------------------------------------
 plot(heart.fft,
-     which.tree = "best.train",
-     which.data = "test",
      description = "Heart Disease",
      decision.names = c("Healthy", "Disease")
      )
