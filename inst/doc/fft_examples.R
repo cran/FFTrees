@@ -12,9 +12,6 @@ mushrooms.fft <- fft(formula = poisonous ~.,
                      data = mushrooms.train,
                      data.test = mushrooms.test)
 
-## ------------------------------------------------------------------------
-summary(mushrooms.fft)
-
 ## ---- fig.width = 6, fig.height = 6--------------------------------------
 plot(mushrooms.fft, data = "test")
 

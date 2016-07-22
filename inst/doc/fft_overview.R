@@ -1,7 +1,7 @@
 ## ---- echo = F, message = F, results = 'hide'----------------------------
 library(FFTrees)
 
-## ---- fig.width = 6, fig.height = 6, echo = F, fig.align='center'--------
+## ---- fig.width = 6, fig.height = 6, echo = T, fig.align='center'--------
 bcancer.fft <- fft(diagnosis ~.,
                    data = breastcancer
                  )
