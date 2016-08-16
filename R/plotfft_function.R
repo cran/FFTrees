@@ -6,7 +6,7 @@
 #' @param data Either a dataframe, or one of two strings 'best.train' or 'best.test'
 #' @param which.tree An integer indicating which tree to plot (only valid when the tree argument is non-empty). To plot the best training (or test) tree with respect to v (HR - FAR), use "best.train" or "best.test"
 #' @param decision.names A string vector of length 2 indicating the content-specific name for noise (crit.vec == FALSE) and signal (crit.vec == TRUE) cases.
-#' @param description An optional string used as a plot label.
+#' @param main The main plot label.
 #' @param ... Additional arguments passed on to plot()
 #' @importFrom stats anova predict formula model.frame
 #' @importFrom graphics text points abline legend mtext segments rect arrows axis par layout plot
@@ -26,7 +26,7 @@ plot.fft <- function(
   x = NULL,
   data = "train",
   which.tree = "best.train", # Either a number, or "best.train" or "best.test"
-  description = "Data",
+  main = "Data",
   decision.names = c("Noise", "Signal"),
   ...
 ) {
@@ -35,23 +35,13 @@ plot.fft <- function(
   # TESTING VALUES
   # --------------------------
 
-  # x <- titanic.pred.fft
-
-#
-#   x <- heart.fft
-#   data <- "train"
-#   description = "Heart Disease"
-#   decision.names = c("Healthy", "Disease")
-#   which.tree = "best.train" # Either a number, or "best.train" or "best.test"
-#   description = "Data"
-#   decision.names = c("Noise", "Signal")
-#   level.names = NULL
-
-  # x <- heart.fft
-  # description = "Heart Disease"
-  # decision.names = c("Healthy", "Disease")
+  #  x <- tree.64
+  # #
   # data = "train"
-  # which.tree = "best.train"
+  # which.tree = "best.train" # Either a number, or "best.train" or "best.test"
+  # description = "Data"
+  # decision.names = c("Noise", "Signal")
+
 
 
   level.names <- NULL
@@ -88,9 +78,9 @@ plot.fft <- function(
 
   }
 
-  if(is.numeric(which.tree) & which.tree %in% 1:nrow(x$trees) == F) {
+  if(is.numeric(which.tree) & which.tree %in% 1:nrow(x$fft.stats) == F) {
 
-    stop(paste("You asked for a tree that does not exist. This object has", nrow(x$trees), "trees"))
+    stop(paste("You asked for a tree that does not exist. This object has", nrow(x$fft.stats), "trees"))
 
   }
 
@@ -108,19 +98,19 @@ plot.fft <- function(
 
 if(is.null(x) == F) {
 
-  n.trees <- nrow(x$trees)
+  n.trees <- nrow(x$fft.stats)
 
   if(is.null(which.tree)) {which.tree <- "best.train"}
 
   if(which.tree == "best.train") {
 
-    which.tree <- which(x$trees$v.train == max(x$trees$v.train))[1]
+    which.tree <- which(x$fft.stats$v.train == max(x$fft.stats$v.train))[1]
 
   }
 
   if(which.tree == "best.test") {
 
-    which.tree <- which(x$trees$v.test == max(x$trees$v.test))[1]
+    which.tree <- which(x$fft.stats$v.test == max(x$fft.stats$v.test))[1]
   }
 
 
@@ -167,8 +157,6 @@ if(is.null(x) == F) {
 
   # Convert crit to binary (if necessary)
 
-
-
   if(setequal(unique(crit.vec), c(0, 1)) == F) {
 
   stop("The criterion value is not binary (0s and 1s), please fix")
@@ -186,9 +174,9 @@ if(is.null(x) == F) {
 
   decision.v <- output$decision[,1]
   levelout.v <- output$levelout[,1]
-  level.name.v <- output$trees$level.name[1]
-  level.threshold.v <- output$trees$level.threshold[1]
-  level.sigdirection.v <- output$trees$level.sigdirection[1]
+  level.name.v <- output$fft.stats$level.name[1]
+  level.threshold.v <- output$fft.stats$level.threshold[1]
+  level.sigdirection.v <- output$fft.stats$level.sigdirection[1]
 
 }
 
@@ -582,7 +570,7 @@ if(is.null(x) == F) {
       rect(.33, .8, .67, 1.2, col = "white", border = NA)
 
 
-      text(x = .5, y = .95, description, cex = panel.title.cex)
+      text(x = .5, y = .95, main, cex = panel.title.cex)
 
 
        text(x = .5, y = .80, paste("N = ", n.cases, "", sep = ""), cex = 1.25)
@@ -660,7 +648,7 @@ if(is.null(x) == F) {
       par(xpd = T)
       segments(-plot.width, 0, - plot.width * .2, 0, col = gray(.2, .5), lwd = .5, lty = 1)
       segments(plot.width, 0, plot.width * .2, 0, col = gray(.2, .5), lwd = .5, lty = 1)
-      text(x = 0, y = 0, "Tree", cex = panel.title.cex)
+      text(x = 0, y = 0, paste("Tree (#", which.tree, ")", sep = ""), cex = panel.title.cex)
 
       par(xpd = F)
 
@@ -1060,23 +1048,26 @@ if(is.null(x) == F) {
     subheader.y.loc <- .9
 
     header.cex <- 1.2
-    subheader.cex <- .8
+    subheader.cex <- .9
 
 
 
     if(final.plot == 1) {
 
-      final.classtable.center <- c(.2, .45)
+      final.classtable.center <- c(.18, .45)
       final.classtable.dim <- c(.2, .7)
 
-      final.spec.center <- c(.4, .45)
+      final.spec.center <- c(.35, .45)
       final.spec.dim <- c(.14, .65)
 
-      final.hr.center <- c(.5, .45)
+      final.hr.center <- c(.45, .45)
       final.hr.dim <- c(.14, .65)
 
-      final.dp.center <- c(.6, .45)
+      final.dp.center <- c(.55, .45)
       final.dp.dim <- c(.14, .65)
+
+      final.auc.center <- c(.65, .45)
+      final.auc.dim <- c(.14, .65)
 
       final.roc.center <- c(.85, .45)
       final.roc.dim <- c(.2, .65)
@@ -1114,6 +1105,62 @@ if(is.null(x) == F) {
       final.balls <- F
 
     }
+
+
+    # Check if new final stats are needed
+
+    if(recalculate) {
+
+      new.stats <- predict.fft(object = x,
+                               formula = x$formula,
+                               data = data,
+                               which.tree = 1:n.trees)
+
+      final.auc <- new.stats$trees.auc
+      fft.hr.vec <- new.stats$trees$hr
+      fft.far.vec <- new.stats$trees$far
+
+      lr.stats <- lr.pred(formula = x$formula,
+                          data.train = x$data.train,
+                          data.test = data)
+
+      lr.hr <- lr.stats[[1]]$hr.test[lr.stats[[1]]$threshold == .5]
+      lr.far <- lr.stats[[1]]$far.test[lr.stats[[1]]$threshold == .5]
+
+      cart.stats <- cart.pred(formula = x$formula, data.train = x$data.train, data.test = data)
+      cart.hr <- cart.stats$cart.acc$hr.test[cart.stats$cart.acc$miss.cost == cart.stats$cart.acc$fa.cost]
+      cart.far <- cart.stats$cart.acc$far.test[cart.stats$cart.acc$miss.cost == cart.stats$cart.acc$fa.cost]
+
+    }
+
+    if(recalculate == F) {
+
+      if(data == "train") {
+
+        final.auc <- x$auc[1,1]
+        fft.hr.vec <- x$fft.stats$hr.train
+        fft.far.vec <- x$fft.stats$far.train
+        lr.hr <- x$lr.stats$hr.train[x$lr.stats$threshold == .5]
+        lr.far <- x$lr.stats$far.train[x$lr.stats$threshold == .5]
+        cart.hr <- x$cart.stats$hr.train[x$cart.stats$miss.cost == x$cart.stats$fa.cost]
+        cart.far <- x$cart.stats$far.train[x$cart.stats$miss.cost == x$cart.stats$fa.cost]
+
+
+      }
+
+
+      if(data == "test") {
+
+        final.auc <- x$auc[2,1]
+        fft.hr.vec <- x$fft.stats$hr.test
+        fft.far.vec <- x$fft.stats$far.test
+        lr.hr <- x$lr.stats$hr.test[x$lr.stats$threshold == .5]
+        lr.far <- x$lr.stats$far.test[x$lr.stats$threshold == .5]
+        cart.hr <- x$cart.stats$hr.test[x$cart.stats$miss.cost == x$cart.stats$fa.cost]
+        cart.far <- x$cart.stats$far.test[x$cart.stats$miss.cost == x$cart.stats$fa.cost]
+      }
+    }
+
 
 
     # General plotting space
@@ -1287,7 +1334,6 @@ if(is.null(x) == F) {
 
       }
 
-
     # DP level
 
     if(is.null(final.dp.center) == F) {
@@ -1325,6 +1371,42 @@ if(is.null(x) == F) {
       text(x = rect.center,
            y = (rect.top + rect.bottom) / 2,
            labels = round((final.stats$dprime), 2),
+           cex = 1.2,
+           font = 1)
+
+    }
+
+    # AUC level
+
+    if(is.null(final.auc.center) == F) {
+
+      rect.top <- final.auc.center[2] + final.auc.dim[2] / 2
+      rect.bottom <-  final.auc.center[2] - final.auc.dim[2] / 2
+      rect.center <-  final.auc.center[1]
+      rect.width <- final.auc.dim[1] / 2
+
+      text(rect.center, header.y.loc, "AUC", cex = header.cex, pos= 1)
+
+      # Colored Fill
+      rect(rect.center - rect.width / 2,
+           rect.bottom,
+           rect.center + rect.width / 2,
+           ((final.auc - .5) / .5) * (rect.top - rect.bottom) + rect.bottom,
+           col = col.fun((final.auc - .5) / .5),
+           border = NA
+      )
+
+      # Border
+      rect(rect.center - rect.width / 2,
+           rect.bottom,
+           rect.center + rect.width / 2,
+           rect.top,
+           border = gray(.5, .5))
+
+
+      text(x = rect.center,
+           y = (rect.top + rect.bottom) / 2,
+           labels = round(final.auc, 2),
            cex = 1.2,
            font = 1)
 
@@ -1419,22 +1501,22 @@ if(is.null(x) == F) {
 
       # Labels
 
-      text(final.classtable.x.loc[1] + .15 * diff(final.classtable.x.loc),
-           final.classtable.y.loc[1] + .57 * diff(final.classtable.y.loc),
-           "CR", cex = 1, font = 3)
+      text(final.classtable.x.loc[1] + .12 * diff(final.classtable.x.loc),
+           final.classtable.y.loc[1] + .55 * diff(final.classtable.y.loc),
+           "Cor Rej", cex = 1, font = 3, adj = 0)
 
-      text(final.classtable.x.loc[1] + .65 * diff(final.classtable.x.loc),
-           final.classtable.y.loc[1] + .57 * diff(final.classtable.y.loc),
-           "MI", cex = 1, font = 3)
+      text(final.classtable.x.loc[1] + .62 * diff(final.classtable.x.loc),
+           final.classtable.y.loc[1] + .55 * diff(final.classtable.y.loc),
+           "Miss", cex = 1, font = 3, adj = 0)
 
 
-      text(final.classtable.x.loc[1] + .15 * diff(final.classtable.x.loc),
+      text(final.classtable.x.loc[1] + .12 * diff(final.classtable.x.loc),
            final.classtable.y.loc[1] + .07 * diff(final.classtable.y.loc),
-           "FA", cex = 1, font = 3)
+           "False Al", cex = 1, font = 3, adj = 0)
 
-      text(final.classtable.x.loc[1] + .65 * diff(final.classtable.x.loc),
+      text(final.classtable.x.loc[1] + .62 * diff(final.classtable.x.loc),
            final.classtable.y.loc[1] + .07 * diff(final.classtable.y.loc),
-           "H", cex = 1, font = 3)
+           "Hit", cex = 1, font = 3, adj = 0)
 
 
     }
@@ -1444,63 +1526,11 @@ if(is.null(x) == F) {
     if(is.null(final.roc.center) == F) {
 
 
-      # Check if new final stats are needed
-
-      if(recalculate) {
-
-        new.stats <- predict.fft(object = x,
-                                 formula = x$formula,
-                                 data = data,
-                                 which.tree = 1:n.trees)
-
-        final.auc <- new.stats$trees.auc
-        fft.hr.vec <- new.stats$trees$hr
-        fft.far.vec <- new.stats$trees$far
-
-        lr.stats <- lr.pred(formula = x$formula, data.train = x$data.train, data.test = data)
-        lr.hr <- lr.stats[[1]]$hr.test[lr.stats[[1]]$threshold == .5]
-        lr.far <- lr.stats[[1]]$far.test[lr.stats[[1]]$threshold == .5]
-
-        cart.stats <- cart.pred(formula = x$formula, data.train = x$data.train, data.test = data)
-        cart.hr <- cart.stats$cart.acc$hr.test[cart.stats$cart.acc$miss.cost == cart.stats$cart.acc$fa.cost]
-        cart.far <- cart.stats$cart.acc$far.test[cart.stats$cart.acc$miss.cost == cart.stats$cart.acc$fa.cost]
-
-      }
-
-      if(recalculate == F) {
-
-        if(data == "train") {
-
-        final.auc <- x$trees.auc[1, 1]
-        fft.hr.vec <- x$trees$hr.train
-        fft.far.vec <- x$trees$far.train
-        cart.acc <- x$cart$cart.acc
-        cart.hr <- cart.acc$hr.train[cart.acc$miss.cost == cart.acc$fa.cost]
-        cart.far <- cart.acc$far.train[cart.acc$miss.cost == cart.acc$fa.cost]
-        lr.hr <- x$lr[[1]]$hr.train[x$lr[[1]]$threshold == .5]
-        lr.far <- x$lr[[1]]$far.train[x$lr[[1]]$threshold == .5]
-
-      }
-
-
-      if(data == "test") {
-
-        final.auc <- x$trees.auc[2, 1]
-        fft.hr.vec <- x$trees$hr.test
-        fft.far.vec <- x$trees$far.test
-        cart.acc <- x$cart$cart.acc
-        cart.hr <- cart.acc$hr.test[cart.acc$miss.cost == cart.acc$fa.cost]
-        cart.far <- cart.acc$far.test[cart.acc$miss.cost == cart.acc$fa.cost]
-        lr.hr <- x$lr[[1]]$hr.test[x$lr[[1]]$threshold == .5]
-        lr.far <- x$lr[[1]]$far.test[x$lr[[1]]$threshold == .5]
-
-      }
-      }
 
 
 
       text(final.roc.center[1], header.y.loc, "ROC", pos = 1, cex = header.cex)
-      text(final.roc.center[1], subheader.y.loc, paste("AUC =", round(final.auc, 2)), pos = 1)
+  #    text(final.roc.center[1], subheader.y.loc, paste("AUC =", round(final.auc, 2)), pos = 1)
 
 
       final.roc.x.loc <- c(final.roc.center[1] - final.roc.dim[1] / 2, final.roc.center[1] + final.roc.dim[1] / 2)
@@ -1544,12 +1574,28 @@ if(is.null(x) == F) {
 
       points(final.roc.x.loc[1] + cart.far * final.roc.dim[1],
              final.roc.y.loc[1] + cart.hr * final.roc.dim[2],
-             pch = "C", cex = 1, col = gray(.2))
+             pch = "C", cex = .9, col = gray(.2))
 
+par("xpd" = F)
+
+points(final.roc.x.loc[1] + 1.1 * final.roc.dim[1],
+       final.roc.y.loc[1] + .6 * final.roc.dim[2],
+       pch = 21, cex = 2, col = transparent("red", .3),
+       bg = transparent("red", .7))
+
+points(final.roc.x.loc[1] + 1.1 * final.roc.dim[1],
+       final.roc.y.loc[1] + .6 * final.roc.dim[2],
+       pch = "C", cex = .9, col = gray(.2))
+
+text(final.roc.x.loc[1] + 1.13 * final.roc.dim[1],
+     final.roc.y.loc[1] + .6 * final.roc.dim[2],
+    labels = " CART", adj = 0, cex = .9)
+
+par("xpd" = T)
+#points(1.1, .6, )
 
 
       ## LR
-
 
       points(final.roc.x.loc[1] + lr.far * final.roc.dim[1],
              final.roc.y.loc[1] + lr.hr * final.roc.dim[2],
@@ -1558,9 +1604,26 @@ if(is.null(x) == F) {
 
       points(final.roc.x.loc[1] + lr.far * final.roc.dim[1],
              final.roc.y.loc[1] + lr.hr * final.roc.dim[2],
-             pch = "L", cex = 1, col = gray(.2))
+             pch = "L", cex = .9, col = gray(.2))
 
-}
+      par("xpd" = F)
+
+      points(final.roc.x.loc[1] + 1.1 * final.roc.dim[1],
+             final.roc.y.loc[1] + .4 * final.roc.dim[2],
+             pch = 21, cex = 2, col = transparent("blue", .3),
+             bg = transparent("blue", .7))
+
+      points(final.roc.x.loc[1] + 1.1 * final.roc.dim[1],
+             final.roc.y.loc[1] + .4 * final.roc.dim[2],
+             pch = "L", cex = .9, col = gray(.2))
+
+      text(final.roc.x.loc[1] + 1.13 * final.roc.dim[1],
+           final.roc.y.loc[1] + .4 * final.roc.dim[2],
+           labels = " LR", adj = 0, cex = .9)
+
+      par("xpd" = T)
+
+      }
       ## FFT
 {
       roc.order <- order(fft.far.vec)
@@ -1585,8 +1648,6 @@ if(is.null(x) == F) {
            labels = roc.order[-(which(roc.order == which.tree))], cex = 1, col = gray(.2))
 
 
-
-
       # Add large point for plotted tree
 
       points(final.roc.x.loc[1] + fft.far.vec[which.tree] * final.roc.dim[1],
@@ -1599,6 +1660,24 @@ if(is.null(x) == F) {
             labels = which.tree, cex = 1, col = gray(.2))
 
 
+
+
+      par("xpd" = F)
+
+      points(final.roc.x.loc[1] + 1.1 * final.roc.dim[1],
+             final.roc.y.loc[1] + .8 * final.roc.dim[2],
+             pch = 21, cex = 2, col = transparent("green", .3),
+             bg = transparent("green", .7))
+
+      points(final.roc.x.loc[1] + 1.1 * final.roc.dim[1],
+             final.roc.y.loc[1] + .8 * final.roc.dim[2],
+             pch = "#", cex = .9, col = gray(.2))
+
+      text(final.roc.x.loc[1] + 1.13 * final.roc.dim[1],
+           final.roc.y.loc[1] + .8 * final.roc.dim[2],
+           labels = " FFT", adj = 0, cex = .9)
+
+      par("xpd" = T)
 
 
     }
@@ -1713,7 +1792,7 @@ if(is.null(x) == F) {
 #
 #       # FFTs
 #
-#       fft.stats <- x$trees[c("tree.num", paste(c("hr.", "far."), type.i, sep = ""))]
+#       fft.stats <- x$fft.stats[c("tree.num", paste(c("hr.", "far."), type.i, sep = ""))]
 #
 #       names(fft.stats) <- c("tree.num", "hr", "far")
 #
@@ -1745,8 +1824,8 @@ if(is.null(x) == F) {
 #
 #       tree.i <- x$best.train.tree
 #
-#       points(x$trees[paste("far.", type.i, sep = "")][tree.i, 1],
-#              x$trees[paste("hr.", type.i, sep = "")][tree.i, 1],
+#       points(x$fft.stats[paste("far.", type.i, sep = "")][tree.i, 1],
+#              x$fft.stats[paste("hr.", type.i, sep = "")][tree.i, 1],
 #              cex = even.point.cex,
 #              pch = point.pch,
 #              lty = point.lty,

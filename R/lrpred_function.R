@@ -12,9 +12,14 @@ lr.pred <- function(
   formula,
   data.train,
   data.test = NULL,
-  thresholds = seq(.9, .1, -.1)
+  thresholds = .5     #seq(.9, .1, -.1)
 ) {
   correction <- .25
+
+
+  # formula = formula
+  # data.train = data.train
+  # data.test = data.test
 
   # formula = formula
   # data.train = data
@@ -22,13 +27,16 @@ lr.pred <- function(
   #
 
 
-  data.mf.train <- model.frame(formula = formula, data = data.train)
+  data.mf.train <- model.frame(formula = formula,
+                               data = data.train)
+
   crit.train <- data.mf.train[,1]
 
   if(is.null(data.test) == F) {
 
     data.mf.test <- model.frame(formula = formula, data = data.test)
     crit.test <- data.mf.test[,1]
+    data.mf.test <- data.mf.test[,names(data.mf.train)]
 
   }
 
@@ -75,12 +83,9 @@ lr.pred <- function(
 
   }
 
-
-
   # Test data
   {
     if(is.null(data.test) == F) {
-
 
       # Look for new factor values in test set not in training set
 
@@ -105,9 +110,9 @@ lr.pred <- function(
 
       if(mean(model.can.predict) != 1) {
 
-        warning(paste("Linear regression couldn't fit some testing data.", sum(model.can.predict), "out of",
-                      nrow(data.test), "cases (", round(sum(model.can.predict == 0) / length(model.can.predict), 2) * 100,
-                      "%) had to be ignored"))
+        # warning(paste("Linear regression couldn't fit some testing data.", sum(model.can.predict), "out of",
+        #               nrow(data.test), "cases (", round(sum(model.can.predict == 0) / length(model.can.predict), 2) * 100,
+        #               "%) had to be ignored"))
 
       }
 
@@ -168,7 +173,9 @@ lr.pred <- function(
 
   }
 
-  lr.auc <- data.frame("train" = lr.train.auc, "test" = lr.test.auc)
+  lr.auc <- matrix(c(lr.train.auc, lr.test.auc), nrow = 2, ncol = 1)
+  rownames(lr.auc) <- c("train", "test")
+  colnames(lr.auc) <- "lr"
 
   # Get summary vectors of FAR and HR for all thresholds
 
@@ -179,7 +186,9 @@ lr.pred <- function(
                        "far.test" = lr.test.far.v
   )
 
-  output <- list(lr.acc, lr.auc)
+  output <- list("accuracy" = lr.acc,
+                 "auc" = lr.auc,
+                 "model" = lr.train.mod)
 
 
   return(output)

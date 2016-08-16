@@ -1,12 +1,12 @@
 ## ---- echo = F, message = F, results = 'hide'----------------------------
 library(FFTrees)
 
-## ---- fig.width = 6, fig.height = 6, echo = T, fig.align='center'--------
-bcancer.fft <- fft(diagnosis ~.,
+## ---- fig.width = 6, fig.height = 6, echo = T, fig.align='center', echo = F----
+bcancer.fft <- fft(formula = diagnosis ~.,
                    data = breastcancer
                  )
 
 plot(bcancer.fft,
-     description = "Breast Cancer",
+     main = "Breast Cancer",
      decision.names = c("Absent", "Present"))
 

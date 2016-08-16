@@ -9,21 +9,11 @@ classtable <- function(prediction.v,
                        criterion.v) {
 
 
+if(any(c("FALSE", "TRUE") %in% paste(prediction.v))) {prediction.v <- as.logical(paste(prediction.v))}
+if(any(c("FALSE", "TRUE") %in% paste(criterion.v))) {criterion.v <- as.logical(paste(criterion.v))}
+
   correction <- .25
   hr.weight <- .5
-
-  #
-  #   prediction.v <- sample(c(0, 1), size = 100, replace = T)
-  #   criterion.v <- sample(c(0, 1), size = 100, replace = T)
-  #   correction <- .25
-  #   hr.weight <- .5
-
-
-  # prediction.v = subset(decision.df, levelout <= current.level)$decision
-  # criterion.v = subset(decision.df, levelout <= current.level)$criterion
-  # correction = correction
-  # hr.weight = hr.weight
-
 
   hi <- sum(prediction.v == 1 & criterion.v == 1)
   mi <- sum(prediction.v == 0 & criterion.v == 1)

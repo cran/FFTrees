@@ -24,22 +24,23 @@ class(heart.fft)
 names(heart.fft)
 
 ## ------------------------------------------------------------------------
+heart.fft
+
+## ------------------------------------------------------------------------
 heart.fft$cue.accuracies
 
+## ----fig.width = 8, fig.height = 8---------------------------------------
+showcues(heart.fft, 
+         main = "Heartdisease Cue Accuracy")
+
 ## ------------------------------------------------------------------------
-heart.fft$trees
+heart.fft$fft.stats
 
 ## ---- eval = F-----------------------------------------------------------
-#  summary(heart.fft)
+#  summary(heart.fft)  # Same thing as heart.fft$fft.stats
 
 ## ------------------------------------------------------------------------
-heart.fft$trees[,7:15]   # Training stats are in columns 7:15
-
-## ------------------------------------------------------------------------
-heart.fft$trees[,16:24]   # Test stats are in columns 16:24
-
-## ------------------------------------------------------------------------
-heart.fft$trees.auc
+heart.fft$auc
 
 ## ------------------------------------------------------------------------
 heart.fft$decision.train[1:5,]
@@ -47,9 +48,14 @@ heart.fft$decision.train[1:5,]
 ## ------------------------------------------------------------------------
 heart.fft$levelout.train[1:5,]
 
+## ------------------------------------------------------------------------
+heart.as.fft <- fft(formula = diagnosis ~ age + sex,
+                    data = heartdisease
+                    )
+
 ## ---- fig.width = 6, fig.height = 6--------------------------------------
 plot(heart.fft,
-     description = "Heart Disease",
+     main = "Heart Disease",
      decision.names = c("Healthy", "Disease")
      )
 
