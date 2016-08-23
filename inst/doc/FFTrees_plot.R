@@ -2,7 +2,7 @@
 library(FFTrees)
 
 ## ------------------------------------------------------------------------
-titanic.fft <- fft(
+titanic.fft <- FFTrees(
   formula = survived ~.,
   data = titanic
   )
@@ -18,26 +18,26 @@ plot(titanic.fft,
 
 ## ------------------------------------------------------------------------
 set.seed(100)
-titanic.pred.fft <- fft(formula = survived ~.,
+titanic.pred.fft <- FFTrees(formula = survived ~.,
                         data = titanic,
                         train.p = .5)
 
 ## ---- fig.width = 6, fig.height = 6--------------------------------------
 plot(titanic.pred.fft,
-     which.tree = "best.train", 
+     tree = "best.train", 
      main = "Titanic", 
      decision.names = c("Died", "Survived"))
 
 ## ---- fig.width = 6, fig.height = 6--------------------------------------
 plot(titanic.pred.fft,
-     which.tree = "best.train",
+     tree = "best.train",
      data = "test", 
      main = "Titanic", 
      decision.names = c("Died", "Survived"))
 
 ## ---- fig.width = 6, fig.height = 6--------------------------------------
 plot(titanic.pred.fft,
-     which.tree = 4,
+     tree = 4,
      data = "test", 
      main = "Titanic", 
      decision.names = c("Died", "Survived"))

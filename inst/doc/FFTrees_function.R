@@ -11,7 +11,7 @@ heartdisease.train <- heartdisease[samples,]
 heartdisease.test <- heartdisease[samples == 0,]
 
 ## ------------------------------------------------------------------------
-heart.fft <- fft(
+heart.fft <- FFTrees(
   formula = diagnosis ~.,
   data = heartdisease.train,
   data.test = heartdisease.test
@@ -49,7 +49,7 @@ heart.fft$decision.train[1:5,]
 heart.fft$levelout.train[1:5,]
 
 ## ------------------------------------------------------------------------
-heart.as.fft <- fft(formula = diagnosis ~ age + sex,
+heart.as.fft <- FFTrees(formula = diagnosis ~ age + sex,
                     data = heartdisease
                     )
 

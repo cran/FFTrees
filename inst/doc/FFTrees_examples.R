@@ -4,7 +4,7 @@ library(FFTrees)
 ## ------------------------------------------------------------------------
 set.seed(100) # For replicability of the training / test data split
 
-mushrooms.fft <- fft(formula = poisonous ~.,
+mushrooms.fft <- FFTrees(formula = poisonous ~.,
                      data = mushrooms,
                      train.p = .5)
 
@@ -23,7 +23,7 @@ plot(mushrooms.fft,
 
 ## ------------------------------------------------------------------------
 set.seed(100) # for replicability
-mushrooms.ring.fft <- fft(formula = poisonous ~ ringtype + ringnum,
+mushrooms.ring.fft <- FFTrees(formula = poisonous ~ ringtype + ringnum,
                           data = mushrooms,
                           train.p = .5
                           )
@@ -36,7 +36,7 @@ plot(mushrooms.ring.fft,
      )
 
 ## ------------------------------------------------------------------------
-iris.fft <- fft(
+iris.fft <- FFTrees(
   formula = virginica ~.,
   data = iris,
   train.p = .5
@@ -57,6 +57,6 @@ plot(iris.fft,
      data = "test", 
      description = "Iris FFT",
      decision.names = c("Not V", "Virginica"),
-     which.tree = 6     # Show tree #6
+     tree = 6     # Show tree #6
      )
 
