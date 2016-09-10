@@ -5,8 +5,8 @@
 \title{Draws a FFTrees object.}
 \usage{
 \method{plot}{FFTrees}(x = NULL, data = "train", which.tree = NULL,
-  tree = "best.train", main = "Data", decision.names = c("Noise",
-  "Signal"), ...)
+  tree = "best.train", main = "Data", n.per.icon = NULL,
+  decision.names = c("Noise", "Signal"), ...)
 }
 \arguments{
 \item{x}{A FFTrees object created from \code{"FFTrees()"}}
@@ -18,6 +18,8 @@
 \item{tree}{An integer indicating which tree to plot (only valid when the tree argument is non-empty). To plot the best training (or test) tree with respect to v (HR - FAR), use "best.train" or "best.test"}
 
 \item{main}{The main plot label.}
+
+\item{n.per.icon}{Number of exemplars per icon}
 
 \item{decision.names}{A string vector of length 2 indicating the content-specific name for noise and signal cases.}
 

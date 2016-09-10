@@ -8,62 +8,52 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
-test
-test2
-
 ```{r, echo = F, message = F, results = 'hide'}
 library(FFTrees)
 ```
 
-This function is at the heart of the `FFTrees` package. The function takes a training dataset as an argument, and generates several FFT (more details about the algorithms coming soon...)
+The `FFTrees()` function is at the heart of the `FFTrees` package. The function takes a training dataset as an argument, and generates several fast and frugal trees which attempt to classify cases into one of two classes based on cues.
 
 ## heartdisease example
 
-Let's start with an example, we'll create FFTs fitted to the `heartdisease` dataset. This dataset contains data from 202 patients suspected of having heart disease. Here's how the dataset looks:
+Let's start with an example, we'll create FFTrees fitted to the `heartdisease` dataset. This dataset contains data from 202 patients suspected of having heart disease. Here's how the dataset looks:
 
 ```{r}
 head(heartdisease)
 ```
 
-The critical dependent variable is `diagnosis` which indicates whether a patient has heart diesease or not. The other variables in the dataset (e.g.; sex, age, and several biological measurements) will be used as predictors.
+The critical dependent variable is `diagnosis` which indicates whether a patient has heart disease or not. The other variables in the dataset (e.g.; sex, age, and several biological measurements) will be used as predictors.
 
 Now we'll split the original dataset into a *training* dataset, and a *testing* dataset. We will create the trees with the training set, then test its performance in the test dataset:
 
 ```{r}
-set.seed(100)
+set.seed(100) # For replication
 samples <- sample(c(T, F), size = nrow(heartdisease), replace = T)
 heartdisease.train <- heartdisease[samples,]
 heartdisease.test <- heartdisease[samples == 0,]
 ```
 
-We'll create a new fft object called `heart.fft` using the `FFTrees()` function. We'll specify `diagnosis` as the (binary) dependent variable, and include all independent varaibles with `formula = diagnosis ~ .`:
+We'll create a new FFTrees object called `heart.fft` using the `FFTrees()` function. We'll specify `diagnosis` as the (binary) dependent variable, and include all independent variables with `formula = diagnosis ~ .`:
 
 ```{r}
-heart.fft <- FFTrees(
-  formula = diagnosis ~.,
-  data = heartdisease.train,
-  data.test = heartdisease.test
-  )
+heart.fft <- FFTrees(formula = diagnosis ~.,
+                    data = heartdisease.train,
+                    data.test = heartdisease.test
+                    )
 ```
 
-## Elements of an fft object
+## Elements of an FFTrees object
 
-As you can see, `FFTrees()` returns an object with the fft class
-
-```{r}
-class(heart.fft)
-```
-
-There are many elements in an fft object, here are their names:
+`FFTrees()` returns an object with the FFTrees class. There are many elements in an FFTrees object, here are their names:
 
 ```{r}
 names(heart.fft)
 ```
 
 
-## Printing an fft object
+## Printing an FFTrees object
 
-You can view basic information about the fft object by printing its name. This will give you a quick summary of the object, includeing how many trees it has, which cues the tree(s) use, and how well they performed.
+You can view basic information about the FFTrees object by printing its name. This will give you a quick summary of the object, including how many trees it has, which cues the tree(s) use, and how well they performed.
 
 ```{r}
 heart.fft
@@ -72,7 +62,7 @@ heart.fft
 
 ### Cue accuracy statistics: cue.accuracies
 
-You can obtain marginal cue accuracy statistics from the  `cue.accuracies` dataframe. This dataframe contains the original, marginal cue accuracies. That is, for each cue, the threshold that maximizes the v-statistic (HR - FAR) is chosen.
+You can obtain marginal cue accuracy statistics from the `cue.accuracies` list. The list contains dataframes with marginal cue accuracies. That is, for each cue, the threshold that maximizes the v-statistic (HR - FAR) in the training dataset is chosen. If the object has test data, you can see the marginal cue accuracies in the test dataset (using the thresholds calculated from the training data):
 
 ```{r}
 heart.fft$cue.accuracies
@@ -86,72 +76,60 @@ showcues(heart.fft,
 ```
 
 
-### Tree definitions and accuracy statistics: fft.stats
+### Tree definitions and accuracy statistics
 
-The `fft.stats` dataframe contains all tree definitions and training (and possibly test) statistics for all ($2^{max.levels - 1}$) trees. For our `heart.fft` example, there are $2^{4 - 1} = 8$ trees.
-
-```{r}
-heart.fft$fft.stats
-```
-
-You can also use the generic `summary()` function to get the trees dataframe
-
-```{r, eval = F}
-summary(heart.fft)  # Same thing as heart.fft$fft.stats
-```
-
-Tree definitions (exit directions, cue order, and cue thresholds) are contained in columns 1 through 6. Training statistics are contained in columns 7:15 and have the `.train` suffix. For our heart disease dataset, it looks like tree 2 had the highest training v (HR - FAR) values. Test statistics are contained in columns 16:24 and have the `.test` suffix. It looks like trees 2 and 6 also had the highest test v (HR - FAR) values. 
-
-
-### Area under the curve (AUC): auc
-
-AUC (area under the curve) statistics are in the `auc` dataframe:
+The `tree.definitions` dataframe contains definitions (cues, classes, exits, thresholds, and directions) of all trees in the object:
 
 ```{r}
-heart.fft$auc
+heart.fft$tree.definitions
 ```
 
-
-### Other information
-
-#### train.decision.df, test.decision.df
-
-The `train.decision.df` and `test.decision.df` contain the raw classification decisions for each tree for each training (and test) case.
-
-Here are each of the 8 tree decisions for the first 5 training cases.
+The `tree.stats` list contains classification statistics for all trees applied to both training `tree.stats$train` and test `tree.stats$test` data:
 
 ```{r}
-heart.fft$decision.train[1:5,]
+heart.fft$tree.stats$train
 ```
 
+### decision
 
-#### train.levelout.df, test.levelout.df
+The `decision` list contains the raw classification decisions for each tree for each training (and test) case.
 
-The `train.levelout.df` and `test.levelout.df` contain the levels at which each case was classified for each tree.
-
-Here are the levels at which the first 5 training cases were classified:
+Here are is how each tree classified the first five cases in the training data:
 
 ```{r}
-heart.fft$levelout.train[1:5,]
+heart.fft$decision$train[1:5,]
 ```
 
+### levelout
 
-## Selecting cues
+The `levelout` list contains the levels at which each case was classified for each tree.
 
-If you want to select specific cues for a tree, just include them in the `formula` argument.
-
-For example, the following tree `heart.as.fft` will only consider the cues `sex` and `age`:
+Here are the levels at which the first 5 test cases were classified:
 
 ```{r}
-heart.as.fft <- FFTrees(formula = diagnosis ~ age + sex,
-                    data = heartdisease
-                    )
+heart.fft$levelout$test[1:5,]
+```
+
+### Predicting new data with predict()
+
+Once you've created an FFTrees object, you can use it to predict new data using `predict()`. This will return a new FFTrees object with the new data used as test data. This will overwrite any existing test data in the FFTrees object but will save all training data. In this example, I'll use the `heart.fft` object to make predictions for cases 1 through 50 in the heartdisease dataset:
+
+```{r}
+heart.fft <- predict(heart.fft,
+                     data.test = heartdisease[1:50,]
+                     )
+```
+
+When you look at `heart.fft` now, you'll see that the new test data (with 50 cases) are stored as test data:
+
+```{r}
+heart.fft
 ```
 
 
-## Plotting trees
+## Visualising trees
 
-Once you've created an fft object using `FFTrees()` you can visualize the tree (and ROC curves) using `plot()`. The following code will visualize the best training tree (tree 2) applied to the test data:
+Once you've created an FFTrees object using `FFTrees()` you can visualize the tree (and ROC curves) using `plot()`. The following code will visualize the best training tree (tree 2) applied to the test data:
 
 ```{r, fig.width = 6, fig.height = 6}
 plot(heart.fft,
@@ -160,12 +138,18 @@ plot(heart.fft,
      )
 ```
 
-See the vignette on `plot.fft` `vignette("fft_plot", package = "fft")` for more details.
+You can also visualize the individual cue accuracies with the `showcues()` function:
+
+```{r fig.width = 5, fig.height = 5}
+showcues(heart.fft)
+```
+
+See the vignette on plotting trees [here](FFTrees_plot.html) for more details on visualizing trees.
 
 ## Additional arguments
 
 The `FFTrees()` function has several additional arguments than change how trees are built. Note: Not all of these arguments have fully tested yet!
 
-- `train.p`: What percent of the data should be used for training? `train.p = .1` will randomly select 10% of the data for training and leave the remaining 90% for testing. Settting `train.p = 1` will fit the trees to the entire dataset (with no testing).
+- `train.p`: What percent of the data should be used for training? `train.p = .1` will randomly select 10% of the data for training and leave the remaining 90% for testing. Setting `train.p = 1` will fit the trees to the entire dataset (with no testing).
 
 - `rank.method`: As trees are being built, should cues be selected based on their marginal accuracy (`rank.method = "m"`) applied to the entire dataset, or on their conditional accuracy (`rank.method = "c"`) applied to all cases that have not yet been classified? Each method has potential pros and cons. The marginal method is much faster to implement and may be prone to less over-fitting. However, the conditional method could capture important conditional dependencies between cues that the marginal method misses.

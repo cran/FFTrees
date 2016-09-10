@@ -3,8 +3,8 @@ library(FFTrees)
 
 ## ---- fig.width = 6, fig.height = 6, echo = T, fig.align='center', echo = F----
 bcancer.fft <- FFTrees(formula = diagnosis ~.,
-                   data = breastcancer
-                 )
+                       data = breastcancer
+                       )
 
 plot(bcancer.fft,
      main = "Breast Cancer",

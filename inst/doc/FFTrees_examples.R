@@ -3,10 +3,14 @@ library(FFTrees)
 
 ## ------------------------------------------------------------------------
 set.seed(100) # For replicability of the training / test data split
+train.samples <- sample(nrow(mushrooms), size = 4000)
+mushrooms.train <- mushrooms[train.samples, ]
+mushrooms.test <- mushrooms[setdiff(1:nrow(mushrooms), train.samples), ]
 
 mushrooms.fft <- FFTrees(formula = poisonous ~.,
-                     data = mushrooms,
-                     train.p = .5)
+                         data = mushrooms.train,
+                         data.test = mushrooms.test
+                         )
 
 ## ------------------------------------------------------------------------
 mushrooms.fft
@@ -22,11 +26,10 @@ plot(mushrooms.fft,
      )
 
 ## ------------------------------------------------------------------------
-set.seed(100) # for replicability
 mushrooms.ring.fft <- FFTrees(formula = poisonous ~ ringtype + ringnum,
-                          data = mushrooms,
-                          train.p = .5
-                          )
+                              data = mushrooms.train,
+                              data.test = mushrooms.test
+                              )
 
 ## ---- fig.width = 6, fig.height = 6, fig.align = 'center'----------------
 plot(mushrooms.ring.fft, 
@@ -36,27 +39,23 @@ plot(mushrooms.ring.fft,
      )
 
 ## ------------------------------------------------------------------------
-iris.fft <- FFTrees(
-  formula = virginica ~.,
-  data = iris,
-  train.p = .5
-  )
+iris.fft <- FFTrees(formula = virginica ~.,
+                    data = iris
+                    )
 
 ## ----fig.width = 6, fig.height = 6, fig.align = 'center'-----------------
 showcues(iris.fft)
 
 ## ---- fig.width = 6, fig.height = 6, fig.align = 'center'----------------
 plot(iris.fft, 
-     data = "test", 
      description = "Iris FFT",
      decision.names = c("Not V", "Virginica")
      )
 
 ## ---- fig.width = 6, fig.height = 6, fig.align = 'center'----------------
 plot(iris.fft, 
-     data = "test", 
      description = "Iris FFT",
      decision.names = c("Not V", "Virginica"),
-     tree = 6     # Show tree #6
+     tree = 2     # Show tree #6
      )
 

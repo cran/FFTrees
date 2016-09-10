@@ -1,7 +1,6 @@
 #' Grows fast and frugal trees
 #' @param formula a formula
-#' @param data.train A training dataset
-#' @param data.test A testing dataset
+#' @param data A dataset
 #' @param max.levels The maximum number of levels in the tree(s)
 #' @param verbose A logical value indicating whether or not to display progress
 #' @param numthresh.method A string indicating how to calculate cue splitting thresholds. "m" = median split, "o" = split that maximizes the tree criterion.
@@ -14,511 +13,445 @@
 #'
 
 
-grow.FFTrees <- function(
-                     formula,
-                     data.train,
-                     data.test = NULL,
-                     rank.method = "m",
-                     numthresh.method = "o",
-                     max.levels = 4,
-                     stopping.rule = "exemplars",
-                     stopping.par = .1,
-                     verbose = F
+grow.FFTrees <- function(formula,
+                         data,
+                         rank.method = "m",
+                         numthresh.method = "o",
+                         max.levels = 4,
+                         stopping.rule = "exemplars",
+                         stopping.par = .1,
+                         verbose = F
 ) {
 
-  tree.criterion <- "v"
-  exit.method <- "fixed"
-  correction <- .25
-  rounding <- 2
-  hr.weight <- .5
+
+tree.criterion <- "v"
+exit.method <- "fixed"
+correction <- .25
+rounding <- 2
+hr.weight <- .5
 
 
-  # Set up dataframes
+# Set up dataframes
 
-  datamf.train <- model.frame(formula = formula, data = data.train)
+data.o <- data
 
-  cue.train <- datamf.train[,2:ncol(datamf.train)]
-  crit.train <- datamf.train[,1]
+data <- model.frame(formula = formula, data = data)
+cue.df <- data[,2:ncol(data)]
+criterion.v <- data[,1]
+crit.name <- names(data)[1]
+n.cues <- ncol(cue.df)
 
-  if(is.null(data.test) == F) {
+# ----------
+# INITIAL TRAINING CUE ACCURACIES
+# ----------
 
-    datamf.test <- model.frame(formula = formula, data = data.test)
+cue.accuracies <- cuerank(formula = formula,
+                        data = data,
+                        tree.criterion = tree.criterion,
+                        numthresh.method = numthresh.method,
+                        rounding = rounding,
+                        verbose = verbose
+)
 
-    cue.test <- datamf.test[,2:ncol(datamf.test)]
-    crit.test <- datamf.test[,1]
+# ----------
+# GROW TREES
+# ----------
+{
 
-  } else{
+  if(verbose) {print("Growing trees..")}
 
-    cue.test <- NULL
-    crit.test <- NULL
+# SETUP TREES
+# create tree.dm (exit values and n.levels)
+
+expand.ls <- lapply(1:(max.levels - 1), FUN = function(x) {return(c(0, 1))})
+expand.ls[[length(expand.ls) + 1]] <- .5
+names(expand.ls) <- c(paste("exit.", 1:(max.levels - 1), sep = ""),
+                    paste("exit.", max.levels, sep = "")
+)
+
+tree.dm <- expand.grid(
+expand.ls,
+stringsAsFactors = F
+)
+
+tree.dm$tree.num <- 1:nrow(tree.dm)
+n.trees <- nrow(tree.dm)
+
+# Set up decision.df and levelout.df
+
+decision <- as.data.frame(matrix(NA,
+                               nrow = length(criterion.v),
+                               ncol = n.trees))
+
+levelout <- as.data.frame(matrix(NA,
+                               nrow = length(criterion.v),
+                               ncol = n.trees))
+
+names(decision) <- paste("tree", 1:n.trees, sep = ".")
+names(levelout) <- paste("tree", 1:n.trees, sep = ".")
+
+# Loop over trees
+for(tree.i in 1:n.trees) {
+
+## Determine exits for tree.i
+
+level.exits.v.i <- unlist(tree.dm[tree.i, grepl("exit.", names(tree.dm))])
+n.levels <- length(level.exits.v.i)
+
+## Set up placeholders
+
+cue.accuracies.original <- cue.accuracies
+decision.v <- rep(NA, length(criterion.v))
+levelout.v <- rep(NA, length(criterion.v))
+
+## level.stats shows cumulative classification decisions statistics at each level
+level.stats = data.frame("level" = NA,
+                         "cue" = NA,
+                         "class" = NA,
+                         "threshold" = NA,
+                         "direction" = NA,
+                         "exit" = NA
+)
+
+level.stat.names <- names(classtable(1, 1))
+level.stats[level.stat.names] <- NA
+
+## asif.stats shows cumulative classification statistics as if all exemplars were
+#   classified at the current level (i.e; if the tree stopped here)
+
+asif.stats <- data.frame("level" = 1:n.levels,
+                         "hr" = NA,
+                         "far" = NA,
+                         "v" = NA,
+                         "v.change" = NA)
+
+# Starting values
+grow.tree <- T
+current.level <- 0
+
+# Apply break function
+apply.break <- function(direction,
+                      threshold.val,
+                      cue.v,
+                      cue.class
+) {
+
+
+if(is.character(threshold.val)) {threshold.val <- unlist(strsplit(threshold.val, ","))}
+
+if(cue.class %in% c("numeric", "integer")) {threshold.val <- as.numeric(threshold.val)}
+
+
+if(direction == "!=") {output <- (cue.v %in% threshold.val) == F}
+if(direction == "=") {output <- cue.v %in% threshold.val}
+if(direction == "<") {output <- cue.v < threshold.val}
+if(direction == "<=") {output <- cue.v <= threshold.val}
+if(direction == ">") {output <- cue.v > threshold.val}
+if(direction == ">=") {output <- cue.v >= threshold.val}
+
+
+return(output)
+
+}
+
+# ------------------
+# Grow Tree!
+# --------------------
+
+while(grow.tree == T) {
+
+current.level <- current.level + 1
+current.exit <- level.exits.v.i[current.level]
+remaining.exemplars <- is.na(decision.v)
+
+# Step 1) Determine cue
+
+if(rank.method == "m") {
+
+cue.accuracies.current <- cue.accuracies.original[(cue.accuracies.original$cue %in% level.stats$cue) == F,]
+
+}
+
+if(rank.method == "c") {
+
+remaining.cues.index <- (names(cue.df) %in% level.stats$cue) == F
+remaining.cues <- names(cue.df)[remaining.cues.index]
+
+# REDUCED DATASET WITH REMAINING EXEMPLARS AND CUES
+data.r <- data[remaining.exemplars, c(crit.name, remaining.cues)]
+
+cue.accuracies.current <-  cuerank(formula = formula,
+                                   data = data.r,
+                                   tree.criterion = tree.criterion,
+                                   numthresh.method = numthresh.method,
+                                   rounding = rounding
+)
+
+}
+
+# GET NEXT CUE
+best.cue.dfndex <- which(cue.accuracies.current[tree.criterion] == max(cue.accuracies.current[tree.criterion], na.rm = T))
+new.cue <- cue.accuracies.current$cue[best.cue.dfndex]
+if(length(new.cue) > 1) {new.cue <- new.cue[sample(1:length(new.cue), size = 1)]}
+
+new.cue.stats <- cue.accuracies.current[cue.accuracies.current$cue == new.cue,]
+
+new.class <- new.cue.stats$class
+new.threshold <- new.cue.stats$threshold
+new.direction <- new.cue.stats$direction
+
+# ADD CUE INFO TO LEVEL.STATS
+
+level.stats$level[current.level] <- current.level
+level.stats$cue[current.level] <- new.cue
+level.stats$class[current.level] <- new.class
+level.stats$threshold[current.level] <- new.threshold
+level.stats$direction[current.level] <- new.direction
+level.stats$exit[current.level] <- current.exit
+
+# CUE DECISIONS
+
+cue.decisions <- apply.break(direction = new.direction,
+                                 threshold.val = new.threshold,
+                                 cue.v = data[[new.cue]],
+                                 cue.class = new.cue.stats$class
+)
+
+cue.classtable <- classtable(prediction.v = cue.decisions,
+                                 criterion.v = criterion.v)
+
+# ASIF DECISIONS
+
+as.if.decision.v <- decision.v
+as.if.decision.v[remaining.exemplars] <- cue.decisions[remaining.exemplars]
+
+asif.classtable <- classtable(prediction.v = as.if.decision.v,
+                              criterion.v = criterion.v)
+
+asif.stats[current.level, c("hr", "far", "v")] <-  asif.classtable[1, c("hr", "far", "v")]
+
+# If ASIF classification is perfect, then stop!
+if(asif.stats$v[current.level] == 1) {break}
+
+if(current.level == 1) {
+  asif.stats$v.change[1] <- asif.classtable$v
+}
+
+if(current.level > 1) {
+
+  v.change <- asif.stats$v[current.level] - asif.stats$v[current.level - 1]
+  asif.stats$v.change[current.level] <- v.change
+
+}
+
+# Step 3) Classify participants in current level
+{
+
+if(current.exit == 1 | current.exit == .5) {
+
+  decide.1.index <- remaining.exemplars & cue.decisions == T
+
+  decision.v[decide.1.index] <- 1
+  levelout.v[decide.1.index] <- current.level
+
+}
+
+
+if(current.exit == 0 | current.exit == .5) {
+
+  decide.0.index <- is.na(decision.v) & cue.decisions == F
+
+  decision.v[decide.0.index] <- 0
+  levelout.v[decide.0.index] <- current.level
+
+
+}
+}
+
+remaining.exemplars <- is.na(decision.v)
+
+# Step X) Update Results
+{
+
+# Get cumulative stats of examplars currently classified
+
+cum.classtable <- classtable(
+  prediction.v = decision.v[remaining.exemplars == F],
+  criterion.v = criterion.v[remaining.exemplars == F])
+
+# Update level stats
+
+level.stats[current.level, c("level", "cue", "class", "threshold", "direction", "exit")] <- c(
+  current.level, new.cue.stats[c("cue", "class", "threshold", "direction")], current.exit)
+
+level.stats[current.level, names(cum.classtable)] <- cum.classtable
+
+}
+
+# Step 4) Continue growing tree?
+{
+
+n.remaining <- sum(remaining.exemplars)
+
+if(n.remaining > 0 & current.level != n.cues & exit.method == "fixed") {
+
+  if(current.level < n.levels) {grow.tree <- T}
+  if(current.level == n.levels) {grow.tree <- F}
+
+}
+if(n.remaining == 0 | current.level == n.cues) {break}
+if(stopping.rule == "exemplars" & n.remaining < stopping.par * nrow(cue.df)) {break}
+if(stopping.rule == "levels" & current.level == stopping.par) {break}
+
+  level.stats[current.level + 1,] <- NA
+
+}
+
+}  # STOP while(grow.tree) Loop
+
+# Step 5) No more growth. Turn last level into a bi-directional one
+{
+
+last.level <- max(level.stats$level)
+last.cue <- level.stats$cue[last.level]
+
+last.exitdirection <- level.stats$exit[level.stats$level == last.level]
+
+if(last.exitdirection != .5) {
+
+decision.v[levelout.v == last.level] <- NA
+
+new.cue.stats <- cue.accuracies.current[cue.accuracies.current$cue == last.cue,]
+
+decision.index <- is.na(decision.v)
+
+# Step 2) Determine accuracy of negative and positive classification
+
+current.decisions <- apply.break(direction = new.direction,
+                                 threshold.val = new.threshold,
+                                 cue.v = data[[last.cue]],
+                                 cue.class = new.class
+)
+
+decide.0.index <- decision.index == T & current.decisions == 0
+decide.1.index <- decision.index == T & current.decisions == 1
+
+decision.v[decide.0.index] <- 0
+decision.v[decide.1.index] <- 1
+
+levelout.v[decide.0.index] <- current.level
+levelout.v[decide.1.index] <- current.level
+
+# up
+
+last.classtable <- classtable(prediction.v = decision.v,
+                              criterion.v = criterion.v)
+
+level.stats$exit[last.level] <- .5
+level.stats[last.level, names(last.classtable)] <- last.classtable
+
+}
+
+}
+
+# ------------------
+# Tree is finished!
+# --------------------
+
+# Set up final output
+
+decision[,tree.i] <- decision.v
+levelout[,tree.i] <- levelout.v
+
+level.stats$tree <- tree.i
+
+if(tree.i == 1) {level.stats.df <- level.stats}
+if(tree.i > 1) {level.stats.df <- rbind(level.stats.df, level.stats)}
 
   }
 
-  n.cues <- ncol(cue.train)
-
-  # ----------
-  # INITIAL TRAINING CUE ACCURACIES
-  # ----------
-
-  if(verbose) {print("Calculating initial cue accuracies...")}
-
-  cue.accuracies.train <- cuerank(cue.df = cue.train,
-                                  criterion.v = crit.train,
-                                  tree.criterion = tree.criterion,
-                                  numthresh.method = numthresh.method,
-                                  rounding = rounding,
-                                  verbose = verbose
-  )
-
-  # ----------
-  # GROW TREES
-  # ----------
-  {
-
-    if(verbose) {print("Growing trees..")}
-
-
-    # -----
-    # Set up trees
-    #   tree.dm
-    #   decision.train (.test)
-    #   levelout.train (.test)
-    # ----
-
-    # create tree.dm (exit values and n.levels)
-
-    expand.ls <- lapply(1:(max.levels - 1), FUN = function(x) {return(c(0, 1))})
-
-    expand.ls[[length(expand.ls) + 1]] <- .5
-
-
-    names(expand.ls) <- c(paste("exit.", 1:(max.levels - 1), sep = ""),
-                          paste("exit.", max.levels, sep = "")
-    )
-
-
-    tree.dm <- expand.grid(
-      expand.ls,
-      stringsAsFactors = F
-    )
-
-    tree.dm$tree.num <- 1:nrow(tree.dm)
-
-    n.trees <- nrow(tree.dm)
-
-    # Set up decision.df and levelout.df
-
-    decision.train <- as.data.frame(matrix(NA,
-                                           nrow = length(crit.train),
-                                           ncol = n.trees))
-
-    levelout.train <- as.data.frame(matrix(NA,
-                                           nrow = length(crit.train),
-                                           ncol = n.trees))
-
-    names(decision.train) <- paste("tree", 1:n.trees, sep = ".")
-    names(levelout.train) <- paste("tree", 1:n.trees, sep = ".")
-
-    # Loop over trees
-    for(tree.i in 1:n.trees) {
-
-      # ----------
-      # Step 3: Grow tree.i
-      # ----------
-
-      ## Determine exits for tree.i
-
-      level.exits.v.i <- unlist(tree.dm[tree.i, grepl("exit.", names(tree.dm))])
-      n.levels <- length(level.exits.v.i)
-
-
-      ## Set up placeholders
-
-      cue.train.i <- cue.train
-      criterion.v.i <- crit.train
-      cue.accuracies.original <- cue.accuracies.train
-      decision.v <- rep(NA, length(crit.train))
-      levelout.v <- rep(NA, length(crit.train))
-
-
-      level.stats = data.frame("level.num" = NA,
-                               "level.name" = NA,
-                               "level.class" = NA,
-                               "level.threshold" = NA,
-                               "level.sigdirection" = NA,
-                               "level.exitdirection" = NA
-      )
-
-      level.stat.names <- c("hi", "mi", "fa", "cr", "hr", "far", "v", "dprime", "correction", "hr.weight")
-      level.stats[level.stat.names] <- NA
-
-
-      # Starting values
-      grow.tree <- T
-      current.level <- 0
-
-      # Apply break function
-      apply.break <- function(direction,
-                              threshold.val,
-                              cue.v,
-                              cue.class
-      ) {
-
-
-        if(is.character(threshold.val)) {threshold.val <- unlist(strsplit(threshold.val, ","))}
-
-        if(cue.class %in% c("numeric", "integer")) {threshold.val <- as.numeric(threshold.val)}
-
-
-        if(direction == "!=") {output <- (cue.v %in% threshold.val) == F}
-        if(direction == "=") {output <- cue.v %in% threshold.val}
-        if(direction == "<") {output <- cue.v < threshold.val}
-        if(direction == "<=") {output <- cue.v <= threshold.val}
-        if(direction == ">") {output <- cue.v > threshold.val}
-        if(direction == ">=") {output <- cue.v >= threshold.val}
-
-
-        return(output)
-
-      }
-
-      # ------------------
-      # Grow Tree!
-      # --------------------
-
-      while(grow.tree == T) {
-
-        current.level <- current.level + 1
-
-        # Step 1) Determine cue
-
-        if(rank.method == "m") {
-
-          cue.accuracies.current <- cue.accuracies.original[(cue.accuracies.original$cue.name %in% level.stats$level.name) == F,]
-
-        }
-
-        if(rank.method == "c") {
-
-          remaining.exemplars <- is.na(decision.v)
-          remaining.cues.index <- (names(cue.train.i) %in% level.stats$level.name) == F
-          remaining.cues <- names(cue.train.i)[remaining.cues.index]
-
-          if(length(remaining.cues) == 1) {
-
-            cue.train.i.temp <- as.data.frame(cue.train.i[remaining.exemplars, remaining.cues])
-            names(cue.train.i.temp) <- remaining.cues
-
-          }
-
-          if(length(remaining.cues) > 1) {
-
-            cue.train.i.temp <- cue.train.i[remaining.exemplars, remaining.cues]
-
-          }
-
-          cue.accuracies.current <-  cuerank(cue.df = cue.train.i.temp,
-                                             criterion.v = criterion.v.i[remaining.exemplars],
-                                             tree.criterion = tree.criterion,
-                                             numthresh.method = numthresh.method,
-                                             rounding = rounding
-          )
-
-        }
-
-        best.cue.index <- which(cue.accuracies.current[tree.criterion] == max(cue.accuracies.current[tree.criterion], na.rm = T))
-
-        new.cue <- cue.accuracies.current$cue.name[best.cue.index]
-
-        if(length(new.cue) > 1) {new.cue <- new.cue[sample(1:length(new.cue), size = 1)]}
-
-        new.cue.stats <- cue.accuracies.current[cue.accuracies.current$cue.name == new.cue,]
-
-        # Step 2) Make decisions If all remaining exemplars were classified
-
-        current.decisions <- apply.break(direction = new.cue.stats$level.sigdirection,
-                                         threshold.val = new.cue.stats$level.threshold,
-                                         cue.v = cue.train.i[, new.cue],
-                                         cue.class = new.cue.stats$cue.class
-        )
-
-        current.level.classtable <- classtable(prediction.v = current.decisions[is.na(decision.v)],
-                                               criterion.v = criterion.v.i[is.na(decision.v)])
-
-
-        current.exit <- level.exits.v.i[current.level]
-
-
-        # Step 3) Classify participants in current level
-        {
-
-          if(current.exit == 1 | current.exit == .5) {
-
-            decide.1.index <- is.na(decision.v) & current.decisions == T
-
-            decision.v[decide.1.index] <- 1
-            levelout.v[decide.1.index] <- current.level
-
-          }
-
-
-          if(current.exit == 0 | current.exit == .5) {
-
-            decide.0.index <- is.na(decision.v) & current.decisions == F
-
-            decision.v[decide.0.index] <- 0
-            levelout.v[decide.0.index] <- current.level
-
-
-          }
-        }
-
-        # Step X) Update Results
-        {
-
-          # Get cumulative stats of examplars currently classified
-
-          cum.level.classtable <- classtable(
-            prediction.v = decision.v[levelout.v <= current.level & is.na(levelout.v) == F],
-            criterion.v = criterion.v.i[levelout.v <= current.level & is.na(levelout.v) == F])
-
-          if(current.level > 1) {
-
-            level.stats[nrow(level.stats) + 1, ] <- NA
-
-          }
-
-          # Update level stats
-
-          level.stats[current.level, c("level.num", "level.name", "level.class", "level.threshold", "level.sigdirection", "level.exitdirection")] <- c(
-            current.level, new.cue.stats[c("cue.name", "cue.class", "level.threshold", "level.sigdirection")], current.exit)
-
-
-          level.stats[current.level, names(cum.level.classtable)] <- cum.level.classtable
-
-        }
-
-        # Step 4) Continue growing tree?
-        {
-
-          n.remaining <- sum(is.na(decision.v))
-
-          if(n.remaining > 0 & current.level != n.cues & exit.method == "fixed") {
-
-            if(current.level < n.levels) {grow.tree <- T}
-            if(current.level == n.levels) {grow.tree <- F}
-
-          }
-          if(n.remaining == 0 | current.level == n.cues) {grow.tree <- F}
-          if(stopping.rule == "exemplars" & n.remaining < stopping.par * nrow(cue.train.i)) {grow.tree <- F}
-          if(stopping.rule == "levels" & current.level == stopping.par) {grow.tree <- F}
-
-        }
-
-      }  # STOP while(grow.tree) Loop
-
-      # Step 5) No more growth. Turn last level into a bi-directional one
-      {
-
-        last.level <- max(level.stats$level.num)
-        last.cue <- level.stats$level.name[last.level]
-
-        last.exitdirection <- level.stats$level.exitdirection[level.stats$level.num == last.level]
-
-        if(last.exitdirection != .5) {
-
-          decision.v[levelout.v == last.level] <- NA
-
-          new.cue.stats <- cue.accuracies.current[cue.accuracies.current$cue.name == last.cue,]
-
-          decision.index <- is.na(decision.v)
-
-
-          # Step 2) Determine accuracy of negative and positive classification
-
-          current.decisions <- apply.break(direction = new.cue.stats$level.sigdirection,
-                                           threshold.val = new.cue.stats$level.threshold,
-                                           cue.v = cue.train.i[, last.cue],
-                                           cue.class = new.cue.stats$cue.class
-          )
-
-          decide.0.index <- decision.index == T & current.decisions == 0
-          decide.1.index <- decision.index == T & current.decisions == 1
-
-          decision.v[decide.0.index] <- 0
-          decision.v[decide.1.index] <- 1
-
-          levelout.v[decide.0.index] <- current.level
-          levelout.v[decide.1.index] <- current.level
-
-          # up
-
-          last.level.classtable <- classtable(prediction.v = decision.v,
-                                              criterion.v = crit.train)
-
-
-
-
-          level.stats$level.exitdirection[last.level] <- .5
-          level.stats[last.level, names(current.level.classtable)] <- last.level.classtable
-
-        }
-
-      }
-
-      # ------------------
-      # Tree is finished!
-      # --------------------
-
-      # Set up final output
-
-      decision.train[,tree.i] <- decision.v
-      levelout.train[,tree.i] <- levelout.v
-
-      level.stats$tree <- tree.i
-
-      if(tree.i == 1) {level.stats.df <- level.stats}
-      if(tree.i > 1) {level.stats.df <- rbind(level.stats.df, level.stats)}
-
-    }
+}
+
+# -------------------------
+# SUMMARISE TREE DEFINITIONS AND STATISTICS
+#   trees
+# -------------------------
+{
+  # Summarise tree definitions
+
+  stat.names <- names(classtable(1, 1))
+
+  trees <- as.data.frame(matrix(NA, nrow = n.trees, ncol = 7))
+  names(trees) <- c("tree", "cues", "nodes", "classes", "exits", "thresholds", "directions")
+
+  for(i in 1:n.trees) {
+    trees$tree[i] <- i
+    trees$cues[i] <- paste(level.stats.df$cue[level.stats.df$tree == i], collapse = ";")
+    trees$nodes[i] <- length(level.stats.df$cue[level.stats.df$tree == i])
+    trees$classes[i] <- paste(level.stats.df$class[level.stats.df$tree == i], collapse = ";")
+    trees$exits[i] <- paste(level.stats.df$exit[level.stats.df$tree == i], collapse = ";")
+    trees$thresholds[i] <- paste(level.stats.df$threshold[level.stats.df$tree == i], collapse = ";")
+    trees$directions[i] <- paste(level.stats.df$direction[level.stats.df$tree == i], collapse = ";")
 
   }
 
+  # Determine final tree train statistics
 
+  for(tree.i in 1:n.trees) {
 
-  # -------------------------
-  # SUMMARISE TREE DEFINITIONS AND STATISTICS
-  #   trees
-  # -------------------------
-  {
-    # Summarise tree definitions
+    tree.i.stats <- classtable(prediction.v = decision[,tree.i],
+                                     criterion.v = criterion.v)
 
-    trees <- as.data.frame(matrix(NA, nrow = n.trees, ncol = 6))
-    names(trees) <- c("tree.num", "level.name", "level.class", "level.exit", "level.threshold", "level.sigdirection")
-
-    trees$n.train <- nrow(cue.train.i)
-    trees$tree.num <- 1:n.trees
-
-    for(i in 1:n.trees) {
-
-      trees$level.name[i] <- paste(level.stats.df$level.name[level.stats.df$tree == i], collapse = ";")
-      trees$level.class[i] <- paste(level.stats.df$level.class[level.stats.df$tree == i], collapse = ";")
-      trees$level.exit[i] <- paste(level.stats.df$level.exitdirection[level.stats.df$tree == i], collapse = ";")
-      trees$level.threshold[i] <- paste(level.stats.df$level.threshold[level.stats.df$tree == i], collapse = ";")
-      trees$level.sigdirection[i] <- paste(level.stats.df$level.sigdirection[level.stats.df$tree == i], collapse = ";")
-
-    }
-
-    # Determine final tree train statistics
-
-    for(tree.i in 1:n.trees) {
-
-      tree.i.train.stats <- classtable(prediction.v = decision.train[,tree.i],
-                                       criterion.v = crit.train)
-
-
-
-      if(tree.i == 1) {tree.train.stats <- tree.i.train.stats}
-      if(tree.i != 1) {tree.train.stats <- rbind(tree.train.stats,
-                                                 tree.i.train.stats)}
-
-    }
-
-    tree.train.stats$tree <- 1:n.trees
-    names(tree.train.stats)[1:8] <- paste(names(tree.train.stats)[1:8], ".train", sep = "")
-    trees <- cbind(trees, tree.train.stats[, 1:8])
-
-    # Add testing stats for all trees
-
-    decision.test <- NULL
-    levelout.test <- NULL
-
-
-    if(is.null(cue.test)) {
-
-      trees[paste(c("n", "hi", "mi", "fa", "cr", "hr", "far", "v", "dprime"), ".test", sep = "")] <- NA
-
-    }
-
-    if(is.null(cue.test) == F) {
-
-      n.test <- length(crit.test)
-
-      levelout.test <- as.data.frame(matrix(NA, nrow = n.test, ncol = n.trees))
-      decision.test <- as.data.frame(matrix(NA, nrow = n.test, ncol = n.trees))
-
-      names(levelout.test) <- paste("tree.", 1:n.trees, sep = "")
-      names(decision.test) <- paste("tree.", 1:n.trees, sep = "")
-
-      trees[paste(c("n", "hi", "mi", "fa", "cr", "hr", "far", "v", "dprime"), ".test", sep = "")] <- NA
-
-      for(tree.i in 1:n.trees) {
-
-        tree.i.pred <- predict.FFTrees(
-                                  formula = formula,
-                                  data = data.test,
-                                  level.name.v = trees$level.name[tree.i],
-                                  level.class.v = trees$level.class[tree.i],
-                                  level.exit.v = trees$level.exit[tree.i],
-                                  level.threshold.v = trees$level.threshold[tree.i],
-                                  level.sigdirection.v = trees$level.sigdirection[tree.i]
-        )
-
-        levelout.test[,tree.i] <- unlist(tree.i.pred$levelout)
-        decision.test[,tree.i] <- unlist(tree.i.pred$decision)
-
-        trees[tree.i, paste(c("n", "hi", "mi", "fa", "cr", "hr", "far", "v", "dprime"), ".test", sep = "")] <- c(n.test, tree.i.pred$tree.stats[c("hi", "mi", "fa", "cr", "hr", "far", "v", "dprime")])
-      }
-
-
-    }
-
-
-    # Remove duplicate trees...
-
-    duplicate.trees <- duplicated(trees[c("level.name", "level.exit", "level.threshold", "level.sigdirection")])
-    trees <- trees[duplicate.trees == F,]
-
-    levelout.train <- levelout.train[,duplicate.trees == F]
-    levelout.test <- levelout.test[,duplicate.trees == F]
-
-    decision.train <- decision.train[,duplicate.trees == F]
-    decision.test <- decision.test[,duplicate.trees == F]
-
-    trees$tree.num <- 1:nrow(trees)
-
-    # Calculate AUC
-
-    fft.auc.train <- auc(trees$hr.train, trees$far.train)
-
-    if(is.null(cue.test) == F) {
-      fft.auc.test <- auc(trees$hr.test, trees$far.test)
-    }
-
-    if(is.null(cue.test)) {fft.auc.test <- NA}
-
+    if(tree.i == 1) {tree.stats <- tree.i.stats}
+    if(tree.i != 1) {tree.stats <- rbind(tree.stats,
+                                         tree.i.stats)}
 
   }
 
+  trees <- cbind(trees, tree.stats)
 
 
-  # setup output
+  # Remove duplicate trees...
+
+  duplicate.trees <- duplicated(trees[c("cues", "exits", "thresholds", "directions")])
+  trees <- trees[duplicate.trees == F,]
+  rownames(trees) <- 1:nrow(trees)
+  trees$tree <- 1:nrow(trees)
+  trees <- trees[,c(which(names(trees) == "tree"), which(names(trees) != "tree"))]
+
+  levelout <- levelout[,duplicate.trees == F]
+  decision <- decision[,duplicate.trees == F]
+
+if(sum(duplicate.trees == F) > 1) {
+  # sort trees by far
+
+  tree.far.order <- order(trees$far)
+
+  trees <- trees[tree.far.order, ]
+  levelout <- levelout[,tree.far.order]
+  decision <- decision[,tree.far.order]
+  colnames(levelout) <- paste("tree.", 1:ncol(levelout), sep = "")
+  colnames(decision) <- paste("tree.", 1:ncol(decision), sep = "")
+}
+
+  trees$tree <- 1:nrow(trees)
 
 
-  # Summaraise all AUC stats
-  auc.df <- matrix(c(fft.auc.train, fft.auc.test), nrow = 2, ncol = 1)
-colnames(auc.df) <- "fft"
-  rownames(auc.df) <- c("train", "test")
+}
 
-  output <- list(
-    auc = auc.df,
-    trees = trees,
-    levelout.train = levelout.train,
-    levelout.test = levelout.test,
-    decision.train = decision.train,
-    decision.test = decision.test
-  )
+# setup output
 
-  return(output)
+tree.definitions <- trees[,c("tree", "cues", "nodes", "classes", "exits", "thresholds", "directions")]
+tree.stats <- trees[,c("tree", names(classtable(1, 1)))]
+
+
+output <- list(
+               tree.definitions = tree.definitions,
+               tree.stats = tree.stats,
+               levelout = levelout,
+               decision = decision
+               )
+
+return(output)
 
 }

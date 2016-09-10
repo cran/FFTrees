@@ -50,13 +50,15 @@ if(any(c("FALSE", "TRUE") %in% paste(criterion.v))) {criterion.v <- as.logical(p
   dprime.c.w <- qnorm(hr.c) * hr.weight - qnorm(far.c) * (1 - hr.weight)
 
   result <- data.frame(
-    hi = hi, mi = mi, fa = fa, cr = cr,
+    n = length(criterion.v),
+    hi = hi,
+    mi = mi,
+    fa = fa,
+    cr = cr,
     hr = hr,
     far = far,
-    v = v.c.w,
-    dprime = dprime.c.w,
-    correction = correction,
-    hr.weight = hr.weight
+    v = v,
+    dprime = dprime.c
   )
 
   return(result)

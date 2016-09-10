@@ -2,10 +2,12 @@
 library(FFTrees)
 
 ## ------------------------------------------------------------------------
-titanic.fft <- FFTrees(
-  formula = survived ~.,
-  data = titanic
-  )
+head(titanic)
+
+## ------------------------------------------------------------------------
+titanic.fft <- FFTrees(formula = survived ~.,
+                       data = titanic
+                       )
 
 ## ----fig.width = 6, fig.height = 6, fig.align = 'center'-----------------
 showcues(titanic.fft,
@@ -17,10 +19,10 @@ plot(titanic.fft,
      decision.names = c("Died", "Survived"))
 
 ## ------------------------------------------------------------------------
-set.seed(100)
+set.seed(100) # For replicability of the training/test split
 titanic.pred.fft <- FFTrees(formula = survived ~.,
-                        data = titanic,
-                        train.p = .5)
+                            data = titanic,
+                            train.p = .5)
 
 ## ---- fig.width = 6, fig.height = 6--------------------------------------
 plot(titanic.pred.fft,
