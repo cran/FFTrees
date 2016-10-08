@@ -2,10 +2,10 @@
 % Please edit documentation in R/cuerank_function.R
 \name{cuerank}
 \alias{cuerank}
-\title{Calculate the accuracy of all cues in a dataframe}
+\title{Calculate the marginal accuracy of all cues in a dataframe. For each cue, the threshold that maximizes the criterion is selected.}
 \usage{
 cuerank(formula = NULL, data = NULL, tree.criterion = "v",
-  numthresh.method = "o", hr.weight = 0.5, rounding = NULL, verbose = F,
+  numthresh.method = "o", rounding = NULL, verbose = F,
   cue.rules = NULL)
 }
 \arguments{
@@ -17,8 +17,6 @@ cuerank(formula = NULL, data = NULL, tree.criterion = "v",
 
 \item{numthresh.method}{A string indicating how to calculate cue splitting thresholds. "m" = median split, "o" = split that maximizes the tree criterion.}
 
-\item{hr.weight}{A number between 0 and 1 indicating how much weight to give to increasing hit rates versus avoiding false alarms. 1 means maximizing HR and ignoring FAR, while 0 does the opposite. The default of 0.5 gives equal weight to both.}
-
 \item{rounding}{An integer indicating digit rounding for non-integer numeric cue thresholds. The default is NULL which means no rounding. A value of 0 rounds all possible thresholds to the nearest integer, 1 rounds to the nearest .1 (etc.).}
 
 \item{verbose}{A logical value indicating whether or not to print ongoing diagnostics}
@@ -26,9 +24,18 @@ cuerank(formula = NULL, data = NULL, tree.criterion = "v",
 \item{cue.rules}{An optional df specifying how to make decisions for each cue. Must contain columns "cue", "class", "threshold" and "direction"}
 }
 \value{
-A dataframe containing marginal classification statistics for each cue
+A dataframe containing best thresholds and marginal classification statistics for each cue
 }
 \description{
-Calculate the accuracy of all cues in a dataframe
+Calculate the marginal accuracy of all cues in a dataframe. For each cue, the threshold that maximizes the criterion is selected.
+}
+\examples{
+
+ # What are the best thresholds for each cue in the mushrooms dataset?
+ mushrooms.cues <- cuerank(formula = poisonous ~.,
+                           data = mushrooms)
+
+
+
 }
 

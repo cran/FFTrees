@@ -9,8 +9,7 @@ mushrooms.test <- mushrooms[setdiff(1:nrow(mushrooms), train.samples), ]
 
 mushrooms.fft <- FFTrees(formula = poisonous ~.,
                          data = mushrooms.train,
-                         data.test = mushrooms.test
-                         )
+                         data.test = mushrooms.test)
 
 ## ------------------------------------------------------------------------
 mushrooms.fft
@@ -22,26 +21,22 @@ showcues(mushrooms.fft, main = "Mushrooms")
 plot(mushrooms.fft, 
      data = "test", 
      description = "Mushrooms FFT",
-     decision.names = c("Safe", "Poisonous")
-     )
+     decision.names = c("Safe", "Poisonous"))
 
 ## ------------------------------------------------------------------------
 mushrooms.ring.fft <- FFTrees(formula = poisonous ~ ringtype + ringnum,
                               data = mushrooms.train,
-                              data.test = mushrooms.test
-                              )
+                              data.test = mushrooms.test)
 
 ## ---- fig.width = 6, fig.height = 6, fig.align = 'center'----------------
 plot(mushrooms.ring.fft, 
      data = "test", 
      description = "Mushrooms (Ring only) FFT",
-     decision.names = c("Safe", "Poisonous")
-     )
+     decision.names = c("Safe", "Poisonous"))
 
 ## ------------------------------------------------------------------------
 iris.fft <- FFTrees(formula = virginica ~.,
-                    data = iris
-                    )
+                    data = iris)
 
 ## ----fig.width = 6, fig.height = 6, fig.align = 'center'-----------------
 showcues(iris.fft)
@@ -49,13 +44,11 @@ showcues(iris.fft)
 ## ---- fig.width = 6, fig.height = 6, fig.align = 'center'----------------
 plot(iris.fft, 
      description = "Iris FFT",
-     decision.names = c("Not V", "Virginica")
-     )
+     decision.names = c("Not V", "Virginica"))
 
 ## ---- fig.width = 6, fig.height = 6, fig.align = 'center'----------------
 plot(iris.fft, 
      description = "Iris FFT",
      decision.names = c("Not V", "Virginica"),
-     tree = 2     # Show tree #6
-     )
+     tree = 2)     # Show tree #6
 

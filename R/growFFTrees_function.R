@@ -3,32 +3,57 @@
 #' @param data A dataset
 #' @param max.levels The maximum number of levels in the tree(s)
 #' @param verbose A logical value indicating whether or not to display progress
-#' @param numthresh.method A string indicating how to calculate cue splitting thresholds. "m" = median split, "o" = split that maximizes the tree criterion.
 #' @param rank.method A string indicating how to rank cues during tree construction. "m" (for marginal) means that cues will only be ranked once with the entire training dataset. "c" (conditional) means that cues will be ranked after each level in the tree with the remaining unclassified training exemplars.
+#' @param repeat.cues A logical value indicating whether or not to allow repeated cues in the tree. Only relevant when `rank.method = 'c'.
+#' @param hr.weight A value between 0 and 1 indicating how much weight to give to maximizing hit rates versus minimizing false alarm rates. Used for ranking cues in the tree.
 #' @param stopping.rule A string indicating the method to stop growing trees. "levels" means the tree grows until a certain level. "exemplars" means the tree grows until a certain number of unclassified exemplars remain. "statdelta" means the tree grows until the change in the tree.criterion statistic is less than a specified level.
 #' @param stopping.par A number indicating the parameter for the stopping rule. For stopping.rule == "levels", this is the number of levels. For stopping rule == "exemplars", this is the smallest percentage of examplars allowed in the last level.
 #' @importFrom stats anova predict glm as.formula
-#' @return A list of length 3. The first element "tree.acc" is a dataframe containing the final statistics of all trees. The second element "cue.accuracies" shows the accuracies of all cues. The third element "tree.class.ls" is a list with n.trees elements, where each element shows the final decisions for each tree for each exemplar.
+#' @return A list of length 4. tree.definitions contains definitions of the tree(s). tree.stats contains classification statistics for the tree(s). levelout shows which level in the tree(s) each exemplar is classified. Finally, decision shows the classification decision for each tree for each exemplar
 #' @export
+#' @examples
+#'
+#'  titanic.trees <- grow.FFTrees(formula = survived ~.,
+#'                                    data = titanic)
+#'
+#' # Tree definitions are stored in tree.definitions
+#'
+#' titanic.trees$tree.definitions
+#'
+#' # Tree classification statistics are in tree.stats
+#'
+#' titanic.trees$tree.stats
+#'
+#' # The level at which each exemplar is classified for each tree is in levelout
+#'
+#' titanic.trees$levelout
+#'
+#' # The decision for each exemplar for each tree is in decision
+#'
+#' titanic.trees$decision
+#'
+#'
 #'
 
 
 grow.FFTrees <- function(formula,
                          data,
                          rank.method = "m",
-                         numthresh.method = "o",
+                         repeat.cues = TRUE,
+                         hr.weight = .5,
                          max.levels = 4,
                          stopping.rule = "exemplars",
                          stopping.par = .1,
                          verbose = F
 ) {
+#
 
-
+numthresh.method <- "o"
 tree.criterion <- "v"
 exit.method <- "fixed"
 correction <- .25
 rounding <- 2
-hr.weight <- .5
+
 
 
 # Set up dataframes
@@ -37,6 +62,14 @@ data.o <- data
 
 data <- model.frame(formula = formula, data = data)
 cue.df <- data[,2:ncol(data)]
+
+if(ncol(data) == 2) {
+
+  cue.df <- data.frame(cue.df)
+  names(cue.df) <- names(data)[2]
+
+}
+
 criterion.v <- data[,1]
 crit.name <- names(data)[1]
 n.cues <- ncol(cue.df)
@@ -50,8 +83,7 @@ cue.accuracies <- cuerank(formula = formula,
                         tree.criterion = tree.criterion,
                         numthresh.method = numthresh.method,
                         rounding = rounding,
-                        verbose = verbose
-)
+                        verbose = verbose)
 
 # ----------
 # GROW TREES
@@ -63,16 +95,22 @@ cue.accuracies <- cuerank(formula = formula,
 # SETUP TREES
 # create tree.dm (exit values and n.levels)
 
-expand.ls <- lapply(1:(max.levels - 1), FUN = function(x) {return(c(0, 1))})
-expand.ls[[length(expand.ls) + 1]] <- .5
-names(expand.ls) <- c(paste("exit.", 1:(max.levels - 1), sep = ""),
-                    paste("exit.", max.levels, sep = "")
-)
+if(max.levels > 1) {
 
-tree.dm <- expand.grid(
-expand.ls,
-stringsAsFactors = F
-)
+  expand.ls <- lapply(1:(max.levels - 1), FUN = function(x) {return(c(0, 1))})
+  expand.ls[[length(expand.ls) + 1]] <- .5
+  names(expand.ls) <- c(paste("exit.", 1:(max.levels - 1), sep = ""),
+                      paste("exit.", max.levels, sep = ""))
+
+  tree.dm <- expand.grid(
+  expand.ls,
+  stringsAsFactors = F)
+}
+
+if(max.levels == 1) {
+  tree.dm <- data.frame("exit.1" = .5)
+}
+
 
 tree.dm$tree.num <- 1:nrow(tree.dm)
 n.trees <- nrow(tree.dm)
@@ -110,8 +148,7 @@ level.stats = data.frame("level" = NA,
                          "class" = NA,
                          "threshold" = NA,
                          "direction" = NA,
-                         "exit" = NA
-)
+                         "exit" = NA)
 
 level.stat.names <- names(classtable(1, 1))
 level.stats[level.stat.names] <- NA
@@ -128,31 +165,6 @@ asif.stats <- data.frame("level" = 1:n.levels,
 # Starting values
 grow.tree <- T
 current.level <- 0
-
-# Apply break function
-apply.break <- function(direction,
-                      threshold.val,
-                      cue.v,
-                      cue.class
-) {
-
-
-if(is.character(threshold.val)) {threshold.val <- unlist(strsplit(threshold.val, ","))}
-
-if(cue.class %in% c("numeric", "integer")) {threshold.val <- as.numeric(threshold.val)}
-
-
-if(direction == "!=") {output <- (cue.v %in% threshold.val) == F}
-if(direction == "=") {output <- cue.v %in% threshold.val}
-if(direction == "<") {output <- cue.v < threshold.val}
-if(direction == "<=") {output <- cue.v <= threshold.val}
-if(direction == ">") {output <- cue.v > threshold.val}
-if(direction == ">=") {output <- cue.v >= threshold.val}
-
-
-return(output)
-
-}
 
 # ------------------
 # Grow Tree!
@@ -174,24 +186,46 @@ cue.accuracies.current <- cue.accuracies.original[(cue.accuracies.original$cue %
 
 if(rank.method == "c") {
 
+data.r <- data[remaining.exemplars, ]
+
+# If cues canNOT be repeated, then remove old cues as well
+if(repeat.cues == FALSE) {
+
 remaining.cues.index <- (names(cue.df) %in% level.stats$cue) == F
 remaining.cues <- names(cue.df)[remaining.cues.index]
+data.r <- data.r[, c(crit.name, remaining.cues)]
 
-# REDUCED DATASET WITH REMAINING EXEMPLARS AND CUES
-data.r <- data[remaining.exemplars, c(crit.name, remaining.cues)]
+}
 
+# Calculate new cue accuracies
 cue.accuracies.current <-  cuerank(formula = formula,
                                    data = data.r,
                                    tree.criterion = tree.criterion,
                                    numthresh.method = numthresh.method,
-                                   rounding = rounding
-)
+                                   rounding = rounding)
 
 }
 
-# GET NEXT CUE
-best.cue.dfndex <- which(cue.accuracies.current[tree.criterion] == max(cue.accuracies.current[tree.criterion], na.rm = T))
-new.cue <- cue.accuracies.current$cue[best.cue.dfndex]
+# GET NEXT CUE BASED ON WEIGHTED HR AND FAR
+
+hr.vec <- cue.accuracies.current$hr
+far.vec <- cue.accuracies.current$far
+
+if(tree.criterion == "v") {
+
+  weighted.v.vec <- hr.vec * hr.weight - far.vec * (1 - hr.weight)
+  best.cue.index <- which(weighted.v.vec == max(weighted.v.vec))
+
+}
+
+if(substr(tree.criterion, 1, 1) == "d") {
+
+  weighted.d.vec <- qnorm(hr.vec) * hr.weight - qnorm(far.vec) * (1 - hr.weight)
+  best.cue.index <- which(weighted.d.vec == max(weighted.d.vec))
+
+}
+
+new.cue <- cue.accuracies.current$cue[best.cue.index]
 if(length(new.cue) > 1) {new.cue <- new.cue[sample(1:length(new.cue), size = 1)]}
 
 new.cue.stats <- cue.accuracies.current[cue.accuracies.current$cue == new.cue,]
@@ -214,8 +248,7 @@ level.stats$exit[current.level] <- current.exit
 cue.decisions <- apply.break(direction = new.direction,
                                  threshold.val = new.threshold,
                                  cue.v = data[[new.cue]],
-                                 cue.class = new.cue.stats$class
-)
+                                 cue.class = new.cue.stats$class)
 
 cue.classtable <- classtable(prediction.v = cue.decisions,
                                  criterion.v = criterion.v)
@@ -445,12 +478,10 @@ tree.definitions <- trees[,c("tree", "cues", "nodes", "classes", "exits", "thres
 tree.stats <- trees[,c("tree", names(classtable(1, 1)))]
 
 
-output <- list(
-               tree.definitions = tree.definitions,
+output <- list(tree.definitions = tree.definitions,
                tree.stats = tree.stats,
                levelout = levelout,
-               decision = decision
-               )
+               decision = decision)
 
 return(output)
 

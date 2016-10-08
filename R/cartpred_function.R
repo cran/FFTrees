@@ -7,32 +7,51 @@
 #' @importFrom stats model.frame formula glm
 #' @importFrom rpart rpart
 #' @export
+#' @examples
+#'
+#' # Fit CART for the mushrooms dataset
+#'
+#' mushrooms.cart <- cart.pred(formula = poisonous ~.,
+#'                             data.train = mushrooms)
+#'
+#'
 #'
 
-
-cart.pred <- function(
-  formula,
-  data.train,
-  data.test = NULL,
-  cart.model = NULL,
-  cost.mi = 1,
-  cost.fa = 1
-) {
-
+cart.pred <- function(formula,
+                      data.train,
+                      data.test = NULL,
+                      cart.model = NULL,
+                      cost.mi = 1,
+                      cost.fa = 1) {
 
 if(is.null(data.train) == F) {
 
-  data.mf.train <- model.frame(formula = formula, data = data.train)
+  data.mf.train <- model.frame(formula = formula,
+                               data = data.train,
+                               na.action = NULL)
+
   cue.train <- data.mf.train[,2:ncol(data.mf.train)]
   crit.train <- data.mf.train[,1]
+
+  if(ncol(data.mf.train) == 2) {
+
+    cue.train <- data.frame(cue.train)
+    names(cue.train) <- names(data.mf.train)[2]
+    }
 
 }
 
 if(is.null(data.test) == F) {
 
-  data.mf.test <- model.frame(formula = formula, data = data.test)
+  data.mf.test <- model.frame(formula = formula, data = data.test, na.action = NULL)
   cue.test <- data.mf.test[,2:ncol(data.mf.test)]
   crit.test <- data.mf.test[,1]
+
+  if(ncol(data.mf.test) == 2) {
+
+    cue.test <- data.frame(cue.test)
+    names(cue.test) <- names(data.mf.test)[2]
+  }
 
 }
 
@@ -44,7 +63,8 @@ if(is.null(cart.model) == T) {
 cart.train.mod <- rpart::rpart(formula,
                                data = data.train,
                                method = "class",
-                               parms = list(loss = matrix(c(0, cost.mi, cost.fa, 0), byrow = T, nrow = 2))
+                               parms = list(loss = matrix(c(0, cost.mi, cost.fa, 0),
+                                                          byrow = T, nrow = 2))
 )
 
 } else {

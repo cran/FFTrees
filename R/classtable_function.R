@@ -3,54 +3,61 @@
 #' @param criterion.v A binary vector of criterion (true) values
 #' @importFrom stats qnorm
 #' @export
+#' @examples
+#'
+#'
+#'  # classification statistics for 5 cases
+#' classtable(prediction.v = c(0, 0, 0, 1, 1),
+#'            criterion.v = c(0, 0, 1, 0, 1))
+#'
+#' # Same as above, but now is perfect
+#' classtable(prediction.v = c(0, 0, 1, 0, 1),
+#'            criterion.v = c(0, 0, 1, 0, 1))
+#'
+#'
 #'
 
 classtable <- function(prediction.v,
                        criterion.v) {
 
+  N <- length(criterion.v)
 
 if(any(c("FALSE", "TRUE") %in% paste(prediction.v))) {prediction.v <- as.logical(paste(prediction.v))}
 if(any(c("FALSE", "TRUE") %in% paste(criterion.v))) {criterion.v <- as.logical(paste(criterion.v))}
 
   correction <- .25
-  hr.weight <- .5
 
   hi <- sum(prediction.v == 1 & criterion.v == 1)
   mi <- sum(prediction.v == 0 & criterion.v == 1)
   fa <- sum(prediction.v == 1 & criterion.v == 0)
   cr <- sum(prediction.v == 0 & criterion.v == 0)
 
-  hr <- hi / (hi + mi)
-  far <- fa / (cr + fa)
+  if((hi + mi) == 0 | (cr + fa) == 0) {
+
+    hi.c <- hi + correction
+    mi.c <- mi + correction
+    fa.c <- fa + correction
+    cr.c <- cr + correction
+
+  } else {
+
+    hi.c <- hi
+    mi.c <- mi
+    fa.c <- fa
+    cr.c <- cr
+
+  }
+
+
+  hr <- hi.c / (hi.c + mi.c)
+  far <- fa.c / (cr.c + fa.c)
+
   v <- hr - far
+
   dprime <- qnorm(hr) - qnorm(far)
 
-  correct.index <- hi == 0 | mi == 0 | fa == 0 | cr == 0
-
-  hi.c <- hi
-  mi.c <- mi
-  fa.c <- fa
-  cr.c <- cr
-
-  hi.c[correct.index] <- hi[correct.index] + correction
-  mi.c[correct.index] <- mi[correct.index] + correction
-  fa.c[correct.index] <- fa[correct.index] + correction
-  cr.c[correct.index] <- cr[correct.index] + correction
-
-  hr.c <- hi.c / (hi.c + mi.c)
-  far.c <- fa.c / (fa.c + cr.c)
-  v.c <- hr.c - far.c
-  dprime.c <- qnorm(hr.c) - qnorm(far.c)
-
-
-  v.w <- hr * hr.weight - far * (1 - hr.weight)
-  dprime.w <- qnorm(hr) * hr.weight - qnorm(far) * (1 - hr.weight)
-
-  v.c.w <- (hr.c * hr.weight - far.c * (1 - hr.weight)) * (1 / hr.weight)
-  dprime.c.w <- qnorm(hr.c) * hr.weight - qnorm(far.c) * (1 - hr.weight)
-
   result <- data.frame(
-    n = length(criterion.v),
+    n = N,
     hi = hi,
     mi = mi,
     fa = fa,
@@ -58,8 +65,7 @@ if(any(c("FALSE", "TRUE") %in% paste(criterion.v))) {criterion.v <- as.logical(p
     hr = hr,
     far = far,
     v = v,
-    dprime = dprime.c
-  )
+    dprime = dprime)
 
   return(result)
 

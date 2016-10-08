@@ -1,8 +1,8 @@
 Package: FFTrees
 Type: Package
 Title: Generate, Visualise, and Compare Fast and Frugal Decision Trees
-Version: 1.1.6
-Date: 2016-09-08
+Version: 1.1.8
+Date: 2016-10-8
 Authors@R: person("Nathaniel", "Phillips", email = "Nathaniel.D.Phillips.is@gmail.com",
                   role = c("aut", "cre"))
 Maintainer: Nathaniel Phillips <Nathaniel.D.Phillips.is@gmail.com>
@@ -21,7 +21,7 @@ RoxygenNote: 5.0.1
 Suggests: knitr, rmarkdown
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2016-09-10 07:23:15 UTC; nphillips
+Packaged: 2016-10-08 14:36:01 UTC; nphillips
 Author: Nathaniel Phillips [aut, cre]
 Repository: CRAN
-Date/Publication: 2016-09-10 18:11:29
+Date/Publication: 2016-10-08 21:53:23
