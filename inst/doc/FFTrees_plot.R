@@ -6,12 +6,12 @@ head(titanic)
 
 ## ------------------------------------------------------------------------
 titanic.fft <- FFTrees(formula = survived ~.,
-                       data = titanic
-                       )
+                       data = titanic)
 
 ## ----fig.width = 6, fig.height = 6, fig.align = 'center'-----------------
-showcues(titanic.fft,
-         main = "Titanic cue accuracy")
+plot(titanic.fft,
+     main = "Titanic cue accuracy",
+     what = 'cues')
 
 ## ---- fig.width = 6, fig.height = 6--------------------------------------
 plot(titanic.fft, 

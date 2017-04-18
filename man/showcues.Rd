@@ -2,24 +2,22 @@
 % Please edit documentation in R/showcues_function.R
 \name{showcues}
 \alias{showcues}
-\title{Visualizes cue accuracies in a ROC space}
+\title{Visualizes cue accuracies from an FFTrees object in a ROC space}
 \usage{
-showcues(x = NULL, data = "train", main = NULL, top = 5,
-  palette = c("#0C5BB07F", "#EE00117F", "#15983D7F", "#EC579A7F", "#FA6B097F",
-  "#149BED7F", "#A1C7207F", "#FEC10B7F", "#16A08C7F", "#9A703E7F"))
+showcues(x = NULL, data = "train", cue.accuracies = NULL, main = NULL,
+  top = 5)
 }
 \arguments{
 \item{x}{An FFTrees object}
 
 \item{data}{A string indicating whether or not to show training ("train") or testing ("test") cue accuracies}
 
+\item{cue.accuracies}{dataframe. An optional dataframe specifying cue accuracies directly (without specifying an FFTrees object x)}
+
 \item{main}{Main plot description}
 
 \item{top}{An integer indicating how many of the top cues to highlight}
-
-\item{palette}{An optional vector of colors}
 }
 \description{
-Visualizes cue accuracies in a ROC space
+Visualizes cue accuracies from an FFTrees object in a ROC space
 }
-

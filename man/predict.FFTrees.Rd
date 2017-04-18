@@ -2,43 +2,43 @@
 % Please edit documentation in R/predictFFTrees_function.R
 \name{predict.FFTrees}
 \alias{predict.FFTrees}
-\title{Applies an existing FFTrees object to a new (test) data set}
+\title{Predict new data from an FFTrees x}
 \usage{
-\method{predict}{FFTrees}(object = NULL, data.test = NULL, ...)
+\method{predict}{FFTrees}(object = NULL, data = NULL, tree = "best.train",
+  ...)
 }
 \arguments{
-\item{object}{(M) An FFTrees object created from the FFTrees() function.}
+\item{object}{An FFTrees object created from the FFTrees() function.}
 
-\item{data.test}{(M) A dataframe of test data}
+\item{data}{A dataframe of test data}
 
-\item{...}{Additional arguments passed on to predict()}
+\item{tree}{Which tree in the FFTrees x should be used? Can be an integer or "best.train" (the default) to use the tree with the best training statistics.}
+
+\item{...}{Additional arguments passed on to \code{predict()}}
 }
 \value{
-An FFTrees object
+A logical vector of predictions
 }
 \description{
-Applies an existing FFTrees object to a new (test) data set
+Predict new data from an FFTrees x
 }
 \examples{
 
 
-  # Create an FFTrees object from 200 cases from thethe breastcancer dataset
+  # Create training and test data
 
-  breastcancer.fft <- FFTrees(formula = diagnosis ~.,
-                              data = breastcancer[1:300,])
+  set.seed(100)
+  breastcancer <- breastcancer[sample(nrow(breastcancer)),]
+  breast.train <- breastcancer[1:150,]
+  breast.test <- breastcancer[151:303,]
 
-  # Currently the object only contains training data
-  breastcancer.fft
+  # Create an FFTrees x from the training data
 
-  # Now add the rest of the dataset as test data using predict
-  #
-  breastcancer.fft <- predict(breastcancer.fft,
-  data.test = breastcancer[301:nrow(breastcancer),])
+  breast.fft <- FFTrees(formula = diagnosis ~.,
+                              data = breast.train)
 
-  # Now the new data are stored as test data
-  breastcancer.fft
-
-
+ # Predict results for test data
+  breast.fft.pred <- predict(breast.fft,
+                             data = breast.test)
 
 }
-

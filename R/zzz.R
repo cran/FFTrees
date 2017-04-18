@@ -1,6 +1,11 @@
 
 .onAttach <- function(libname, pkgname) {
-  packageStartupMessage("************\nWelcome to FFTrees")
-  packageStartupMessage("Run FFTrees.guide() to see the main package guide")
-  packageStartupMessage("Email me at Nathaniel.D.Phillips.is@gmail.com with questions, comments, or movie recommendations\n************")
+  packageStartupMessage("FFTrees v1.2.2. FFTrees.guide() opens the package guide.")
+  packageStartupMessage("Email: Nathaniel.D.Phillips.is@gmail.com")
+  packageStartupMessage("----o------")
+  packageStartupMessage("---/-\\-----")
+  packageStartupMessage("--x---o----")
+  packageStartupMessage("-----/-\\---")
+  packageStartupMessage("----x---x--")
+
 }

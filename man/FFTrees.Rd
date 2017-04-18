@@ -2,39 +2,76 @@
 % Please edit documentation in R/FFTrees.R
 \name{FFTrees}
 \alias{FFTrees}
-\title{Create Fast and Frugal Trees (FFTrees)}
+\title{Creates a Fast and Frugal Trees (FFTrees) object.}
 \usage{
 FFTrees(formula = NULL, data = NULL, data.test = NULL, train.p = 1,
-  rank.method = "m", repeat.cues = TRUE, hr.weight = 0.5, verbose = F,
-  max.levels = 4, do.cart = T, do.lr = T, object = NULL)
+  algorithm = "m", goal = "bacc", sens.weight = 0.5, max.levels = 4,
+  tree.definitions = NULL, verbose = FALSE, do.cart = TRUE,
+  do.lr = TRUE, do.rf = TRUE, do.svm = TRUE, store.data = FALSE,
+  object = NULL, rank.method = NULL)
 }
 \arguments{
-\item{formula}{A formula}
+\item{formula}{formula. A formula specifying a logical criterion as a function of 1 or more predictors.}
 
-\item{data}{A model training dataset. An m x n dataframe containing n cue values for each of the m exemplars.}
+\item{data}{dataframe. A training dataset.}
 
-\item{data.test}{(Optional) A model testing dataset (same format as data.train)}
+\item{data.test}{dataframe. An optional testing dataset with the same structure as data.}
 
-\item{train.p}{A number between 0 and 1 indicating what percentage of the data to use for training. This only applies when data.test is not specified by the user.}
+\item{train.p}{numeric. What percentage of the data to use for training when \code{data.test} is not specified? For example, \code{train.p = .5} will randomly split \code{data} into a 50\% training set and a 50\% test set. \code{train.p = 1}, the default, uses all data for training.}
 
-\item{rank.method}{A string indicating how to rank cues during tree construction. "m" (for marginal) means that cues will only be ranked once with the entire training dataset. "c" (conditional) means that cues will be ranked after each level in the tree with the remaining unclassified training exemplars. This also means that the same cue can be used multiple times in the trees. However, the "c" method will take longer and may be prone to overfitting.}
+\item{algorithm}{character. How should cues be ranked during tree construction. "m" (for marginal) means that cues will only be ranked once with the entire training dataset. "c" (conditional) means that cues will be re-ranked after each level in the tree with the remaining unclassified training exemplars. This also means that the same cue can be used multiple times in the trees. Note that the "c" method can take (much) longer and may be prone to overfitting.}
 
-\item{repeat.cues}{A logical value indicating whether or not to allow repeated cues in the tree. Only relevant when rank.method = 'c'.}
+\item{goal}{character. A string indicating the statistic to maximize: "acc" = overall accuracy, "bacc" = balanced accuracy, "d" = d-prime}
 
-\item{hr.weight}{A number between 0 and 1 indicating how much weight to give to maximizing hits versus minimizing false alarms.}
+\item{sens.weight}{numeric. A number between 0 and 1 indicating how much weight to give to maximizing hits versus minimizing false alarms when determining cue thresholds and ordering cues in trees (ignored when \code{goal = "c"})}
 
-\item{verbose}{A logical value indicating whether or not to print progress reports. Can be helpful for diagnosis when the function is running slowly...}
+\item{max.levels}{integer. The maximum number of levels considered for the trees. Because all permutations of exit structures are considered, the larger \code{max.levels} is, the more trees will be created.}
 
-\item{max.levels}{A number indicating the maximum number of levels considered for the tree.}
+\item{tree.definitions}{dataframe. An optional hard-coded definition of trees (see details below). If specified, no new trees are created.}
 
-\item{do.cart, do.lr}{logical values indicating whether or not to evaluate logistic regression and/or CART on the data for comparison.}
+\item{verbose}{logical. Should progress reports be printed? Can be helpful for diagnosis when the function is running slowly.}
 
-\item{object}{An optional existing FFTrees object (do not specify by hand)}
+\item{do.cart, do.lr, do.rf, do.svm}{logical. Should alternative algorithms be created for comparison? cart = regression trees, lr = logistic regression, rf = random forests, svm = support vector machines.}
+
+\item{store.data}{logical. Should training / test data be stored in the object? Default is FALSE.}
+
+\item{object}{FFTrees. An optional existing FFTrees object. When specified, no new trees are fitted and the existing trees are applied to \code{data} and \code{data.test}.}
+
+\item{rank.method}{depricated arguments.}
 }
 \value{
-A list of length 3. The first element "tree.acc" is a dataframe containing the final statistics of all trees. The second element "cue.accuracies" shows the accuracies of all cues. The third element "tree.class.ls" is a list with n.trees elements, where each element shows the final decisions for each tree for each exemplar.
+An \code{FFTrees} object with the following elements
+
+\describe{
+  \item{data, data.test}{The original training and test data.}
+  \item{cue.accuracies}{Marginal accuracies of each cue given a threshold that maximizes balanced accuracy for the training data. These are calculated using the \code{cuerank()} function.}
+  \item{tree.definitions}{Definitions of each tree created by \code{FFTrees}. Each row corresponds to one tree. Different levels within a tree are separated by semi-colons. See above for more details.}
+  \item{tree.stats}{Tree definitions and classification statistics. Training and test data are stored separately}
+  \item{level.stats}{Cumulative classification statistics at each tree level. Training and test data are stored separately}
+  \item{auc}{Area under the curve statistics}
+  \item{decision}{Final classification decisions. Each row is a case and each column is a tree. For example, row 1 in column 2 is the classification decision of tree number 2 for the first case. Training and test data are stored separately.}
+  \item{levelout}{The level at which each case is classified in each tree. Rows correspond to cases and columns correspond to trees. Training and test data are stored separately.}
+  \item{params}{A list of control parameters (e.g.; \code{algorithm}, \code{goal})}
+  \item{comp}{Models and classification statistics for competitive classification algorithms: Regularized logistic regression, CART, and random forest.}
+  }
 }
 \description{
-Create Fast and Frugal Trees (FFTrees)
+This is the workhorse function for the \code{FFTrees} package. It creates a set of fast and frugal decision trees trained on a training dataset and tested on an optional test dataset.
 }
+\details{
+\code{tree.definitions} should be a dataframe defining trees with each row. At least 4 columns should be present: \code{cues}, the names of the cues, \code{thresholds}, thresholds determining cue splits, \code{directions}, directions pointing towards positive classifications, \code{classes}, classes of the cues, and \code{exits}, the exit directions where 0 means a negative exit, 1 means a positive exit, and .5 means a bi-directional exit. Different levels within a tree should be separated by semicolons.
+}
+\examples{
 
+ # Create ffts for heart disease
+ heart.fft <- FFTrees(formula = diagnosis ~.,
+                      data = heartdisease)
+
+ # Print the result for summary info
+ heart.fft
+
+ # Plot the best tree
+ plot(heart.fft)
+
+
+}

@@ -1,38 +1,127 @@
-#' Create Fast and Frugal Trees (FFTrees)
+#' Creates a Fast and Frugal Trees (FFTrees) object.
 #'
-#' @param formula A formula
-#' @param data A model training dataset. An m x n dataframe containing n cue values for each of the m exemplars.
-#' @param data.test (Optional) A model testing dataset (same format as data.train)
-#' @param max.levels A number indicating the maximum number of levels considered for the tree.
-#' @param train.p A number between 0 and 1 indicating what percentage of the data to use for training. This only applies when data.test is not specified by the user.
-#' @param rank.method A string indicating how to rank cues during tree construction. "m" (for marginal) means that cues will only be ranked once with the entire training dataset. "c" (conditional) means that cues will be ranked after each level in the tree with the remaining unclassified training exemplars. This also means that the same cue can be used multiple times in the trees. However, the "c" method will take longer and may be prone to overfitting.
-#' @param repeat.cues A logical value indicating whether or not to allow repeated cues in the tree. Only relevant when rank.method = 'c'.
-#' @param hr.weight A number between 0 and 1 indicating how much weight to give to maximizing hits versus minimizing false alarms.
-#' @param do.cart,do.lr logical values indicating whether or not to evaluate logistic regression and/or CART on the data for comparison.
-#' @param verbose A logical value indicating whether or not to print progress reports. Can be helpful for diagnosis when the function is running slowly...
-#' @param object An optional existing FFTrees object (do not specify by hand)
+#' This is the workhorse function for the \code{FFTrees} package. It creates a set of fast and frugal decision trees trained on a training dataset and tested on an optional test dataset.
+#'
+#' @param formula formula. A formula specifying a logical criterion as a function of 1 or more predictors.
+#' @param data dataframe. A training dataset.
+#' @param data.test dataframe. An optional testing dataset with the same structure as data.
+#' @param max.levels integer. The maximum number of levels considered for the trees. Because all permutations of exit structures are considered, the larger \code{max.levels} is, the more trees will be created.
+#' @param train.p numeric. What percentage of the data to use for training when \code{data.test} is not specified? For example, \code{train.p = .5} will randomly split \code{data} into a 50\% training set and a 50\% test set. \code{train.p = 1}, the default, uses all data for training.
+#' @param algorithm character. How should cues be ranked during tree construction. "m" (for marginal) means that cues will only be ranked once with the entire training dataset. "c" (conditional) means that cues will be re-ranked after each level in the tree with the remaining unclassified training exemplars. This also means that the same cue can be used multiple times in the trees. Note that the "c" method can take (much) longer and may be prone to overfitting.
+#' @param goal character. A string indicating the statistic to maximize: "acc" = overall accuracy, "bacc" = balanced accuracy, "d" = d-prime
+#' @param sens.weight numeric. A number between 0 and 1 indicating how much weight to give to maximizing hits versus minimizing false alarms when determining cue thresholds and ordering cues in trees (ignored when \code{goal = "c"})
+#' @param tree.definitions dataframe. An optional hard-coded definition of trees (see details below). If specified, no new trees are created.
+#' @param do.cart,do.lr,do.rf,do.svm logical. Should alternative algorithms be created for comparison? cart = regression trees, lr = logistic regression, rf = random forests, svm = support vector machines.
+#' @param store.data logical. Should training / test data be stored in the object? Default is FALSE.
+#' @param verbose logical. Should progress reports be printed? Can be helpful for diagnosis when the function is running slowly.
+#' @param object FFTrees. An optional existing FFTrees object. When specified, no new trees are fitted and the existing trees are applied to \code{data} and \code{data.test}.
+#' @param rank.method depricated arguments.
 #' @importFrom stats anova predict glm as.formula formula sd
-#' @return A list of length 3. The first element "tree.acc" is a dataframe containing the final statistics of all trees. The second element "cue.accuracies" shows the accuracies of all cues. The third element "tree.class.ls" is a list with n.trees elements, where each element shows the final decisions for each tree for each exemplar.
-#' @export
+#' @return An \code{FFTrees} object with the following elements
 #'
+#' \describe{
+#'   \item{data, data.test}{The original training and test data.}
+#'   \item{cue.accuracies}{Marginal accuracies of each cue given a threshold that maximizes balanced accuracy for the training data. These are calculated using the \code{cuerank()} function.}
+#'   \item{tree.definitions}{Definitions of each tree created by \code{FFTrees}. Each row corresponds to one tree. Different levels within a tree are separated by semi-colons. See above for more details.}
+#'   \item{tree.stats}{Tree definitions and classification statistics. Training and test data are stored separately}
+#'   \item{level.stats}{Cumulative classification statistics at each tree level. Training and test data are stored separately}
+#'   \item{auc}{Area under the curve statistics}
+#'   \item{decision}{Final classification decisions. Each row is a case and each column is a tree. For example, row 1 in column 2 is the classification decision of tree number 2 for the first case. Training and test data are stored separately.}
+#'   \item{levelout}{The level at which each case is classified in each tree. Rows correspond to cases and columns correspond to trees. Training and test data are stored separately.}
+#'   \item{params}{A list of control parameters (e.g.; \code{algorithm}, \code{goal})}
+#'   \item{comp}{Models and classification statistics for competitive classification algorithms: Regularized logistic regression, CART, and random forest.}
+#'   }
+#'
+#' @export
+#' @details
+#'
+#' \code{tree.definitions} should be a dataframe defining trees with each row. At least 4 columns should be present: \code{cues}, the names of the cues, \code{thresholds}, thresholds determining cue splits, \code{directions}, directions pointing towards positive classifications, \code{classes}, classes of the cues, and \code{exits}, the exit directions where 0 means a negative exit, 1 means a positive exit, and .5 means a bi-directional exit. Different levels within a tree should be separated by semicolons.
+#'
+#' @examples
+#'
+#'  # Create ffts for heart disease
+#'  heart.fft <- FFTrees(formula = diagnosis ~.,
+#'                       data = heartdisease)
+#'
+#'  # Print the result for summary info
+#'  heart.fft
+#'
+#'  # Plot the best tree
+#'  plot(heart.fft)
+#'
+#'
+
+
 
 FFTrees <- function(formula = NULL,
                     data = NULL,
                     data.test = NULL,
                     train.p = 1,
-                    rank.method = "m",
-                    repeat.cues = TRUE,
-                    hr.weight = .5,
-                    verbose = F,
+                    algorithm = "m",
+                    goal = "bacc",
+                    sens.weight = .5,
                     max.levels = 4,
-                    do.cart = T,
-                    do.lr = T,
-                    object = NULL
+                    tree.definitions = NULL,
+                    verbose = FALSE,
+                    do.cart = TRUE,
+                    do.lr = TRUE,
+                    do.rf = TRUE,
+                    do.svm = TRUE,
+                    store.data = FALSE,
+                    object = NULL,
+                    rank.method = NULL
 ) {
+
+
+  # formula = poisonous ~.
+  # data = mushrooms.train
+  # data.test = mushrooms.test
+  # train.p = 1
+  # algorithm = "m"
+  # goal = "bacc"
+  # sens.weight = .5
+  # max.levels = 4
+  # tree.definitions = NULL
+  # verbose = FALSE
+  # do.cart = TRUE
+  # do.lr = TRUE
+  # do.rf = TRUE
+  # do.svm = TRUE
+  # store.data = FALSE
+  # object = NULL
+  # rank.method = NULL
+
+if(is.null(rank.method) == FALSE) {
+
+  warning("The argument rank.method is depricated. Use algorithm instead.")
+
+  algorithm <- rank.method
+
+}
+
+if(is.null(tree.definitions) == FALSE) {
+
+  for(i in 1:ncol(tree.definitions)) {
+
+    if(class(tree.definitions[,i]) == "factor") {tree.definitions[,i] <- paste(tree.definitions[,i])}
+  }
+
+
+  # Check for invalid exits
+
+  exit.vals <- unlist(strsplit(tree.definitions$exits, ";"))
+
+  if(any(exit.vals %in% c("0", "1", "0.5", ".5") == FALSE)) {
+
+    stop(paste0("You specified an invalid exit value of ", exit.vals[exit.vals %in% c("0", "1", "0.5", ".5") == FALSE], " in tree.definitions. Use only 0, 1 or .5"))
+
+  }
+
+}
 
 # Set some global parameters
 
-tree.criterion <- "v"
+repeat.cues <- TRUE
 stopping.rule <- "exemplars"
 stopping.par <- .1
 correction <- .25
@@ -41,10 +130,20 @@ rounding <- 2
 exit.method <- "fixed"
 
 
-# EXTRACT OBJECTS FROM EXISTING FFTrees OBJECT
+# Is there training data?
+if(is.null(data)) {stop("Please specify a dataframe in data")}
 
-# GET FORMULA
-if(is.null(object) == F) {
+# Is there a valid formula?
+if(is.null(formula) | class(formula) != "formula") {stop("Please specify a valid formula")}
+
+# Does the named criterion exist?
+crit.name <- paste(formula)[2]
+if(crit.name %in% names(data) == FALSE) {
+
+  stop(paste0("The criterion variable ", crit.name, " is not in the data."))}
+
+# If there is an existing FFTrees object, then get the formula
+if(is.null(object) == FALSE) {
 
   formula <- object$formula
 
@@ -53,7 +152,7 @@ if(is.null(object) == F) {
 # DEFINE TESTING AND TRAINING DATA
 {
 
-if(is.null(object) == F) {
+if(is.null(object) == FALSE) {
 
   data.train.o <- object$data$train
   data.train <- model.frame(formula = formula,
@@ -71,11 +170,11 @@ if(is.null(object) == F) {
 
   crit.name <- names(data.train)[1]
 
-  if(is.null(data.test) == F) {
+  if(is.null(data.test) == FALSE) {
 
     data.test.o <- data.test
 
-    if(setequal(names(data.train), names(data.test)) == F) {
+    if(setequal(names(data.train), names(data.test)) == FALSE) {
 
       stop("Your training (data) and test (data.test) dataframes do not appear to have the same column names. Please fix and try again.")
 
@@ -101,13 +200,14 @@ if(is.null(object) == F) {
 
 }
 
-if(is.null(object) == T & train.p == 1) {
+if(is.null(object) == TRUE & (train.p == 1 | is.null(data.test) == FALSE)) {
 
   data.train.o <- data
   data.train <- model.frame(formula = formula,
                             data = data.train.o)
 
   cue.train <- data.train[,2:ncol(data.train)]
+  crit.train <- data.train[,1]
 
   if(ncol(data.train) == 2) {
 
@@ -117,9 +217,9 @@ if(is.null(object) == T & train.p == 1) {
 
   crit.train <- data.train[,1]
 
- if(is.null(data.test) == F) {
+ if(is.null(data.test) == FALSE) {
 
-   if(setequal(names(data.train.o), names(data.test)) == F) {
+   if(setequal(names(data.train.o), names(data.test)) == FALSE) {
 
      stop("Your training (data) and test (data.test) dataframes do not appear to have the same column names. Please fix and try again.")
 
@@ -150,25 +250,28 @@ if(is.null(object) == T & train.p == 1) {
 ## TRAINING / TESTING RANDOM SPLIT
 if(is.null(data.test) & train.p < 1) {
 
-  if(is.null(object) == F) {
 
-    data.train.o <- object$data$train
-  }
+  # UPDATE
 
-  if(is.null(object) == T) {
+  # randomly sort the original data
+  # loop over the rows. Assign the first row to the training data and the second row to the test data
+  # Look at the next row, would it fill an empty factor slot for the training data? if yes, then assign to training. If no, then assign to test.
+  # repeat until all slots are filled for both training and test.
+  # assign the remaining cases proportionally to training and test
 
-    data.train.o <- data
 
-  }
+  data.train.o <- data
+
 
   data.train <- model.frame(formula = formula,
                             data = data.train.o)
+
   cue.train <- data.train[,2:ncol(data.train)]
   crit.train <- data.train[,1]
 
   # create 'training testing' sets of size train.p * nrow(data.train)
 
-  continue <- T
+  continue <- TRUE
   run.i <- 0
 
   # Create train and test set
@@ -189,6 +292,10 @@ if(is.null(data.test) & train.p < 1) {
     data.train.i <- data.train[train.exemplars.i,]
     data.test.i <- data.train[test.exemplars.i,]
 
+     ## FORCE TEST AND TRAINING SET TO HAVE SAME FACTOR VALUES
+    force.factor <- FALSE
+
+    if(force.factor == TRUE) {
     orig.vals.ls <- lapply(1:ncol(data.train.i), FUN = function(x) {unique(data.train.i[,x])})
 
     can.predict.mtx <- matrix(1, nrow = nrow(data.test.i), ncol = ncol(data.test.i))
@@ -207,12 +314,15 @@ if(is.null(data.test) & train.p < 1) {
     }
 
     model.can.predict <- rowMeans(can.predict.mtx) == 1
+    }
 
+    if(force.factor == FALSE) {model.can.predict <- TRUE}
 
+    # Do the training and test data valid?
     if(mean(crit.train.i) > 0 & mean(crit.train.i) < 1 &
-       mean(crit.test.i > 0) & mean(crit.test.i < 1) & all(model.can.predict)) {continue <- F}
+       mean(crit.test.i > 0) & mean(crit.test.i < 1) & all(model.can.predict)) {continue <- FALSE}
 
-    if(run.i == 50) {print("I'm having a hard time coming up with valid training and test data.train.mfsets...You may need to stop the processor and create them manually")}
+    if(run.i == 100) {stop("I could not create valid training and test data sets. This is likely due to sparse data. You'll have to create them manually.")}
 
   }
 
@@ -237,7 +347,7 @@ if(is.null(data.test) & train.p < 1) {
 {
 fac.to.string <- function(x) {
 
-  if(is.null(x) == F) {
+  if(is.null(x) == FALSE) {
 
     for(i in 1:ncol(x)) {
 
@@ -262,7 +372,7 @@ cue.test <- fac.to.string(cue.test)
 # Check for missing or bad inputs
 {
 if(is.null(data.train) |
-   "data.frame" %in% class(data.train) == F) {
+   "data.frame" %in% class(data.train) == FALSE) {
 
   stop("Please specify a valid dataframe object in data")
 
@@ -270,10 +380,10 @@ if(is.null(data.train) |
 }
 # MAKE SURE TRAINING AND TEST DATAFRAMES ARE SIMILAR
 
-if(is.null(data.test) == F) {
+if(is.null(data.test) == FALSE) {
 
 
-if(setequal(names(data.train), names(data.test)) == F) {
+if(setequal(names(data.train), names(data.test)) == FALSE) {
 
   stop("Your training (data) and test (data.test) dataframes do not appear to have the same column names. Please fix and try again.")
 
@@ -285,11 +395,18 @@ if(setequal(names(data.train), names(data.test)) == F) {
 ## VALIDITY CHECKS
 {
 # Non-binary DV
-if(setequal(crit.train, c(0, 1)) == F) {
+if(setequal(crit.train, c(0, 1)) == FALSE) {
 
-  stop("Warning! The dependent variable in your training data is either not binary or logical, or does not have variance. Convert to 0s and 1s (or FALSE and TRUE)")
+  stop(paste0("The criterion ", crit.name, " is either not binary or logical, or does not have variance"))
 
 }
+
+  # Missing values
+  if(any(is.finite(crit.train) == FALSE)) {
+
+    stop(paste0("The criterion ", crit.name, " has missing values"))
+
+  }
 
 }
 }
@@ -306,26 +423,26 @@ if(is.null(object)) {
 
 cue.accuracies.train <- cuerank(formula = formula,
                                 data = data.train,
-                                tree.criterion = tree.criterion,
+                                goal = goal,
                                 rounding = rounding,
                                 verbose = verbose
 )
 
 }
 
-if(is.null(object) == F) {
+if(is.null(object) == FALSE) {
 
 cue.accuracies.train <- object$cue.accuracies$train
 
 }
 
-if(is.null(data.test) == F & all(is.finite(crit.test)) & is.finite(sd(crit.test))) {
+if(is.null(data.test) == FALSE & all(is.finite(crit.test)) & is.finite(sd(crit.test))) {
 
   if(sd(crit.test) > 0) {
 
 cue.accuracies.test <- cuerank(formula = formula,
                                 data = data.test,
-                                tree.criterion = tree.criterion,
+                                goal = goal,
                                 rounding = rounding,
                                 verbose = verbose,
                                 cue.rules = cue.accuracies.train
@@ -340,7 +457,7 @@ cue.accuracies.test <- cuerank(formula = formula,
 
 }
 
-if(is.null(data.test) == T | any(is.finite(crit.test)) == F | is.finite(sd(crit.test)) == F) {
+if(is.null(data.test) == TRUE | any(is.finite(crit.test)) == FALSE | is.finite(sd(crit.test)) == FALSE) {
 
 cue.accuracies.test <- NULL
 
@@ -352,41 +469,46 @@ cue.accuracies <- list("train" = cue.accuracies.train, "test" = cue.accuracies.t
 
 # GET TREE DEFINITIONS
 {
-if(is.null(object)) {
+if(is.null(object) & is.null(tree.definitions)) {
 
 tree.growth <- grow.FFTrees(formula = formula,
                             data = data.train,
-                            rank.method = rank.method,
+                            algorithm = algorithm,
+                            goal = goal,
                             repeat.cues = repeat.cues,
                             stopping.rule = stopping.rule,
                             stopping.par = stopping.par,
                             max.levels = max.levels,
-                            hr.weight = hr.weight)
+                            sens.weight = sens.weight)
 
 tree.definitions <- tree.growth$tree.definitions
 
 }
 
-if(is.null(object) == F) {tree.definitions <- object$tree.definitions}
+if(is.null(object) == FALSE) {tree.definitions <- object$tree.definitions}
+
 }
 
 ## CALCULATE TREE STATISTICS FROM DEFINITIONS
 {
 n.trees <- nrow(tree.definitions)
 
-if(is.null(data.train) == F) {
+if(is.null(data.train) == FALSE) {
 
-train.results <- apply.tree(data.train, formula, tree.definitions)
+train.results <- apply.tree(data = data.train,
+                            formula = formula,
+                            tree.definitions = tree.definitions)
 
 decision.train <- train.results$decision
 levelout.train <- train.results$levelout
 levelstats.train <- train.results$levelstats
 treestats.train <- train.results$treestats
 
-tree.auc.train <- auc(hr.v = train.results$treestats$hr, far.v = train.results$treestats$far)
+tree.auc.train <- FFTrees::auc(sens.v = train.results$treestats$sens,
+                               spec.v = train.results$treestats$spec)
 }
 
-if(is.null(data.train) == T) {
+if(is.null(data.train) == TRUE) {
 
   decision.train <- NULL
   levelout.train <- NULL
@@ -396,29 +518,32 @@ if(is.null(data.train) == T) {
 
 }
 
-if(is.null(data.test) == F) {
+if(is.null(data.test) == FALSE) {
 
-test.results <- apply.tree(data.test, formula, tree.definitions)
+test.results <- apply.tree(data = data.test,
+                           formula = formula,
+                           tree.definitions = tree.definitions)
 
 decision.test <- test.results$decision
 levelout.test <- test.results$levelout
 levelstats.test <- test.results$levelstats
 treestats.test <- test.results$treestats
 
-if(any(is.na(test.results$treestats$hr)) == T) {
+if(any(is.na(test.results$treestats$sens)) == TRUE) {
 
   tree.auc.test <- NA
 
 }
 
-if(all(is.finite(test.results$treestats$hr))) {
+if(all(is.finite(test.results$treestats$sens))) {
 
-tree.auc.test <- auc(hr.v = test.results$treestats$hr, far.v = test.results$treestats$far)
+tree.auc.test <- FFTrees::auc(sens.v = test.results$treestats$sens,
+                              spec.v = test.results$treestats$spec)
 
 }
 }
 
-if(is.null(data.test) == T) {
+if(is.null(data.test) == TRUE) {
 
   decision.test <- NULL
   levelout.test <- NULL
@@ -442,9 +567,10 @@ rownames(tree.auc) = c("train", "test")
 {
 if(do.lr) {
 
-lr.acc <- lr.pred(formula = formula,
-                 data.train = data.train,
-                 data.test = data.test)
+lr.acc <- comp.pred(formula = formula,
+                     data.train = data.train,
+                     data.test = data.test,
+                     algorithm = "lr")
 
 lr.stats <- lr.acc$accuracy
 lr.auc <- lr.acc$auc
@@ -452,9 +578,11 @@ lr.model <- lr.acc$model
 
 }
 
-if(do.lr == F) {
+if(do.lr == FALSE) {
 
-lr.acc <- NULL; lr.stats <- NULL ; lr.model <- NULL
+lr.acc <- NULL
+lr.stats <- NULL
+lr.model <- NULL
 
 lr.auc <- matrix(NA, nrow = 2, ncol =1)
 rownames(lr.auc) <- c("train", "test")
@@ -469,9 +597,10 @@ colnames(lr.auc) <- "lr"
 
 if(do.cart) {
 
-cart.acc <- cart.pred(formula = formula,
+cart.acc <- comp.pred(formula = formula,
                       data.train = data.train,
-                      data.test = data.test
+                      data.test = data.test,
+                      algorithm = "cart"
 )
 
 cart.stats <- cart.acc$accuracy
@@ -480,9 +609,11 @@ cart.model <- cart.acc$model
 
 }
 
-if(do.cart == F) {
+if(do.cart == FALSE) {
 
-  cart.acc <- NULL ; cart.stats <- NULL ; cart.model <- NULL
+  cart.acc <- NULL
+  cart.stats <- NULL
+  cart.model <- NULL
 
   cart.auc <- matrix(NA, nrow = 2, ncol =1)
   rownames(cart.auc) <- c("train", "test")
@@ -491,12 +622,101 @@ if(do.cart == F) {
 }
 }
 
-# Get AUC matrix
+# rf
+{
 
-auc <- cbind(tree.auc, lr.auc, cart.auc)
+  if(do.rf) {
+
+    rf.acc <- comp.pred(formula = formula,
+                      data.train = data.train,
+                      data.test = data.test,
+                      algorithm = "rf")
+
+    rf.stats <- rf.acc$accuracy
+    rf.auc <- rf.acc$auc
+    rf.model <- rf.acc$model
+
+  }
+
+  if(do.rf == FALSE) {
+
+    rf.acc <- NULL
+    rf.stats <- NULL
+    rf.model <- NULL
+
+    rf.auc <- matrix(NA, nrow = 2, ncol =1)
+    rownames(rf.auc) <- c("train", "test")
+    colnames(rf.auc) <- "rf"
+
+  }
+}
+
+# svm
+{
+
+  if(do.svm) {
+
+    svm.acc <- comp.pred(formula = formula,
+                      data.train = data.train,
+                      data.test = data.test,
+                      algorithm = "svm")
+
+    svm.stats <- svm.acc$accuracy
+    svm.auc <- svm.acc$auc
+    svm.model <- svm.acc$model
+  }
+
+  if(do.svm == FALSE) {
+
+    svm.acc <- NULL
+    svm.stats <- NULL
+    svm.model <- NULL
+
+    svm.auc <- matrix(NA, nrow = 2, ncol =1)
+    rownames(svm.auc) <- c("train", "test")
+    colnames(svm.auc) <- "svm"
+
+  }
+}
+
+
+# Get AUC matrix
+auc <- cbind(tree.auc, lr.auc, cart.auc, rf.auc, svm.auc)
+
+# Store data?
+
+if(store.data) {data.ls <- list("train" = data.train, "test" = data.test)} else {
+
+  data.ls <- list("train", "test")
+
+}
+
+# Data descriptions
+
+data.desc <- list("train" = data.frame("cases" = nrow(cue.train),
+                                       "features" = ncol(cue.train),
+                                       "n.pos" = sum(crit.train),
+                                       "n.neg" = sum(crit.train == 0),
+                                       "criterion.br" = mean(crit.train)),
+                  "test" = data.frame("cases" = NA,
+                                      "features" = NA,
+                                      "n.pos" = NA,
+                                      "n.neg" = NA,
+                                      "criterion.br" = NA))
+
+if(is.null(data.test) == FALSE) {
+
+  data.desc[[2]] <- data.frame("cases" = nrow(cue.test),
+                               "features" = ncol(cue.test),
+                               "n.pos" = sum(crit.test),
+                               "n.neg" = sum(crit.test == 0),
+                               "criterion.br" = mean(crit.test))
+
+}
+
 
 output.fft <- list("formula" = formula,
-                  "data" = list("train" = data.train, "test" = data.test),
+                   "data.desc" = data.desc,
                   "cue.accuracies" = cue.accuracies,
                   "tree.definitions" = tree.definitions,
                   "tree.stats" = treestats,
@@ -504,8 +724,12 @@ output.fft <- list("formula" = formula,
                   "decision" = decision,
                   "levelout" = levelout,
                   "auc" = auc,
-                  "lr" = list("model" = lr.model, "stats" = lr.stats),
-                  "cart" = list("model" = cart.model, "stats" = cart.stats)
+                  "params" = list("algorithm" = algorithm, "goal" = goal, "sens.weight" = sens.weight, "max.levels" = max.levels),
+                  "comp" = list("lr" = list("model" = lr.model, "stats" = lr.stats),
+                                "cart" = list("model" = cart.model, "stats" = cart.stats),
+                                "rf" = list("model" = rf.model, "stats" = rf.stats),
+                                "svm" = list("model" = svm.model, "stats" = svm.stats)),
+                  "data" = data.ls
 )
 
 class(output.fft) <- "FFTrees"

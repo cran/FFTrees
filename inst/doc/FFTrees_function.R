@@ -6,15 +6,14 @@ head(heartdisease)
 
 ## ------------------------------------------------------------------------
 set.seed(100) # For replication
-samples <- sample(c(T, F), size = nrow(heartdisease), replace = T)
-heartdisease.train <- heartdisease[samples,]
-heartdisease.test <- heartdisease[samples == 0,]
+heart.rand <- heartdisease[sample(nrow(heartdisease)),]
+heart.train <- heart.rand[1:150,]
+heart.test <- heart.rand[151:303,]
 
 ## ------------------------------------------------------------------------
 heart.fft <- FFTrees(formula = diagnosis ~.,
-                    data = heartdisease.train,
-                    data.test = heartdisease.test
-                    )
+                    data = heart.train,
+                    data.test = heart.test)
 
 ## ------------------------------------------------------------------------
 names(heart.fft)
@@ -26,8 +25,9 @@ heart.fft
 heart.fft$cue.accuracies
 
 ## ----fig.width = 8, fig.height = 8---------------------------------------
-showcues(heart.fft, 
-         main = "Heartdisease Cue Accuracy")
+plot(heart.fft, 
+     main = "Heartdisease Cue Accuracy",
+     what = "cues")
 
 ## ------------------------------------------------------------------------
 heart.fft$tree.definitions
@@ -42,19 +42,11 @@ heart.fft$decision$train[1:5,]
 heart.fft$levelout$test[1:5,]
 
 ## ------------------------------------------------------------------------
-heart.fft <- predict(heart.fft,
-                     data.test = heartdisease[1:50,]
-                     )
+predict(heart.fft,
+        data = heartdisease[1:50,])
 
-## ------------------------------------------------------------------------
-heart.fft
-
-## ---- fig.width = 6, fig.height = 6--------------------------------------
+## ---- fig.width = 7, fig.height = 7--------------------------------------
 plot(heart.fft,
      main = "Heart Disease",
-     decision.names = c("Healthy", "Disease")
-     )
-
-## ----fig.width = 5, fig.height = 5---------------------------------------
-showcues(heart.fft)
+     decision.names = c("Healthy", "Disease"))
 

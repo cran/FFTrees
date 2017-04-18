@@ -4,24 +4,35 @@
 \alias{plot.FFTrees}
 \title{Draws a FFTrees object.}
 \usage{
-\method{plot}{FFTrees}(x = NULL, data = "train", which.tree = NULL,
-  tree = "best.train", main = "Data", n.per.icon = NULL,
-  decision.names = c("Noise", "Signal"), ...)
+\method{plot}{FFTrees}(x = NULL, data = "train", what = "tree",
+  tree = "best.train", main = "Data", decision.names = c("Noise",
+  "Signal"), cue.cex = NULL, threshold.cex = NULL, comp = TRUE,
+  stats = TRUE, n.per.icon = NULL, which.tree = NULL, ...)
 }
 \arguments{
 \item{x}{A FFTrees object created from \code{"FFTrees()"}}
 
 \item{data}{Either a dataframe of new data, or one of two strings 'train' or 'test'. In this case, the corresponding dataset in the x object will be used.}
 
-\item{which.tree}{depreciated argument, only for backwards compatibility, use \code{"tree"} instead.}
+\item{what}{string. What should be plotted? \code{'tree'} (the default) shows one tree (specified by \code{'tree'}). \code{'cues'} shows the marginal accuracy of cues in an ROC space.}
 
-\item{tree}{An integer indicating which tree to plot (only valid when the tree argument is non-empty). To plot the best training (or test) tree with respect to v (HR - FAR), use "best.train" or "best.test"}
+\item{tree}{integer. An integer indicating which tree to plot (only valid when the tree argument is non-empty). To plot the best training (or test) tree with respect to v (sens - spec), use "best.train" or "best.test"}
 
-\item{main}{The main plot label.}
+\item{main}{character. The main plot label.}
+
+\item{decision.names}{character. A string vector of length 2 indicating the content-specific name for noise and signal cases.}
+
+\item{cue.cex}{numeric. A numeric vector specifying the size of the cue labels.}
+
+\item{threshold.cex}{numeric. A numeric vector specifying the size of the decision thresholds.}
+
+\item{comp}{logical. Should the performance of competitive algorithms (e.g.; logistic regression, random forests etc.) be shown in the ROC plot (if available?)}
+
+\item{stats}{logical. Should statistical information be plotted? If \code{FALSE}, then only the tree (without any reference to statistics) will be plotted.}
 
 \item{n.per.icon}{Number of exemplars per icon}
 
-\item{decision.names}{A string vector of length 2 indicating the content-specific name for noise and signal cases.}
+\item{which.tree}{depreciated argument, only for backwards compatibility, use \code{"tree"} instead.}
 
 \item{...}{Currently ignored.}
 }
@@ -46,4 +57,3 @@ vignette("FFTrees_plot", package = "FFTrees")
 
 
 }
-

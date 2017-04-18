@@ -15,7 +15,7 @@ mushrooms.fft <- FFTrees(formula = poisonous ~.,
 mushrooms.fft
 
 ## ----fig.width = 6, fig.height = 6, fig.align = 'center'-----------------
-showcues(mushrooms.fft, main = "Mushrooms")
+plot(mushrooms.fft, main = "Mushrooms", what = "cues")
 
 ## ---- fig.width = 6, fig.height = 6, fig.align = 'center'----------------
 plot(mushrooms.fft, 
@@ -36,10 +36,10 @@ plot(mushrooms.ring.fft,
 
 ## ------------------------------------------------------------------------
 iris.fft <- FFTrees(formula = virginica ~.,
-                    data = iris)
+                    data = iris.v)
 
 ## ----fig.width = 6, fig.height = 6, fig.align = 'center'-----------------
-showcues(iris.fft)
+plot(iris.fft, what = "cues")
 
 ## ---- fig.width = 6, fig.height = 6, fig.align = 'center'----------------
 plot(iris.fft, 

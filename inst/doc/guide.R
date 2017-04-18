@@ -1,12 +1,17 @@
 ## ---- echo = F, message = F, results = 'hide'----------------------------
 library(FFTrees)
+library(knitr)
 
-## ---- fig.width = 6, fig.height = 6, echo = T, fig.align='center', echo = F----
-bcancer.fft <- FFTrees(formula = diagnosis ~.,
-                       data = breastcancer
-                       )
+## ----fig.align = "center", out.width="250px", echo = FALSE---------------
+knitr::include_graphics("../inst/FFTrees_Logo.jpg")
 
-plot(bcancer.fft,
-     main = "Breast Cancer",
+## ---- fig.width = 7, fig.height = 7, echo = T, fig.align='center', echo = TRUE----
+# Create an FFT from the heartdisease dataset
+heart.fft <- FFTrees(formula = diagnosis ~.,
+                     data = heartdisease)
+
+# Plot the best training tree
+plot(heart.fft,
+     main = "Heart Disease",
      decision.names = c("Absent", "Present"))
 
