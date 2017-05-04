@@ -4,7 +4,7 @@
 
 <head>
 
-<meta charset="utf-8">
+<meta charset="utf-8" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
 
@@ -12,7 +12,7 @@
 
 <meta name="author" content="Nathaniel Phillips" />
 
-<meta name="date" content="2017-04-18" />
+<meta name="date" content="2017-05-04" />
 
 <title>Creating FFTs</title>
 
@@ -70,7 +70,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 <h1 class="title toc-ignore">Creating FFTs</h1>
 <h4 class="author"><em>Nathaniel Phillips</em></h4>
-<h4 class="date"><em>2017-04-18</em></h4>
+<h4 class="date"><em>2017-05-04</em></h4>
 
 
 
@@ -117,16 +117,17 @@ heart.test &lt;-<span class="st"> </span>heart.rand[<span class="dv">151</span>:
 <h2>Printing an FFTrees object</h2>
 <p>You can view basic information about the FFTrees object by printing its name. This will give you a quick summary of the object, including how many trees it has, which cues the tree(s) use, and how well they performed.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">heart.fft</code></pre></div>
-<pre><code>## [1] &quot;7 FFTs using up to 4 of 13 cues&quot;
-## [1] &quot;FFT #4 uses 3 cues {thal,cp,ca} with the following performance:&quot;
-##       train   test
-## n    150.00 153.00
-## pci    0.88   0.88
-## mcu    1.74   1.73
-## acc    0.80   0.82
-## bacc   0.80   0.82
-## sens   0.82   0.88
-## spec   0.79   0.76</code></pre>
+<pre><code>## [1] &quot;7 FFTs predicting diagnosis&quot;
+## [1] &quot;FFT #4 {thal,cp,ca} maximizes training wacc:&quot;
+##                    train   test
+## cases       :n    150.00 153.00
+## speed       :mcu    1.74   1.73
+## frugality   :pci    0.88   0.88
+## accuracy    :acc    0.80   0.82
+## balanced    :bacc   0.80   0.82
+## weighted    :wacc   0.80   0.82
+## sensitivity :sens   0.82   0.88
+## specificity :spec   0.79   0.76</code></pre>
 <div id="cue-accuracy-statistics-cue.accuracies" class="section level3">
 <h3>Cue accuracy statistics: cue.accuracies</h3>
 <p>You can obtain marginal cue accuracy statistics from the <code>cue.accuracies</code> list. The list contains dataframes with marginal cue accuracies. That is, for each cue, the threshold that maximizes the v-statistic (HR - FAR) in the training dataset is chosen. If the object has test data, you can see the marginal cue accuracies in the test dataset (using the thresholds calculated from the training data):</p>
@@ -146,20 +147,20 @@ heart.test &lt;-<span class="st"> </span>heart.rand[<span class="dv">151</span>:
 ## 11    slope character            flat,down         = 150 45 21 27 57
 ## 12       ca   numeric                    0         &gt; 150 47 19 19 65
 ## 13     thal character                rd,fd         = 150 47 19 16 68
-##         sens      spec       far       acc      bacc    dprime
-## 1  0.7121212 0.6309524 0.3690476 0.6666667 0.6715368 0.8939691
-## 2  0.8030303 0.4285714 0.5714286 0.5933333 0.6158009 0.6724827
-## 3  0.7272727 0.7857143 0.2142857 0.7600000 0.7564935 1.3962240
-## 4  0.3939394 0.7500000 0.2500000 0.5933333 0.5719697 0.4054236
-## 5  0.7424242 0.3928571 0.6071429 0.5466667 0.5676407 0.3789573
-## 6  0.1515152 0.8928571 0.1071429 0.5666667 0.5221861 0.2119100
-## 7  0.6060606 0.5952381 0.4047619 0.6000000 0.6006494 0.5101065
-## 8  0.6818182 0.6547619 0.3452381 0.6666667 0.6682900 0.8709980
-## 9  0.4696970 0.8333333 0.1666667 0.6733333 0.6515152 0.8913899
-## 10 0.6212121 0.7500000 0.2500000 0.6933333 0.6856061 0.9831556
-## 11 0.6818182 0.6785714 0.3214286 0.6800000 0.6801948 0.9364969
-## 12 0.7121212 0.7738095 0.2261905 0.7466667 0.7429654 1.3110438
-## 13 0.7121212 0.8095238 0.1904762 0.7666667 0.7608225 1.4357351
+##         sens      spec       far       acc      bacc      wacc    dprime
+## 1  0.7121212 0.6309524 0.3690476 0.6666667 0.6715368 0.6715368 0.8939691
+## 2  0.8030303 0.4285714 0.5714286 0.5933333 0.6158009 0.6158009 0.6724827
+## 3  0.7272727 0.7857143 0.2142857 0.7600000 0.7564935 0.7564935 1.3962240
+## 4  0.3939394 0.7500000 0.2500000 0.5933333 0.5719697 0.5719697 0.4054236
+## 5  0.7424242 0.3928571 0.6071429 0.5466667 0.5676407 0.5676407 0.3789573
+## 6  0.1515152 0.8928571 0.1071429 0.5666667 0.5221861 0.5221861 0.2119100
+## 7  0.6060606 0.5952381 0.4047619 0.6000000 0.6006494 0.6006494 0.5101065
+## 8  0.6818182 0.6547619 0.3452381 0.6666667 0.6682900 0.6682900 0.8709980
+## 9  0.4696970 0.8333333 0.1666667 0.6733333 0.6515152 0.6515152 0.8913899
+## 10 0.6212121 0.7500000 0.2500000 0.6933333 0.6856061 0.6856061 0.9831556
+## 11 0.6818182 0.6785714 0.3214286 0.6800000 0.6801948 0.6801948 0.9364969
+## 12 0.7121212 0.7738095 0.2261905 0.7466667 0.7429654 0.7429654 1.3110438
+## 13 0.7121212 0.8095238 0.1904762 0.7666667 0.7608225 0.7608225 1.4357351
 ## 
 ## $test
 ##         cue     class            threshold direction   n hi mi fa cr
@@ -176,20 +177,20 @@ heart.test &lt;-<span class="st"> </span>heart.rand[<span class="dv">151</span>:
 ## 11    slope character            flat,down         = 153  0 73  0 80
 ## 12       ca   numeric                    0         &gt; 153 46 27 15 65
 ## 13     thal character                rd,fd         = 153  0 73  0 80
-##         sens   spec    far       acc      bacc      dprime
-## 1  0.6575342 0.5750 0.4250 0.6143791 0.6162671  0.59486134
-## 2  0.8356164 0.4500 0.5500 0.6339869 0.6428082  0.85093885
-## 3  0.7808219 0.7375 0.2625 0.7581699 0.7591610  1.41062908
-## 4  0.3835616 0.7125 0.2875 0.5555556 0.5480308  0.26456319
-## 5  0.6986301 0.4125 0.5875 0.5490196 0.5555651  0.29934599
-## 6  0.1643836 0.8250 0.1750 0.5098039 0.4946918 -0.04201090
-## 7  0.0000000 1.0000 0.0000 0.5228758 0.5000000  0.03216494
-## 8  0.7671233 0.5875 0.4125 0.6732026 0.6773116  0.95052459
-## 9  0.6164384 0.8875 0.1125 0.7581699 0.7519692  1.50947947
-## 10 0.6986301 0.7000 0.3000 0.6993464 0.6993151  1.04486521
-## 11 0.0000000 1.0000 0.0000 0.5228758 0.5000000  0.03216494
-## 12 0.6301370 0.8125 0.1875 0.7254902 0.7213185  1.21936274
-## 13 0.0000000 1.0000 0.0000 0.5228758 0.5000000  0.03216494</code></pre>
+##         sens   spec    far       acc      bacc      wacc      dprime
+## 1  0.6575342 0.5750 0.4250 0.6143791 0.6162671 0.6162671  0.59486134
+## 2  0.8356164 0.4500 0.5500 0.6339869 0.6428082 0.6428082  0.85093885
+## 3  0.7808219 0.7375 0.2625 0.7581699 0.7591610 0.7591610  1.41062908
+## 4  0.3835616 0.7125 0.2875 0.5555556 0.5480308 0.5480308  0.26456319
+## 5  0.6986301 0.4125 0.5875 0.5490196 0.5555651 0.5555651  0.29934599
+## 6  0.1643836 0.8250 0.1750 0.5098039 0.4946918 0.4946918 -0.04201090
+## 7  0.0000000 1.0000 0.0000 0.5228758 0.5000000 0.5000000  0.03216494
+## 8  0.7671233 0.5875 0.4125 0.6732026 0.6773116 0.6773116  0.95052459
+## 9  0.6164384 0.8875 0.1125 0.7581699 0.7519692 0.7519692  1.50947947
+## 10 0.6986301 0.7000 0.3000 0.6993464 0.6993151 0.6993151  1.04486521
+## 11 0.0000000 1.0000 0.0000 0.5228758 0.5000000 0.5000000  0.03216494
+## 12 0.6301370 0.8125 0.1875 0.7254902 0.7213185 0.7213185  1.21936274
+## 13 0.0000000 1.0000 0.0000 0.5228758 0.5000000 0.5000000  0.03216494</code></pre>
 <p>You can also view the cue accuracies in an ROC-type plot with <code>plot()</code> combined with the <code>what = &quot;cues&quot;</code> argument:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">plot</span>(heart.fft, 
      <span class="dt">main =</span> <span class="st">&quot;Heartdisease Cue Accuracy&quot;</span>,
@@ -226,14 +227,14 @@ heart.test &lt;-<span class="st"> </span>heart.rand[<span class="dv">151</span>:
 ## 5 150 56 10 21 63 0.8484848 0.7500000 0.25000000 0.7933333 0.7992424
 ## 6 150 59  7 32 52 0.8939394 0.6190476 0.38095238 0.7400000 0.7564935
 ## 7 150 64  2 52 32 0.9696970 0.3809524 0.61904762 0.6400000 0.6753247
-##     dprime       pci  mcu
-## 1 2.053928 0.8642857 1.90
-## 2 1.789700 0.8785714 1.70
-## 3 1.813721 0.8885714 1.56
-## 4 1.700096 0.8757143 1.74
-## 5 1.704447 0.8685714 1.84
-## 6 1.550734 0.8485714 2.12
-## 7 1.573378 0.8357143 2.30</code></pre>
+##        wacc   dprime       pci  mcu
+## 1 0.6590909 2.053928 0.8642857 1.90
+## 2 0.7002165 1.789700 0.8785714 1.70
+## 3 0.7916667 1.813721 0.8885714 1.56
+## 4 0.8019481 1.700096 0.8757143 1.74
+## 5 0.7992424 1.704447 0.8685714 1.84
+## 6 0.7564935 1.550734 0.8485714 2.12
+## 7 0.6753247 1.573378 0.8357143 2.30</code></pre>
 </div>
 <div id="decision" class="section level3">
 <h3>decision</h3>
@@ -287,8 +288,8 @@ heart.test &lt;-<span class="st"> </span>heart.rand[<span class="dv">151</span>:
 <li><p><code>max.levels</code>: What is the maximum number of levels the trees should have? the larger <code>max.levels</code> is, the longer the trees will be, and the more trees will be created (due to the fact that all possible exit structures are used).</p></li>
 <li><p><code>train.p</code>: What percent of the data should be used for training (if <code>data.test</code> is not specified)? <code>train.p = .1</code> will randomly select 10% of the data for training and leave the remaining 90% for testing. Setting <code>train.p = 1</code> will train the trees to the entire dataset (and leave no data for testing).</p></li>
 <li><p><code>goal</code>: What accuracy statistic should the trees try to maximize? The default is balanced accuracy <code>bacc</code> which is the average of sensitivity and specificity. Alternatively, <code>acc</code> will maximize overall accuracy (eg., absolute percentage of correct decisions).</p></li>
-<li><p><code>sens.weight</code>: How much weight should be given to maximizing hits versus avoiding false alarms when building the trees? The default is <code>sens.weight = .5</code> which treats both measures equally. However, if your decision problem strongly favors maximizing hits over avoiding false alarms, you may wish to set <code>sens.weight</code> to a higher value such as 0.75. When you do, the tree growth algorithm will favor using cues that maximize hits over those that minimize false-alarms.</p></li>
 <li><p><code>algorithm</code>: As trees are being built, should cues be selected based on their marginal accuracy (<code>algorithm = &quot;m&quot;</code>) applied to the entire dataset, or on their conditional accuracy (<code>algorithm = &quot;c&quot;</code>) applied to all cases that have not yet been classified? Each method has potential pros and cons. The marginal method is much faster to implement and may be prone to less over-fitting. However, the conditional method could capture important conditional dependencies between cues that the marginal method misses. Additionally, the <code>algorithm = &quot;c&quot;</code> method allows the same cue to be used multiple times in the tree. When a cue has a strong non-monotonic relationship with the criterion, this can greatly improve performance.</p></li>
+<li><p><code>sens.w</code>: How much weight should be given to maximizing sensitivity (i.e.; avoiding misses) versus maximizing specificity (i.e, avoiding false-alarms)? The default is <code>sens.w = .5</code> which treats both measures equally. However, if your decision problem strongly favors maximizing hits over avoiding false alarms, you may wish to set <code>sens.w</code> to a higher value such as 0.75. Changing this value does not (currently) affect tree construction. Instead, it is used to select the tree with the highest weighted accuracy <code>wacc</code> score, where <code>wacc = sensitivity * sens.w + specificity * (1 - sens.w)</code></p></li>
 </ul>
 </div>
 
@@ -299,7 +300,7 @@ heart.test &lt;-<span class="st"> </span>heart.rand[<span class="dv">151</span>:
   (function () {
     var script = document.createElement("script");
     script.type = "text/javascript";
-    script.src  = "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
     document.getElementsByTagName("head")[0].appendChild(script);
   })();
 </script>

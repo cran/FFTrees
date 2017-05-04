@@ -4,7 +4,7 @@
 
 <head>
 
-<meta charset="utf-8">
+<meta charset="utf-8" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
 
@@ -12,7 +12,7 @@
 
 <meta name="author" content="Nathaniel Phillips" />
 
-<meta name="date" content="2017-04-18" />
+<meta name="date" content="2017-05-04" />
 
 <title>Examples of FFTrees</title>
 
@@ -70,7 +70,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 <h1 class="title toc-ignore">Examples of FFTrees</h1>
 <h4 class="author"><em>Nathaniel Phillips</em></h4>
-<h4 class="date"><em>2017-04-18</em></h4>
+<h4 class="date"><em>2017-05-04</em></h4>
 
 
 
@@ -93,16 +93,17 @@ mushrooms.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(<spa
 ## ifelse(type == : prediction from a rank-deficient fit may be misleading</code></pre>
 <p>Here’s basic information about the trees:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">mushrooms.fft</code></pre></div>
-<pre><code>## [1] &quot;6 FFTs using up to 4 of 22 cues&quot;
-## [1] &quot;FFT #3 uses 2 cues {odor,sporepc} with the following performance:&quot;
-##        train    test
-## n    4000.00 4124.00
-## pci     0.94    0.94
-## mcu     1.47    1.46
-## acc     0.93    0.93
-## bacc    0.93    0.93
-## sens    0.86    0.85
-## spec    1.00    1.00</code></pre>
+<pre><code>## [1] &quot;6 FFTs predicting poisonous&quot;
+## [1] &quot;FFT #3 {odor,sporepc} maximizes training wacc:&quot;
+##                     train    test
+## cases       :n    4000.00 4124.00
+## speed       :mcu     1.47    1.46
+## frugality   :pci     0.94    0.94
+## accuracy    :acc     0.93    0.93
+## balanced    :bacc    0.93    0.93
+## weighted    :wacc    0.93    0.93
+## sensitivity :sens    0.86    0.85
+## specificity :spec    1.00    1.00</code></pre>
 <p><a href="https://goo.gl/B7YDuC">Cool beans.</a></p>
 <div id="mushrooms-cue-accuracies" class="section level3">
 <h3>mushrooms cue accuracies</h3>
@@ -173,7 +174,7 @@ mushrooms.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(<spa
   (function () {
     var script = document.createElement("script");
     script.type = "text/javascript";
-    script.src  = "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
     document.getElementsByTagName("head")[0].appendChild(script);
   })();
 </script>
