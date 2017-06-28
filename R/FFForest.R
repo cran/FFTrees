@@ -8,14 +8,17 @@
 #' @param max.levels integer. Maximum number of levels considered for the trees.
 #' @param ntree integer. Number of trees to create.
 #' @param train.p numeric. What percentage of the data should be used to fit each tree? Smaller values will result in more diverse trees.
-#' @param algorithm string. How to rank cues during tree construction. "m" (for marginal) means that cues will only be ranked once with the entire training dataset. "c" (conditional) means that cues will be ranked after each level in the tree with the remaining unclassified training exemplars. This also means that the same cue can be used multiple times in the trees. Note that the "c" method will take (much) longer and may be prone to overfitting.
-#' @param goal character. A string indicating the statistic to maximize: "acc" = overall accuracy, "bacc" = balanced accuracy, "d" = d-prime
+#' @param algorithm string. The algorith uses to create FFTs. See arguments in \code{FFTrees()}
+#' @param goal character. A string indicating the statistic to maximize when selecting final trees: "acc" = overall accuracy, "bacc" = balanced accuracy, "d" = d-prime
+#' @param goal.chase character. A string indicating the statistic to maximize when constructing trees: "acc" = overall accuracy, "wacc" = weighted accuracy, "bacc" = balanced accuracy
 #' @param sens.w numeric. How much weight to give to maximizing hits versus minimizing false alarms (between 0 and 1)
 #' @param verbose logical. Should progress reports be printed?
 #' @param cpus integer. Number of cpus to use. Any value larger than 1 will initiate parallel calculations in snowfall.
-#' @param do.lr,do.cart,do.rf,do.svm logical. Should logistic regression, cart, regularized logistic regression, random forests and/or support vector machines be calculated for comparison?
+#' @param comp,do.lr,do.cart,do.rf,do.svm logical. See arguments in \code{FFTrees()}
 #' @param rank.method,hr.weight depricated arguments
-#' @importFrom stats  formula
+#' @importFrom stats formula
+#' @importFrom parallel mclapply
+
 #' @return An object of class \code{FFForest} with the following elements...
 #' @export
 #' @examples
@@ -24,6 +27,7 @@
 #' cancer.fff <- FFForest(formula = diagnosis ~.,
 #'                      data = breastcancer,
 #'                      ntree = 10,
+#'                      train.p = .5,
 #'                      cpus = 1)
 #'}
 #'
@@ -34,11 +38,13 @@ FFForest <- function(formula = NULL,
                      max.levels = 5,
                      ntree = 10,
                      train.p = .5,
-                     algorithm = "m",
+                     algorithm = "ifan",
                      goal = "wacc",
+                     goal.chase = "wacc",
                      sens.w = .5,
                      verbose = TRUE,
                      cpus = 1,
+                     comp = FALSE,
                      do.lr = TRUE,
                      do.cart = TRUE,
                      do.rf = TRUE,
@@ -46,24 +52,6 @@ FFForest <- function(formula = NULL,
                      rank.method = NULL,
                      hr.weight = NULL
 ) {
-#
-#
-  # formula = diagnosis ~.
-  # data = heartdisease
-  # max.levels = 5
-  # ntree = 10
-  # train.p = .5
-  # algorithm = "m"
-  # goal = "bacc"
-  # sens.weight = .5
-  # verbose = TRUE
-  # cpus = 4
-  # do.lr = TRUE
-  # do.cart = TRUE
-  # do.rf = TRUE
-  # do.svm = TRUE
-  # rank.method = NULL
-  # hr.weight = NULL
 #
 
 
@@ -105,6 +93,8 @@ simulations <- data.frame(
 # getsim.fun does one training split and returns tree statistics
 getsim.fun <- function(i) {
 
+cat(i)
+
 result.i <- FFTrees::FFTrees(formula = formula,
                               data = data,
                               data.test = NULL,
@@ -113,7 +103,10 @@ result.i <- FFTrees::FFTrees(formula = formula,
                               max.levels = max.levels,
                               algorithm = algorithm,
                               goal = goal,
+                              goal.chase = goal.chase,
+                              progress = FALSE,
                               sens.w = sens.w,
+                              comp = comp,
                               do.cart = do.cart,
                               do.lr = do.lr,
                               do.rf = do.rf,
@@ -122,29 +115,29 @@ result.i <- FFTrees::FFTrees(formula = formula,
 decisions.i <- predict(result.i, data)
 
 tree.stats.i <- result.i$tree.stats
+tree.definitions.i <- result.i$tree.definitions
 comp.stats.i <- c()
 
-if(do.lr) {
+if(do.lr & comp) {
 lr.stats.i <- result.i$comp$lr$stats
 names(lr.stats.i) <- paste0("lr.", names(lr.stats.i))
 comp.stats.i <- c(comp.stats.i, lr.stats.i)
 }
 
 
-
-if(do.cart) {
+if(do.cart & comp) {
   cart.stats.i <- result.i$comp$cart$stats
   names(cart.stats.i) <- paste0("cart.", names(cart.stats.i))
   comp.stats.i <- c(comp.stats.i, cart.stats.i)
   }
 
-if(do.rf) {
+if(do.rf & comp) {
   rf.stats.i <- result.i$comp$rf$stats
   names(rf.stats.i) <- paste0("rf.", names(rf.stats.i))
   comp.stats.i <- c(comp.stats.i, rf.stats.i)
 }
 
-if(do.svm) {
+if(do.svm & comp) {
   svm.stats.i <- result.i$comp$svm$stats
   names(svm.stats.i) <- paste0("svm.", names(svm.stats.i))
   comp.stats.i <- c(comp.stats.i, svm.stats.i)
@@ -154,44 +147,20 @@ comp.stats.i <- unlist(comp.stats.i)
 
 return(list("trees" = tree.stats.i,
             "decisions" = decisions.i,
-            "competitors" = comp.stats.i
+            "competitors" = comp.stats.i,
+            "tree.definitions" = tree.definitions.i
             ))
 
 }
 
-if(cpus == 1) {
 
-  result.ls <- lapply(1:nrow(simulations), FUN = function(x) {
+result.ls <- parallel::mclapply(1:nrow(simulations), FUN = function(x) {
 
-    if(verbose) {print(paste0(x, " of ", nrow(simulations)))}
-    return(getsim.fun(x))
+  if(verbose) {cat(paste0(x, " of ", nrow(simulations)))}
 
-    })
+  return(getsim.fun(x))}, mc.cores = cpus)
 
-}
 
-if(cpus > 1) {
-
-  suppressMessages(snowfall::sfInit(parallel = TRUE, cpus = cpus))
-  snowfall::sfExport("simulations")
-  snowfall::sfLibrary(FFTrees)
-  snowfall::sfExport("formula")
-  snowfall::sfExport("goal")
-  snowfall::sfExport("data")
-  snowfall::sfExport("max.levels")
-  snowfall::sfExport("train.p")
-  snowfall::sfExport("do.lr")
-  snowfall::sfExport("do.rf")
-  snowfall::sfExport("do.cart")
-  snowfall::sfExport("do.svm")
-  snowfall::sfExport("max.levels")
-  snowfall::sfExport("algorithm")
-  snowfall::sfExport("sens.w")
-
-  result.ls <- snowfall::sfClusterApplySR(1:nrow(simulations), fun = getsim.fun, perUpdate = 1)
-  suppressMessages(snowfall::sfStop())
-
-  }
 
 # Append final results to simulations
 
@@ -218,7 +187,7 @@ for(stat.i in c("cues", "thresholds", "directions", "classes", "exits")) {
   simulations[[stat.i]] <- sapply(1:length(result.ls),
                                   FUN = function(x) {
 
-                                    result.ls[[x]]$trees$train[[stat.i]][best.tree.v[x]]})
+                                    result.ls[[x]]$tree.definitions[[stat.i]][best.tree.v[x]]})
 
 }
 
@@ -367,7 +336,7 @@ if(do.svm) {
 # Summarise output
 
 output <-list("formula" = formula,
-              "tree.sim" = simulations,
+              "fft.sim" = simulations,
               "decisions" = decisions,
               "frequencies" = frequencies,
               "connections" = connections,

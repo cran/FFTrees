@@ -7,27 +7,41 @@
 An R package to create and visualize Fast and Frugal decision trees (FFTrees) like this one below:
 
 ```R
-# Create the trees
-titanic.fft <- FFTrees(formula = survived ~., 
-                       data = titanic)
+# Create an FFTrees object from the heartdisease data
+heart.fft <- FFTrees(formula = diagnosis ~., 
+                       data = heartdisease)
                        
 # Plot the best tree
-plot(titanic.fft,
-     main = "Surviving the Titanic", 
-     decision.names = c("Died", "Survived"))
+plot(heart.fft,
+     main = "Heart Disease", 
+     decision.labels = c("Healthy", "Disease"))
 ```
 
-![](https://dl.dropboxusercontent.com/u/7618380/titanicfft.png)
+![](inst/HeartFFT.jpg)
 
 
 
 ### Package updates
 
+1.3.0
+
+- Many additional vignettes (e.g.; Accuracy Statistics and Heart Disease Tutorial) and updates to existing vignettes.
+
+- Added `cost.outcomes` and `cost.cues` to allow the user to specify specify the cost of outcomes and cues. Also added a new `cost` statistic throughout outputs.
+
+- Added `inwords()`, a function that converts an FFTrees object to words.
+
+- Added `my.tree` argument to `FFTrees()` that allows the user to specify an FFT verbally. E.g., `my.tree = 'If age > 30, predict True. If sex = {m}, predict False. Otherwise, predict True'`.
+
+- Added positive predictive value `ppv`, negative predictive value `npv` and balanced predictive value `bpv` as primary accuracy statistics throughout.
+
+- Added support for two FFT construction algorithms from Martignon et al. (2008): `"zigzag"` and `"max"`. The algorithms are contained in the file `heuristic_algorithm.R` and can be implemented in `FFTrees()` as arguments to `algorithm`.
+
 1.2.3
 
 - Added `sens.w` argument to allow differential weighting of sensitivities and specificities when selecting and applying trees.
 
-- Fixed but in calculating importance weightings from `FFForest()` outputs.
+- Fixed bug in calculating importance weightings from `FFForest()` outputs.
 
 1.2.0
 

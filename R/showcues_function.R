@@ -15,6 +15,14 @@ showcues <- function(x = NULL,
                      main = NULL,
                      top = 5) {
 
+  #
+  # x <- heart.fft
+  # data = "train"
+  # cue.accuracies <- NULL
+  # main = NULL
+  # top = 5
+  #
+
   palette <- "basel"
 
   if(palette %in% yarrr::piratepal("names")) {
@@ -53,10 +61,9 @@ if(is.null(x) & is.null(cue.accuracies) == FALSE) {
 
 }
 
-
 if(nrow(cue.df) < top) {top <- nrow(cue.df)}
 
-cue.df$rank <- rank(-cue.df$bacc, ties.method = "first")
+cue.df$rank <- rank(-cue.df$wacc, ties.method = "first")
 
 cue.df <- cue.df[order(cue.df$rank),]
 
@@ -64,7 +71,14 @@ cue.df$col <- rep(palette, length.out = nrow(cue.df))
 
 # GENERAL PLOTTING SPACE
 
-if(is.null(main)) {main <- "Individual Cue Accuracies"}
+if(is.null(main)) {
+
+  if(is.null(x$params$main)) {
+  main <- "Individual Cue Accuracies"
+  } else {main <- x$params$main}
+
+
+  }
 
 plot(1, xlim = c(0, 1), ylim  = c(0, 1), type = "n",
      xlab = "1 - Specificity", ylab = "Sensitivity", main = main,
@@ -118,7 +132,7 @@ for (i in top:1) {
 
 
 # Bottom right label
-location.df <- data.frame(element = c("points", "point.num", "cue.name", "cue.thresh", "sens", "spec", "bacc"),
+location.df <- data.frame(element = c("points", "point.num", "cue.name", "cue.thresh", "sens", "spec", "wacc"),
                           x.loc = c(.5, .5, .67, .68, .83, .9, .97),
                           adj = c(.5, 0, 1, 0, .5, .5, .5),
                           cex = c(1, 1, 1, 1, 1, 1, 1)
@@ -149,9 +163,9 @@ text(x = c(location.df[location.df$element == "point.num",]$x.loc,
            location.df$x.loc[location.df$element == "cue.thresh"])),
            location.df$x.loc[location.df$element == "sens"],
            location.df$x.loc[location.df$element == "spec"],
-           location.df$x.loc[location.df$element == "bacc"]),
+           location.df$x.loc[location.df$element == "wacc"]),
      y = header.y,
-     labels = c("rank", "cue + thresh", "sens", "spec", "bacc"),
+     labels = c("rank", "cue + thresh", "sens", "spec", "wacc"),
      font = 1, cex = label.cex)
 
 segments(cue.box.x0, cue.box.y1, 1.02, cue.box.y1)
@@ -211,10 +225,10 @@ text(x = rep(location.df[location.df$element == "spec",]$x.loc, top),
 
 # v
 
-text(x = rep(location.df[location.df$element == "bacc",]$x.loc, top),
+text(x = rep(location.df[location.df$element == "wacc",]$x.loc, top),
      y = cue.lab.y,
-     labels = round(cue.df$bacc[cue.df$rank <= top], 2),
-     adj = location.df[location.df$element == "bacc",]$adj,
+     labels = round(cue.df$wacc[cue.df$rank <= top], 2),
+     adj = location.df[location.df$element == "wacc",]$adj,
      cex = label.cex)
 
 

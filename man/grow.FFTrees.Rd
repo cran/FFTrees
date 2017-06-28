@@ -2,11 +2,13 @@
 % Please edit documentation in R/growFFTrees_function.R
 \name{grow.FFTrees}
 \alias{grow.FFTrees}
-\title{Grows fast and frugal trees using an algorithm specified by \code{algorithm}.}
+\title{Grows fast-and-frugal trees using an algorithm specified by \code{algorithm}.}
 \usage{
-grow.FFTrees(formula, data, max.levels = 4, algorithm = "m",
-  goal = "bacc", sens.w = 0.5, stopping.rule = "exemplars",
-  stopping.par = 0.1, verbose = FALSE, rank.method = NULL, ...)
+grow.FFTrees(formula, data, max.levels = NULL, algorithm = "ifan",
+  goal = "wacc", goal.chase = "bacc", sens.w = 0.5, cost.outcomes = c(0,
+  1, 1, 0), cost.cues = NULL, numthresh.method = "o",
+  stopping.rule = "exemplars", stopping.par = 0.1, progress = FALSE,
+  rank.method = NULL, cue.accuracies = NULL, ...)
 }
 \arguments{
 \item{formula}{formula. A formula}
@@ -15,19 +17,29 @@ grow.FFTrees(formula, data, max.levels = 4, algorithm = "m",
 
 \item{max.levels}{integer. The maximum number of levels in the tree(s)}
 
-\item{algorithm}{character. A string indicating how to rank cues during tree construction. "m" (for marginal) means that cues will only be ranked once with the entire training dataset. "c" (conditional) means that cues will be ranked after each level in the tree with the remaining unclassified training exemplars.}
+\item{algorithm}{character. A string indicating how to rank cues during tree construction. "m" (for ifan) means that cues will only be ranked once with the entire training dataset. "c" (conditional) means that cues will be ranked after each level in the tree with the remaining unclassified training exemplars.}
 
 \item{goal}{character. A string indicating the statistic to maximize: "acc" = overall accuracy, "bacc" = balanced accuracy, "wacc" = weighted accuracy}
 
+\item{goal.chase}{character. A string indicating the statistic to maximize when constructing trees: "acc" = overall accuracy, "wacc" = weighted accuracy, "bacc" = balanced accuracy}
+
 \item{sens.w}{numeric. A number from 0 to 1 indicating how to weight sensitivity relative to specificity.}
+
+\item{cost.outcomes}{numeric. A vector of length 4 specifying the costs of a hit, false alarm, miss, and correct rejection rspectively. E.g.; \code{cost.outcomes = c(0, 10, 20, 0)} means that a false alarm and miss cost 10 and 20 respectively while correct decisions have no cost.}
+
+\item{cost.cues}{dataframe. A dataframe with two columns specifying the cost of each cue. The first column should be a vector of cue names, and the second column should be a numeric vector of costs. Cues in the dataset not present in \code{cost.cues} are assume to have 0 cost.}
+
+\item{numthresh.method}{character. How should thresholds for numeric cues be determined? \code{"o"} will optimize thresholds, while \code{"m"} will always use the median.}
 
 \item{stopping.rule}{character. A string indicating the method to stop growing trees. "levels" means the tree grows until a certain level. "exemplars" means the tree grows until a certain number of unclassified exemplars remain. "statdelta" means the tree grows until the change in the criterion statistic is less than a specified level.}
 
 \item{stopping.par}{numeric. A number indicating the parameter for the stopping rule. For stopping.rule == "levels", this is the number of levels. For stopping rule == "exemplars", this is the smallest percentage of examplars allowed in the last level.}
 
-\item{verbose}{logical. Should tree growing progress be displayed?}
+\item{progress}{logical. Should tree growing progress be displayed?}
 
 \item{rank.method}{depricated arguments}
+
+\item{cue.accuracies}{depricated arguments}
 
 \item{...}{Currently ignored}
 }
@@ -35,7 +47,7 @@ grow.FFTrees(formula, data, max.levels = 4, algorithm = "m",
 A list of length 4. tree.definitions contains definitions of the tree(s). tree.stats contains classification statistics for the tree(s). levelout shows which level in the tree(s) each exemplar is classified. Finally, decision shows the classification decision for each tree for each exemplar
 }
 \description{
-Grows fast and frugal trees using an algorithm specified by \code{algorithm}.
+Grows fast-and-frugal trees using an algorithm specified by \code{algorithm}.
 }
 \examples{
 

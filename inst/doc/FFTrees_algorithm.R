@@ -1,6 +1,7 @@
 ## ----setup, include=FALSE, message = FALSE-------------------------------
 knitr::opts_chunk$set(echo = TRUE)
 library(FFTrees)
+options(digits = 3)
 
 ## ---- message = FALSE----------------------------------------------------
 heartdisease.ca <- FFTrees::cuerank(formula = diagnosis ~., 
@@ -59,13 +60,44 @@ heartdisease.ffts <- grow.FFTrees(formula = diagnosis ~.,
 heartdisease.ffts$tree.definitions
 
 ## ---- fig.width = 5, fig.height = 5, message = FALSE, fig.align = "center"----
-library(FFTrees)
-
 # Create trees
-heart.fft <- FFTrees(formula = diagnosis ~., data = heartdisease)
+heart.fft <- FFTrees(formula = diagnosis ~., 
+                     data = heartdisease)
 
 # Plot tree # 4
 plot(heart.fft, 
      stats = FALSE,    # Don't include statistics
      tree = 4)
+
+## ------------------------------------------------------------------------
+heart.cue.cost <- data.frame("cue" = c("age", "sex", "cp", "trestbps", "chol",  "fbs", "restecg", "thalach", "exang", "oldpeak", "slope", "ca", "thal"),
+                         "cost" = c(1, 1, 1, 1, 7.27, 5.2, 15.5, 102.9, 87.3, 87.3, 87.3, 100.9, 102.9))
+
+## ------------------------------------------------------------------------
+# Specify the following costs for heart disease diagnosis:
+# cost(Hit) = 0, cost(False Alarm) = 100, cost(Miss) = 200, cost(correct rejection) = 0
+
+heart.cost.outcomes <- c(0, 500, 1000, 0)
+
+## ------------------------------------------------------------------------
+heart.costA.fft <- FFTrees(formula = diagnosis ~.,
+                          data = heartdisease,
+                          cost.outcomes = heart.cost.outcomes,
+                          cost.cues = heart.cue.cost,
+                          goal = "bacc",
+                          goal.chase = "bacc")
+
+## ------------------------------------------------------------------------
+summary(heart.costA.fft)$train[1,]
+
+## ------------------------------------------------------------------------
+heart.costB.fft <- FFTrees(formula = diagnosis ~.,
+                          data = heartdisease,
+                          cost.outcomes = heart.cost.outcomes,
+                          cost.cues = heart.cue.cost,
+                          goal = "cost",
+                          goal.chase = "cost")
+
+## ------------------------------------------------------------------------
+summary(heart.costB.fft)$train[1,]
 

@@ -2,13 +2,17 @@
 % Please edit documentation in R/FFTrees.R
 \name{FFTrees}
 \alias{FFTrees}
-\title{Creates a Fast and Frugal Trees (FFTrees) object.}
+\title{Creates a fast-and-frugal trees (FFTrees) object.}
 \usage{
-FFTrees(formula = NULL, data = NULL, data.test = NULL, train.p = 1,
-  algorithm = "m", goal = "wacc", sens.w = 0.5, max.levels = 4,
-  tree.definitions = NULL, verbose = FALSE, do.cart = TRUE,
+FFTrees(formula = NULL, data = NULL, data.test = NULL,
+  algorithm = "ifan", max.levels = NULL, sens.w = 0.5,
+  cost.outcomes = NULL, cost.cues = NULL, stopping.rule = "exemplars",
+  stopping.par = 0.1, goal = "wacc", goal.chase = "bacc",
+  numthresh.method = "o", decision.labels = c("False", "True"),
+  main = NULL, train.p = 1, rounding = NULL, progress = TRUE,
+  my.tree = NULL, tree.definitions = NULL, comp = TRUE, do.cart = TRUE,
   do.lr = TRUE, do.rf = TRUE, do.svm = TRUE, store.data = FALSE,
-  object = NULL, rank.method = NULL, force = FALSE)
+  object = NULL, rank.method = NULL, force = FALSE, verbose = NULL)
 }
 \arguments{
 \item{formula}{formula. A formula specifying a logical criterion as a function of 1 or more predictors.}
@@ -17,27 +21,47 @@ FFTrees(formula = NULL, data = NULL, data.test = NULL, train.p = 1,
 
 \item{data.test}{dataframe. An optional testing dataset with the same structure as data.}
 
-\item{train.p}{numeric. What percentage of the data to use for training when \code{data.test} is not specified? For example, \code{train.p = .5} will randomly split \code{data} into a 50\% training set and a 50\% test set. \code{train.p = 1}, the default, uses all data for training.}
-
-\item{algorithm}{character. How should cues be ranked during tree construction. "m" (for marginal) means that cues will only be ranked once with the entire training dataset. "c" (conditional) means that cues will be re-ranked after each level in the tree with the remaining unclassified training exemplars. This also means that the same cue can be used multiple times in the trees. Note that the "c" method can take (much) longer and may be prone to overfitting.}
-
-\item{goal}{character. A string indicating the statistic to maximize: "acc" = overall accuracy, "wacc" = weighted accuracy}
-
-\item{sens.w}{numeric. A number from 0 to 1 indicating how to weight sensitivity relative to specificity. Only relevant when \code{goal = 'wacc'}}
+\item{algorithm}{character. The algorithm to create FFTs. Can be \code{'ifan'}, \code{'dfan'}, \code{'max'}, or \code{'zigzag'}.}
 
 \item{max.levels}{integer. The maximum number of levels considered for the trees. Because all permutations of exit structures are considered, the larger \code{max.levels} is, the more trees will be created.}
 
+\item{sens.w}{numeric. A number from 0 to 1 indicating how to weight sensitivity relative to specificity. Only relevant when \code{goal = 'wacc'}}
+
+\item{cost.outcomes}{numeric. A vector of length 4 specifying the costs of a hit, false alarm, miss, and correct rejection rspectively. E.g.; \code{cost.outcomes = c(0, 10, 20, 0)} means that a false alarm and miss cost 10 and 20 respectively while correct decisions have no cost.}
+
+\item{cost.cues}{dataframe. A dataframe with two columns specifying the cost of each cue. The first column should be a vector of cue names, and the second column should be a numeric vector of costs. Cues in the dataset not present in \code{cost.cues} are assume to have 0 cost.}
+
+\item{stopping.rule}{character. A string indicating the method to stop growing trees. "levels" means the tree grows until a certain level. "exemplars" means the tree grows until a certain number of unclassified exemplars remain. "statdelta" means the tree grows until the change in the criterion statistic is less than a specified level.}
+
+\item{stopping.par}{numeric. A number indicating the parameter for the stopping rule. For stopping.rule == "levels", this is the number of levels. For stopping rule == "exemplars", this is the smallest percentage of examplars allowed in the last level.}
+
+\item{goal}{character. A string indicating the statistic to maximize when selecting final trees: "acc" = overall accuracy, "wacc" = weighted accuracy, "bacc" = balanced accuracy}
+
+\item{goal.chase}{character. A string indicating the statistic to maximize when constructing trees: "acc" = overall accuracy, "wacc" = weighted accuracy, "bacc" = balanced accuracy}
+
+\item{numthresh.method}{character. How should thresholds for numeric cues be determined? \code{"o"} will optimize thresholds, while \code{"m"} will always use the median.}
+
+\item{decision.labels}{string. A vector of strings of length 2 indicating labels for negative and positive cases. E.g.; \code{decision.labels = c("Healthy", "Diseased")}}
+
+\item{main}{string. An optional label for the dataset. Passed on to other functions like \code{plot.FFTrees()}, and \code{print.FFTrees()}}
+
+\item{train.p}{numeric. What percentage of the data to use for training when \code{data.test} is not specified? For example, \code{train.p = .5} will randomly split \code{data} into a 50\% training set and a 50\% test set. \code{train.p = 1}, the default, uses all data for training.}
+
+\item{rounding}{integer. An integer indicating digit rounding for non-integer numeric cue thresholds. The default is NULL which means no rounding. A value of 0 rounds all possible thresholds to the nearest integer, 1 rounds to the nearest .1 (etc.).}
+
+\item{progress}{logical. Should progress reports be printed? Can be helpful for diagnosis when the function is running slowly.}
+
+\item{my.tree}{string. A string representing an FFT in words. For example, \code{my.tree = "If age > 20, predict TRUE. If sex = [m], predict FALSE. Otherwise, predict TRUE"}}
+
 \item{tree.definitions}{dataframe. An optional hard-coded definition of trees (see details below). If specified, no new trees are created.}
 
-\item{verbose}{logical. Should progress reports be printed? Can be helpful for diagnosis when the function is running slowly.}
-
-\item{do.cart, do.lr, do.rf, do.svm}{logical. Should alternative algorithms be created for comparison? cart = regression trees, lr = logistic regression, rf = random forests, svm = support vector machines.}
+\item{comp, do.cart, do.lr, do.rf, do.svm}{logical. Should alternative algorithms be created for comparison? cart = regular (non-frugal) trees with \code{rpart}, lr = logistic regression with \code{glm}, rf = random forests with \code{randomForest}, svm = support vector machines with \code{e1071}. Setting \code{comp = FALSE} sets all these arguments to FALSE.}
 
 \item{store.data}{logical. Should training / test data be stored in the object? Default is FALSE.}
 
 \item{object}{FFTrees. An optional existing FFTrees object. When specified, no new trees are fitted and the existing trees are applied to \code{data} and \code{data.test}.}
 
-\item{rank.method}{depricated arguments.}
+\item{rank.method, verbose}{depricated arguments.}
 
 \item{force}{logical. If TRUE, forces some parameters (like goal) to be as specified by the user even when the algorithm thinks those specifications don't make sense.}
 }
@@ -45,23 +69,25 @@ FFTrees(formula = NULL, data = NULL, data.test = NULL, train.p = 1,
 An \code{FFTrees} object with the following elements
 
 \describe{
-  \item{data, data.test}{The original training and test data.}
-  \item{cue.accuracies}{Marginal accuracies of each cue given a threshold that maximizes balanced accuracy for the training data. These are calculated using the \code{cuerank()} function.}
+  \item{formula}{The formula specified when creating the FFTs.}
+  \item{data.desc}{Descriptive statistics of the data}
+  \item{cue.accuracies}{Marginal accuracies of each cue given a decision threshold calculated with the specified algorithm}
   \item{tree.definitions}{Definitions of each tree created by \code{FFTrees}. Each row corresponds to one tree. Different levels within a tree are separated by semi-colons. See above for more details.}
   \item{tree.stats}{Tree definitions and classification statistics. Training and test data are stored separately}
+  \item{cost}{A list of cost information for each case in each tree.}
   \item{level.stats}{Cumulative classification statistics at each tree level. Training and test data are stored separately}
-  \item{auc}{Area under the curve statistics}
   \item{decision}{Final classification decisions. Each row is a case and each column is a tree. For example, row 1 in column 2 is the classification decision of tree number 2 for the first case. Training and test data are stored separately.}
   \item{levelout}{The level at which each case is classified in each tree. Rows correspond to cases and columns correspond to trees. Training and test data are stored separately.}
-  \item{params}{A list of control parameters (e.g.; \code{algorithm}, \code{goal})}
+  \item{tree.max}{The index of the 'final' tree specified by the algorithm. For algorithms that only return a single tree, this value is always 1.}
+  \item{inwords}{A verbal definition of \code{tree.max}.}
+  \item{auc}{Area under the curve statistics}
+  \item{params}{A list of defined control parameters (e.g.; \code{algorithm}, \code{goal})}
   \item{comp}{Models and classification statistics for competitive classification algorithms: Regularized logistic regression, CART, and random forest.}
+  \item{data}{The original training and test data (only included when \code{store.data = TRUE})}
   }
 }
 \description{
-This is the workhorse function for the \code{FFTrees} package. It creates a set of fast and frugal decision trees trained on a training dataset and tested on an optional test dataset.
-}
-\details{
-\code{tree.definitions} should be a dataframe defining trees with each row. At least 4 columns should be present: \code{cues}, the names of the cues, \code{thresholds}, thresholds determining cue splits, \code{directions}, directions pointing towards positive classifications, \code{classes}, classes of the cues, and \code{exits}, the exit directions where 0 means a negative exit, 1 means a positive exit, and .5 means a bi-directional exit. Different levels within a tree should be separated by semicolons.
+This is the workhorse function for the \code{FFTrees} package. It creates (one or more) fast-and-frugal decision trees trained on a training dataset and tested on an optional test dataset.
 }
 \examples{
 

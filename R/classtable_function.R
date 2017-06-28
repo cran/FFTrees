@@ -1,6 +1,8 @@
 #' Calculates several classification statistics from binary prediction and criterion (e.g.; truth) vectors
 #' @param prediction.v A binary vector of predictions
 #' @param criterion.v A binary vector of criterion (true) values
+#' @param cost.outcomes numeric. A vector of length 4 specifying the costs of a hit, false alarm, miss, and correct rejection rspectively. E.g.; \code{cost.outcomes = c(0, 10, 20, 0)} means that a false alarm and miss cost 10 and 20 respectively while correct decisions have no cost.
+#' @param cost.v numeric. An optional vector of additional costs to be added to each case.
 #' @param sens.w numeric. Weight given to sensitivity, must range from 0 to 1.
 #' @importFrom stats qnorm
 #' @export
@@ -16,8 +18,19 @@
 
 classtable <- function(prediction.v,
                        criterion.v,
-                       sens.w = .5) {
+                       sens.w = .5,
+                       cost.v = NULL,
+                       cost.outcomes = c(0, 1, 1, 0)) {
 
+#
+#   prediction.v = pred.vec
+#   criterion.v = criterion.v
+#   cost.v = rep(cue.cost.i, cases.n)
+#   sens.w = sens.w
+#   cost.outcomes = cost.outcomes
+
+
+if(is.null(cost.v)) {cost.v <- rep(0, length(prediction.v))}
 
 if(any(c("FALSE", "TRUE") %in% paste(prediction.v))) {
 
@@ -38,7 +51,7 @@ if(any(c("FALSE", "TRUE") %in% paste(criterion.v))) {
   prediction.v <- prediction.v[is.finite(criterion.v)]
   criterion.v <- criterion.v[is.finite(criterion.v)]
 
-  N <- length(criterion.v)
+  N <- min(length(criterion.v), length(prediction.v))
 
   if(N > 0) {
 
@@ -78,6 +91,15 @@ if(any(c("FALSE", "TRUE") %in% paste(criterion.v))) {
   # Percent correct
   acc <- (hi + cr) / (hi + cr + mi + fa)
 
+  # ppv (positive predictive value)
+  ppv <- hi / (hi + fa)
+
+  # npv (negative predictive value)
+  npv <- cr / (mi + cr)
+
+  # bpv (balanced predictive value)
+  bpv <- (ppv + npv) / 2
+
   # bacc (sens - FAR)
   bacc <- (sens + spec) / 2
 
@@ -86,6 +108,9 @@ if(any(c("FALSE", "TRUE") %in% paste(criterion.v))) {
 
   # d-prime
   dprime <- qnorm(sens.c) - qnorm(far.c)
+
+  # cost (outcome costs)
+  cost <- (as.numeric(c(hi, fa, mi, cr) %*% cost.outcomes) + sum(cost.v)) / N
 
   }
 
@@ -97,11 +122,15 @@ if(any(c("FALSE", "TRUE") %in% paste(criterion.v))) {
     cr <- NA
     sens <- NA
     spec <- NA
+    ppv <- NA
+    npv <- NA
+    bpv <- NA
     far <- NA
     acc <- NA
     bacc <- NA
-    waccc <- NA
+    wacc <- NA
     dprime <- NA
+    cost <- NA
 
   }
 
@@ -113,11 +142,15 @@ if(any(c("FALSE", "TRUE") %in% paste(criterion.v))) {
     cr = cr,
     sens = sens,
     spec = 1 - far,
+    ppv = ppv,
+    npv = npv,
     far = far,
     acc = acc,
     bacc = bacc,
     wacc = wacc,
-    dprime = dprime)
+    bpv = bpv,
+    dprime = dprime,
+    cost = cost)
 
   return(result)
 
