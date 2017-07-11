@@ -52,7 +52,31 @@ FFForest <- function(formula = NULL,
                      rank.method = NULL,
                      hr.weight = NULL
 ) {
-#
+
+
+  # formula = NULL
+  # data = NULL
+  # data.test = NULL
+  # max.levels = 5
+  # ntree = 10
+  # train.p = .5
+  # algorithm = "ifan"
+  # goal = "wacc"
+  # goal.chase = "wacc"
+  # sens.w = .5
+  # verbose = TRUE
+  # cpus = 1
+  # comp = FALSE
+  # do.lr = TRUE
+  # do.cart = TRUE
+  # do.rf = TRUE
+  # do.svm = TRUE
+  # rank.method = NULL
+  # hr.weight = NULL
+  #
+  # formula <- diagnosis ~.
+  # data = heartdisease
+
 
 
 # Check for depricated arguments
@@ -92,8 +116,6 @@ simulations <- data.frame(
 
 # getsim.fun does one training split and returns tree statistics
 getsim.fun <- function(i) {
-
-cat(i)
 
 result.i <- FFTrees::FFTrees(formula = formula,
                               data = data,
@@ -148,21 +170,30 @@ comp.stats.i <- unlist(comp.stats.i)
 return(list("trees" = tree.stats.i,
             "decisions" = decisions.i,
             "competitors" = comp.stats.i,
-            "tree.definitions" = tree.definitions.i
+            "tree.definitions" = tree.definitions.i,
+            "fft.model" = result.i
             ))
 
 }
 
 
+
 result.ls <- parallel::mclapply(1:nrow(simulations), FUN = function(x) {
 
-  if(verbose) {cat(paste0(x, " of ", nrow(simulations)))}
+  if(verbose) {cat(paste0(x, " of ", nrow(simulations), ", "))}
 
   return(getsim.fun(x))}, mc.cores = cpus)
 
 
 
 # Append final results to simulations
+
+
+fft.models <- lapply(1:length(result.ls), FUN = function(x) {
+
+  result.ls[[x]]$fft.model
+
+})
 
 best.tree.v <- sapply(1:length(result.ls), FUN = function(i) {
 
@@ -179,6 +210,8 @@ decisions <- matrix(unlist(lapply(1:length(result.ls), FUN = function(i) {
   return(result.ls[[i]]$decisions)
 
 })), nrow = nrow(data), ncol = ntree)
+
+
 
 # Tree definitions
 
@@ -295,7 +328,10 @@ surrogate.tree.definition$tree <- 1
 surrogate.FFTrees <- FFTrees(formula = formula,
                              data = data,
                              data.test = data.test,
-                             tree.definitions = surrogate.tree.definition)
+                             tree.definitions = surrogate.tree.definition,
+                             algorithm = algorithm,
+                             goal = goal,
+                             goal.chase = goal.chase)
 }
 
 # Get competition results
@@ -337,6 +373,7 @@ if(do.svm) {
 
 output <-list("formula" = formula,
               "fft.sim" = simulations,
+              "fft.models" = fft.models,
               "decisions" = decisions,
               "frequencies" = frequencies,
               "connections" = connections,
