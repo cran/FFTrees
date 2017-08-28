@@ -14,6 +14,7 @@
 #' @param stopping.par numeric. A number indicating the parameter for the stopping rule. For stopping.rule == \code{"levels"}, this is the number of levels. For stopping rule \code{"exemplars"}, this is the smallest percentage of examplars allowed in the last level.
 #' @param rounding integer. How much should threshold parameters be rounded? Default is
 #' @param progress logical. Should tree growing progress be displayed?
+#' @param repeat.cues logical. Can cues occur multiple times within a tree?
 #' @param ... Currently ignored
 #' @importFrom stats anova predict glm as.formula var
 #'
@@ -33,34 +34,32 @@ fan.algorithm <- function(formula,
                           stopping.rule = "exemplars",
                           stopping.par = .1,
                           rounding = NULL,
-                          progress = TRUE) {
+                          progress = TRUE,
+                          repeat.cues = TRUE) {
 
 #
-  # formula = diagnosis ~.
-  # data = heart.train
-  # data.test = heart.test
-  # max.levels = 4
-  # algorithm = "ifan"
-  # goal = "cost"
-  # goal.chase = "cost"
-  # sens.w = .5
-  # cost.outcomes = c(0, 1, 3, 0)
-  # cost.cues = NULL
-  # numthresh.method = "o"
-  # stopping.rule = "exemplars"
-  # stopping.par = .1
-  # rounding = NULL
-  # progress = TRUE
+#   formula = formula
+#   data = data.train
+#   algorithm = algorithm
+#   goal = goal
+#   goal.chase = goal.chase
+#   stopping.rule = stopping.rule
+#   stopping.par = stopping.par
+#   max.levels = max.levels
+#   sens.w = sens.w
+#   cost.outcomes = cost.outcomes
+#   cost.cues = cost.cues
+#   progress = progress
+#
 
 # # Some global variables which could be changed later.
 
-repeat.cues <- TRUE
 exit.method <- "fixed"
 correction <- .25
 
 
 # Start with criterion
-data.mf <- model.frame(formula, data)
+data.mf <- model.frame(formula, data, na.action = NULL)
 criterion.name <- names(data.mf)[1]
 criterion.v <- data.mf[,1]
 cues.n <- ncol(data.mf) - 1
@@ -271,8 +270,8 @@ if(algorithm == "dfan") {
 }
 
 # Get next cue based on maximizing  (or minimizing) goal
-if(grepl("cost", goal.chase)) {best.cue.index <- which(cue.accuracies.current[[goal.chase]] == min(cue.accuracies.current[[goal.chase]]))}
-if(grepl("cost", goal.chase) == FALSE) {best.cue.index <- which(cue.accuracies.current[[goal.chase]] == max(cue.accuracies.current[[goal.chase]]))}
+if(grepl("cost", goal.chase)) {best.cue.index <- which(cue.accuracies.current[[goal.chase]] == min(cue.accuracies.current[[goal.chase]], na.rm = TRUE))}
+if(grepl("cost", goal.chase) == FALSE) {best.cue.index <- which(cue.accuracies.current[[goal.chase]] == max(cue.accuracies.current[[goal.chase]], na.rm = TRUE))}
 
 # If there is a tie, take the first
 if(length(best.cue.index) > 1) {best.cue.index <- best.cue.index[1]}

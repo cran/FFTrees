@@ -120,7 +120,6 @@ n.cues <- x$tree.definitions$nodes[tree]
 if(n.trees == 1) {summary.text <- paste(x$params$algorithm, " FFT predicting ", criterion.name, " with up to ", n.cues, " nodes", sep = "")}
 if(n.trees > 1) {summary.text <- paste(n.trees, " FFTs predicting ", criterion.name, " (", x$params$decision.labels[1], " v ", x$params$decision.labels[2], ")", sep = "")}
 
-
 params.text <- paste0("pars: algorithm = '", x$params$algorithm, "', goal = '", x$params$goal, "', goal.chase = '", x$params$goal.chase, "', sens.w = ", x$params$sens.w, ", max.levels = ", x$params$max.levels)
 
 if(is.null(test.auc)) {
@@ -136,25 +135,32 @@ if(is.null(test.auc) == FALSE) {
 }
 
 
-accuracy.text <- paste("FFT #", tree, " uses ", train.cues.n, " cues: {", train.cues, "}", sep = "")
+accuracy.text <- paste("FFT #", tree, " predicts ", criterion.name," using ", train.cues.n, " cues: {", train.cues, "}", sep = "")
+
+
+# Confusion table
 
 
 
-# verbalisation
-inwords.FFTrees <- FFTrees::inwords(x = x)
+
 
 if(is.null(x$params$main) == FALSE) {
 
 cat(x$params$main)
 cat("\n")
 }
-cat(summary.text)
-cat("\n")
+
+
+
 cat(accuracy.text)
 cat("\n")
+
+cat("\n")
+sapply(1:length(FFTrees::inwords(x = x)$v1), FUN = function(i) {cat(paste0("[", i, "] ", FFTrees::inwords(x)$v1[i], ".\n"))})
 cat("\n")
 print(summary.df)
 cat("\n")
+
 cat(params.text)
 
 

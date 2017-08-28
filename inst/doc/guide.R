@@ -1,6 +1,5 @@
-## ---- echo = F, message = F, results = 'hide'----------------------------
+## ---- echo = F, message = FALSE, results = 'hide'------------------------
 library(FFTrees)
-library(knitr)
 
 ## ----fig1, fig.width = 7, fig.height = 6.5, echo = TRUE, fig.align='center', echo = TRUE, message = FALSE, fig.cap="A fast-and-frugal tree (FFT) to predict heart disease risk. Read the Heart Disease Tutorial vignette to learn more about how to create this FFT."----
 # Create a fast-and-frugal tree (FFT) predicting heart disease
@@ -13,17 +12,15 @@ heart.fft <- FFTrees(formula = diagnosis ~.,
 # Visualize the best training tree applied to the test data
 plot(heart.fft, data = "test")
 
-## ------------------------------------------------------------------------
-# Cite the package
-citation("FFTrees")
-
 ## ---- eval = FALSE-------------------------------------------------------
-#  # Cite the article
 #  @article{phillips2017FFTrees,
-#    title={FFTrees: A toolbox to create, visualize, and evaluate fast-and-frugal decision trees},
-#    author={Phillips, Nathaniel D. and Neth, Hansjoerg and Woike, Jan and Wolfgang, Gaissmaier},
-#    journal={Judgment and Decision Making},
-#    year={2017}
+#   title = {{FFTrees}: A toolbox to create, visualize, and evaluate fast-and-frugal decision trees},
+#   author = {Phillips, Nathaniel D and Neth, Hansjoerg and Woike, Jan K and Gaissmaier, Wolfgang},
+#   year = 2017,
+#   journal = {Judgment and Decision Making},
+#   volume = 12,
+#   number = 4,
+#   pages = {344--368}
 #  }
 
 ## ----fig.align = "center", out.width="50%", echo = FALSE-----------------

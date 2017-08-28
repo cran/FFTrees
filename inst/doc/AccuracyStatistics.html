@@ -12,7 +12,7 @@
 
 <meta name="author" content="Nathaniel Phillips" />
 
-<meta name="date" content="2017-07-11" />
+<meta name="date" content="2017-08-28" />
 
 <title>FFTrees Accuracy Statistics</title>
 
@@ -70,7 +70,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 <h1 class="title toc-ignore">FFTrees Accuracy Statistics</h1>
 <h4 class="author"><em>Nathaniel Phillips</em></h4>
-<h4 class="date"><em>2017-07-11</em></h4>
+<h4 class="date"><em>2017-08-28</em></h4>
 
 
 
@@ -248,8 +248,11 @@ Confusion table illustrating frequencies of 4 possible outcomes.
 </table>
 <p>To see exactly where these statistics come from, let’s look at the results for <code>heart.fft</code> (FFT #1):</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">heart.fft</code></pre></div>
-<pre><code>## 7 FFTs predicting diagnosis (False v True)
-## FFT #1 uses 3 cues: {thal,cp,ca}
+<pre><code>## FFT #1 predicts diagnosis using 3 cues: {thal,cp,ca}
+## 
+## [1] If thal = {rd,fd}, predict True.
+## [2] If cp != {a}, predict False.
+## [3] If ca &lt;= 0, predict False, otherwise, predict True.
 ## 
 ##                    train
 ## cases       :n    303.00
