@@ -19,11 +19,10 @@ wordstoFFT <- function(input,
                        cue.names,
                        decision.labels = NULL) {
 
-#
+# Clean up input
 
-   # input = "If thal = {rd,fd}, predict True. If cp != {a}, predict False. If ca <= 0, predict False, otherwise, predict True"
-   # cue.names <- names(heartdisease)
-   # decision.labels = c("Not M", "Myopathic")
+  # Remove \n (can happen if input has line breaks)
+input <- gsub(pattern = "\n", replacement = "", x = input)
 
 
 if(is.null(decision.labels)) {decision.labels <- c("False", "True")}
@@ -145,15 +144,15 @@ thresholds.v <- sapply(def[1:nodes.n], FUN = function(x) {
 
   # If there is a number and no brace, get the number
 
-  if(num.log & !bracket.log) {
+  if(!bracket.log) {
 
     threshold.i <- stringr::str_extract(x, "[-+]?\\d+\\.*\\d*")
 
   }
 
-  # If no number and bracket, get what's inside the braces (and remove any spaces)
+  # If there is a brace get what's inside the braces (and remove any spaces)
 
-  if(!num.log & bracket.log) {
+  if(bracket.log) {
 
     threshold.i <- stringr::str_replace_all(unlist(strsplit(x, "\\{|\\}"))[2], pattern = " ", "")
 

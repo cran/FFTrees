@@ -21,7 +21,7 @@
 #' @param rounding integer. An integer indicating digit rounding for non-integer numeric cue thresholds. The default is NULL which means no rounding. A value of 0 rounds all possible thresholds to the nearest integer, 1 rounds to the nearest .1 (etc.).
 #' @param progress logical. Should progress reports be printed? Can be helpful for diagnosis when the function is running slowly.
 #' @param repeat.cues logical. Can cues occur multiple times within a tree?
-#' @param my.tree string. A string representing an FFT in words. For example, \code{my.tree = "If age > 20, predict TRUE. If sex = [m], predict FALSE. Otherwise, predict TRUE"}
+#' @param my.tree string. A string representing an FFT in words. For example, \code{my.tree = "If age > 20, predict TRUE. If sex = {m}, predict FALSE. Otherwise, predict TRUE"}
 #' @param tree.definitions dataframe. An optional hard-coded definition of trees (see details below). If specified, no new trees are created.
 #' @param do.comp,do.cart,do.lr,do.rf,do.svm logical. Should alternative algorithms be created for comparison? cart = regular (non-frugal) trees with \code{rpart}, lr = logistic regression with \code{glm}, rf = random forests with \code{randomForest}, svm = support vector machines with \code{e1071}. Setting \code{comp = FALSE} sets all these arguments to FALSE.
 #' @param store.data logical. Should training / test data be stored in the object? Default is FALSE.
@@ -52,19 +52,42 @@
 #' @export
 #' @examples
 #'
-#'  # Create ffts for heart disease
+#'  # Create fast-and-frugal trees for heart disease
 #'  heart.fft <- FFTrees(formula = diagnosis ~.,
-#'                       data = heartdisease)
+#'                       data = heart.train,
+#'                       data.test = heart.test,
+#'                       main = "Heart Disease",
+#'                       decision.labels = c("Healthy", "Diseased"))
 #'
 #'  # Print the result for summary info
 #'  heart.fft
 #'
-#'  # Plot the best tree
+#'  # Plot the tree applied to training data
+#'  plot(heart.fft, stats = FALSE)
 #'  plot(heart.fft)
+#'  plot(heart.fft, data = "test)  # Now for testing data
+#'  plot(heart.fft, data = "test", tree = 2) # Look at tree number 2
 #'
 #'
-
-
+#'  ## Predict classes and probabilities for new data
+#'
+#'  predict(heart.fft, newdata = heartdisease)
+#'  predict(heart.fft, newdata = heartdisease, type = "prob")
+#'
+#'  ### Create your own custom tree with my.tree
+#'
+#'  custom.fft <- FFTrees(formula = diagnosis ~ .,
+#'                        data = heartdisease,
+#'                        my.tree = 'If chol > 300, predict True.
+#'                                   If sex = {m}, predict False,
+#'                                   If age > 70, predict True, otherwise predict False'
+#'                                   )
+#'
+#'  # Plot the custom tree (it's pretty terrible)
+#'  plot(custom.fft)
+#'
+#'
+#'
 
 FFTrees <- function(formula = NULL,
                     data = NULL,
@@ -100,53 +123,6 @@ FFTrees <- function(formula = NULL,
                     comp = NULL
 ) {
 
-
-# #
-  # formula = NULL
-  # data = NULL
-  # data.test = NULL
-  # algorithm = "ifan"
-  # max.levels = NULL
-  # sens.w = .5
-  # cost.outcomes = NULL
-  # cost.cues = NULL
-  # stopping.rule = "exemplars"
-  # stopping.par = .1
-  # goal = "wacc"
-  # goal.chase = "bacc"
-  # numthresh.method = "o"
-  # decision.labels = c("False", "True")
-  # train.p = 1
-  # rounding = NULL
-  # progress = TRUE
-  # my.tree = NULL
-  # tree.definitions = NULL
-  # comp = TRUE
-  # do.cart = TRUE
-  # do.lr = TRUE
-  # do.rf = TRUE
-  # do.svm = TRUE
-  # store.data = FALSE
-  # object = NULL
-  # rank.method = NULL
-  # force = FALSE
-  # verbose = NULL
-  #
-  #
-  # object = heart.fft
-  # data.test = NULL
-  # comp = NULL
-  # do.comp = TRUE
-  #
-  #
-  #
-  # formula = diagnosis_norm ~ .
-  # data = emg_norm
-  # main = "normal"
-  # algorithm = "dfan"
-  # decision.labels = c("Not normal", "Normal")
-  #
-  #
 # Depricated arguments
 {
   if(is.null(verbose) == FALSE) {
@@ -179,8 +155,6 @@ FFTrees <- function(formula = NULL,
 
 # If no FFTrees object is specified
 if(is.null(object)) {
-
-
 
 if(is.null(cost.outcomes) == FALSE) {
 
@@ -325,7 +299,6 @@ if((crit.name %in% names(data) == FALSE) & is.null(object)) {
 
 }
 
-
 # DEFINE TESTING AND TRAINING DATA [data.train, data.test]
 {
 
@@ -361,7 +334,7 @@ if(is.null(object) == TRUE & (train.p == 1 | is.null(data.test) == FALSE)) {
                             data = data.train.o,
                             na.action = NULL)
 
-  cue.train <- data.train[,2:ncol(data.train)]
+  cue.train <- data.train[,2:ncol(data.train), drop = FALSE]
   cue.names <- names(cue.train)
   n.cues <- length(cue.names)
 
@@ -538,6 +511,7 @@ if(is.null(data.test) & train.p < 1) {
 
     }
   }
+
   # MAKE SURE TRAINING AND TEST DATAFRAMES ARE SIMILAR
 
   if(is.null(data.test) == FALSE) {
@@ -550,11 +524,14 @@ if(is.null(data.test) & train.p < 1) {
 
   }
 
-
 ## VALIDITY CHECKS
 {
   # Non-binary DV
-  if(setequal(crit.train, c(0, 1)) == FALSE) {
+
+  if(setequal(crit.train, c(0, 1)) == FALSE |
+     {"factor" %in% c(class(crit.train))} |
+     {"character" %in% c(class(crit.train))}
+     ) {
 
     stop(paste0("The criterion ", crit.name, " is either not binary or logical, or does not have variance"))
 
@@ -610,7 +587,10 @@ if(is.null(data.test) & train.p < 1) {
 
   }
 
-  if(is.null(object) & is.null(tree.definitions) & is.null(my.tree) & is.null(tree.definitions)) {
+  if(is.null(object) &
+     is.null(tree.definitions) &
+     is.null(my.tree) &
+     is.null(tree.definitions)) {
 
     if(progress) {message(paste0("Growing FFTs with ", algorithm))}
 
@@ -828,6 +808,16 @@ rownames(tree.auc) = c("train", "test")
 
 }
 
+
+## GET HISTORY
+#
+# history <-  updateHistory(newdata = data.train,
+#                           object = object,
+#                           formula = formula,
+#                           tree.definitions = tree.definitions)$history
+
+
+
 # FIT COMPETITIVE ALGORITHMS
 {
 
@@ -839,7 +829,7 @@ do.svm <- FALSE
 do.rf <- FALSE
 
 }
-  if(do.lr | do.cart | do.rf | do.svm) {if(progress) {message("Fitting non-FFTrees algorithms for comparison (you can turn this off with comp = FALSE) ...")}}
+  if(do.lr | do.cart | do.rf | do.svm) {if(progress) {message("Fitting non-FFTrees algorithms for comparison (you can turn this off with do.comp = FALSE) ...")}}
 
   # LR
   {
@@ -1095,6 +1085,7 @@ x.FFTrees <- list("formula" = formula,
                    "tree.definitions" = tree.definitions,
                    "tree.stats" = treestats,
                    "cost" = treecost,
+                   # "history" = history,
                    "level.stats" = levelstats,
                    "decision" = decision,
                    "levelout" = levelout,

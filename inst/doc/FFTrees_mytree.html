@@ -12,7 +12,7 @@
 
 <meta name="author" content="Nathaniel Phillips" />
 
-<meta name="date" content="2017-08-28" />
+<meta name="date" content="2017-11-01" />
 
 <title>Specifying FFTs directly</title>
 
@@ -70,7 +70,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 <h1 class="title toc-ignore">Specifying FFTs directly</h1>
 <h4 class="author"><em>Nathaniel Phillips</em></h4>
-<h4 class="date"><em>2017-08-28</em></h4>
+<h4 class="date"><em>2017-11-01</em></h4>
 
 
 
@@ -101,7 +101,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 </ul>
 <p>Now, let’s pass the <code>my.tree</code> argument to <code>FFTrees()</code> to force apply our FFT to the heartdisease data:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Pass a verbally defined FFT to FFTrees with the my.tree argument</span>
-my.heart.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(diagnosis ~.,
+my.heart.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(diagnosis <span class="op">~</span>.,
                         <span class="dt">data =</span> heartdisease,
                         <span class="dt">my.tree =</span> <span class="st">&quot;If sex = 1, predict True.</span>
 <span class="st">                                   If age &lt; 45, predict False. </span>
@@ -114,7 +114,7 @@ my.heart.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(diagn
 <p>As you can see, this FFT is pretty terrible – it has a high sensitivity, but a terrible specificity.</p>
 <p>Let’s see if we can come up with a better one using the cues <code>thal</code>, <code>cp</code>, and <code>ca</code></p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Specify an FFt verbally with the my.tree argument</span>
-my.heart.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(diagnosis ~.,
+my.heart.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(diagnosis <span class="op">~</span>.,
                         <span class="dt">data =</span> heartdisease,
                         <span class="dt">my.tree =</span> <span class="st">&quot;If thal = {rd,fd}, predict True.</span>
 <span class="st">                                   If cp != {a}, predict False. </span>
@@ -139,7 +139,7 @@ my.heart.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(diagn
 <span class="st">                   If class = {first}, predict True.</span>
 <span class="st">                   Otherwise, predict False&quot;</span>
 
-titanic.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(survived ~., 
+titanic.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(survived <span class="op">~</span>., 
                       <span class="dt">data =</span> titanic, 
                       <span class="dt">my.tree =</span> my.titanic.tree,
                       <span class="dt">comp =</span> <span class="ot">FALSE</span>)</code></pre></div>
@@ -174,11 +174,11 @@ titanic.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(surviv
 </ol>
 <p>On can see examples of <code>tree.definitions</code> dataframes in an <code>FFTrees</code> object. For example, the definitions above can be obtained as follows:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Create an FFTrees object</span>
-heart.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(diagnosis ~., 
+heart.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(diagnosis <span class="op">~</span>., 
                               <span class="dt">data =</span> heartdisease)
 
 <span class="co"># Get the tree definitions</span>
-heart.tree.definitions &lt;-<span class="st"> </span>heart.fft$tree.definitions
+heart.tree.definitions &lt;-<span class="st"> </span>heart.fft<span class="op">$</span>tree.definitions
 
 <span class="co"># Print the result</span>
 heart.tree.definitions</code></pre></div>
@@ -206,7 +206,7 @@ my.tree.definitions &lt;-<span class="st"> </span><span class="kw">data.frame</s
                                   <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>)</code></pre></div>
 <p>Now, we can pass these trees to <code>FFTrees()</code> and view their resulting performance:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#Pass trees to FFTrees with tree.definitions</span>
-my.heart.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(diagnosis ~<span class="st"> </span>.,
+my.heart.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(diagnosis <span class="op">~</span><span class="st"> </span>.,
                         <span class="dt">data =</span> heartdisease,
                         <span class="dt">tree.definitions =</span> my.tree.definitions)
 

@@ -9,7 +9,10 @@ library(FFTrees)
 knitr::include_graphics("../inst/CoronaryArtery.jpg")
 
 ## ------------------------------------------------------------------------
-# Look at the first few rows of the heartdisease data
+# Training data
+head(heartdisease)
+
+# Test data
 head(heartdisease)
 
 ## ---- message = FALSE----------------------------------------------------
@@ -61,9 +64,15 @@ heart.fft$decision$train[1:5,]
 heart.fft$levelout$test[1:5,]
 
 ## ------------------------------------------------------------------------
-# Predict categories for new data from the best training tree
+# Predict classes for new data from the best training tree
 predict(heart.fft,
-        data = heartdisease[1:50,])
+        data = heartdisease[1:10,])
+
+## ------------------------------------------------------------------------
+# Predict class probabilities for new data from the best training tree
+predict(heart.fft,
+        data = heartdisease[1:10,],
+        type = "prob")
 
 ## ---- fig.width = 7, fig.height = 7--------------------------------------
 plot(heart.fft,

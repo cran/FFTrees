@@ -1,10 +1,12 @@
 #' Predict new data from an FFTrees x
 #'
 #' @param object An FFTrees object created from the FFTrees() function.
-#' @param data dataframe. A dataframe of test data
-#' @param tree Which tree in the FFTrees x should be used? Can be an integer or "best.train" (the default) to use the tree with the best training statistics (according the goal specified in tree construction).
-#' @param sens.w numeric.  A number from 0 to 1 indicating how to weight sensitivity relative to specificity. If specified, the tree with the highest weighted accuracy (wacc) given the specified value of sens.w will be selected
+#' @param newdata dataframe. A dataframe of test data
+#' @param tree integer. Which tree in the object should be used?
+#' @param type string. What should be predicted? Can be \code{"class"}, which returns a vector of class predictions, or \code{"prob"} which returns a matrix of class probabilities.
+#' @param method string. Method of calculating class probabilities. Either 'laplace', which applies the Laplace correction, or 'raw' which applies no correction.
 #' @param ... Additional arguments passed on to \code{predict()}
+#' @param sens.w,data depricated
 #' @return A logical vector of predictions
 #' @export
 #' @examples
@@ -29,51 +31,98 @@
 
 predict.FFTrees <- function(
   object = NULL,
+  newdata = NULL,
   data = NULL,
-  tree = "best.train",
+  tree = 1,
+  type = "class",
   sens.w = NULL,
+  method = "laplace",
   ...
 ) {
 
+  if(is.null(data)) {
+
+    if(is.null(newdata) == FALSE) {
+
+      data <- newdata} else {
+
+      stop("Either data or newdata must be specified.")
+
+      }
+
+  }
+
+  if(is.null(sens.w) == FALSE) {stop("sens.w is depricated and will be ignored.")}
 
   goal <- object$params$goal
 
-  if (tree == "best.train" & is.null(sens.w)) {
+  new.apply.tree <-  apply.tree(formula = object$formula,
+                                data = data,
+                                tree.definitions = object$tree.definitions)
 
-    tree <- which(object$tree.stats$train[[goal]] == max(object$tree.stats$train[[goal]]))
+  # Calculate predictions from tree
+  predictions <- new.apply.tree$decision[,tree]
+
+   if(type == "class") {output <- predictions}
+
+if(type == "prob") {
+
+output <- matrix(NA, nrow = nrow(data), ncol = 2)
+
+# Get cumulative level stats for current tree in training data
+levelstats.c <- object$level.stats$train[object$level.stats$train$tree == tree,]
+levels.n <- nrow(levelstats.c)
+
+# Get marginal counts for levels
+
+n.m <- levelstats.c$n - c(0, levelstats.c$n[1:(levels.n - 1)])
+hi.m <- levelstats.c$hi - c(0, levelstats.c$hi[1:(levels.n - 1)])
+mi.m <- levelstats.c$mi - c(0, levelstats.c$mi[1:(levels.n - 1)])
+fa.m <- levelstats.c$fa - c(0, levelstats.c$fa[1:(levels.n - 1)])
+cr.m <- levelstats.c$cr - c(0, levelstats.c$cr[1:(levels.n - 1)])
+
+
+npv.m <- cr.m / (cr.m + mi.m)
+ppv.m <- hi.m / (hi.m + fa.m)
+
+# Laplace correction
+npv.lp.m <- (cr.m + 1) / (cr.m + mi.m + 2)
+ppv.lp.m <- (hi.m + 1) / (hi.m + fa.m + 2)
+
+# Loop over levels
+for(level.i in 1:levels.n) {
+
+  decide.now.0.log <- new.apply.tree$levelout[,tree] == level.i &
+                      new.apply.tree$decision[,tree] == 0
+
+  decide.now.1.log <- new.apply.tree$levelout[,tree] == level.i &
+                      new.apply.tree$decision[,tree] == 1
+
+  if(method == "laplace") {
+
+ output[decide.now.0.log, 1] <- npv.lp.m[level.i]
+ output[decide.now.0.log, 2] <- 1 - npv.lp.m[level.i]
+
+ output[decide.now.1.log, 2] <- ppv.lp.m[level.i]
+ output[decide.now.1.log, 1] <- 1 - ppv.lp.m[level.i]
 
   }
 
+  if(method == "raw") {
 
-  if (is.null(sens.w) == FALSE) {
+  output[decide.now.0.log, 1] <- npv.m[level.i]
+  output[decide.now.0.log, 2] <- 1 - npv.m[level.i]
 
-    if(sens.w < 0 | sens.w > 1) {stop("sens.w must be a number between 0 and 1")}
-
-    # Get the sensitivities and specificities
-
-    sens.v <- object$tree.stats$train$sens
-    spec.v <- object$tree.stats$train$spec
-
-    # Calculate new wacc values
-
-    wacc.v <- sens.v * sens.w + spec.v * (1 - sens.w)
-
-    # Select tree with highest wacc value
-    tree <- which(wacc.v == max(wacc.v))
+  output[decide.now.1.log, 2] <- ppv.m[level.i]
+  output[decide.now.1.log, 1] <- 1 - ppv.m[level.i]
 
   }
 
-  # If there is more than one best tree, take the first
-  if(length(tree) > 1) {tree <- tree[1]}
+}
 
-  # Calculate predictions across all trees
-  predictions <- apply.tree(formula = object$formula,
-                            data = data,
-                            tree.definitions = object$tree.definitions)
 
-  # Get the predictions for the selected tree
-  predictions <- predictions$decision[,tree]
+}
 
-  return(predictions)
+  return(output)
 
 }

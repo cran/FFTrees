@@ -4,17 +4,21 @@
 \alias{predict.FFTrees}
 \title{Predict new data from an FFTrees x}
 \usage{
-\method{predict}{FFTrees}(object = NULL, data = NULL, tree = "best.train",
-  sens.w = NULL, ...)
+\method{predict}{FFTrees}(object = NULL, newdata = NULL, data = NULL,
+  tree = 1, type = "class", sens.w = NULL, method = "laplace", ...)
 }
 \arguments{
 \item{object}{An FFTrees object created from the FFTrees() function.}
 
-\item{data}{dataframe. A dataframe of test data}
+\item{newdata}{dataframe. A dataframe of test data}
 
-\item{tree}{Which tree in the FFTrees x should be used? Can be an integer or "best.train" (the default) to use the tree with the best training statistics (according the goal specified in tree construction).}
+\item{tree}{integer. Which tree in the object should be used?}
 
-\item{sens.w}{numeric.  A number from 0 to 1 indicating how to weight sensitivity relative to specificity. If specified, the tree with the highest weighted accuracy (wacc) given the specified value of sens.w will be selected}
+\item{type}{string. What should be predicted? Can be \code{"class"}, which returns a vector of class predictions, or \code{"prob"} which returns a matrix of class probabilities.}
+
+\item{sens.w, data}{depricated}
+
+\item{method}{string. Method of calculating class probabilities. Either 'laplace', which applies the Laplace correction, or 'raw' which applies no correction.}
 
 \item{...}{Additional arguments passed on to \code{predict()}}
 }

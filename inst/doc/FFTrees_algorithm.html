@@ -12,7 +12,7 @@
 
 <meta name="author" content="Nathaniel Phillips" />
 
-<meta name="date" content="2017-08-28" />
+<meta name="date" content="2017-11-01" />
 
 <title>FFTrees tree construction algorithms</title>
 
@@ -70,7 +70,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 <h1 class="title toc-ignore">FFTrees tree construction algorithms</h1>
 <h4 class="author"><em>Nathaniel Phillips</em></h4>
-<h4 class="date"><em>2017-08-28</em></h4>
+<h4 class="date"><em>2017-11-01</em></h4>
 
 
 
@@ -155,7 +155,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <div id="example-heart-disease" class="section level2">
 <h2>Example: Heart Disease</h2>
 <p>First, we’ll calculate a classification threshold for each cue using <code>cuerank()</code>:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">heartdisease.ca &lt;-<span class="st"> </span>FFTrees::<span class="kw">cuerank</span>(<span class="dt">formula =</span> diagnosis ~., 
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">heartdisease.ca &lt;-<span class="st"> </span>FFTrees<span class="op">::</span><span class="kw">cuerank</span>(<span class="dt">formula =</span> diagnosis <span class="op">~</span>., 
                                     <span class="dt">data =</span> heartdisease)
 
 <span class="co"># Print key results</span>
@@ -184,7 +184,7 @@ Plotting the balanced accuracy of each decision threshold for the age cue.
 </div>
 <p>Next, the cues are ranked by their balanced accuracy. Let’s do that with the heart disease cues:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Rank heartdisease cues by balanced accuracy</span>
-heartdisease.ca &lt;-<span class="st"> </span>heartdisease.ca[<span class="kw">order</span>(heartdisease.ca$bacc, <span class="dt">decreasing =</span> <span class="ot">TRUE</span>),]
+heartdisease.ca &lt;-<span class="st"> </span>heartdisease.ca[<span class="kw">order</span>(heartdisease.ca<span class="op">$</span>bacc, <span class="dt">decreasing =</span> <span class="ot">TRUE</span>),]
 
 <span class="co"># Print the key columns</span>
 heartdisease.ca[<span class="kw">c</span>(<span class="st">&quot;cue&quot;</span>, <span class="st">&quot;threshold&quot;</span>, <span class="st">&quot;direction&quot;</span>, <span class="st">&quot;bacc&quot;</span>)]</code></pre></div>
@@ -214,11 +214,11 @@ Cue accuracies for the heartdisease dataset. The top 5 cues in terms of balanced
 </div>
 <p>Next, <code>grow.FFTrees()</code> will grow several trees from these cues using different exit structures:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Grow FFTs</span>
-heartdisease.ffts &lt;-<span class="st"> </span><span class="kw">grow.FFTrees</span>(<span class="dt">formula =</span> diagnosis ~., 
+heartdisease.ffts &lt;-<span class="st"> </span><span class="kw">grow.FFTrees</span>(<span class="dt">formula =</span> diagnosis <span class="op">~</span>., 
                                   <span class="dt">data =</span> heartdisease)
 
 <span class="co"># Print the tree definitions</span>
-heartdisease.ffts$tree.definitions</code></pre></div>
+heartdisease.ffts<span class="op">$</span>tree.definitions</code></pre></div>
 <pre><code>##   tree nodes classes               cues directions    thresholds     exits
 ## 1    1     3   c;c;n         thal;cp;ca      =;=;&gt;     rd,fd;a;0   1;0;0.5
 ## 2    2     4 c;c;n;n thal;cp;ca;thalach    =;=;&gt;;&lt; rd,fd;a;0;148 1;0;1;0.5
@@ -230,7 +230,7 @@ heartdisease.ffts$tree.definitions</code></pre></div>
 <p>Here, we see that we have 7 different trees, each using some combination of the top 5 cues we identified earlier. For example, tree 1 uses the top 4 cues, while tree 3 uses only the top 3 cues. Why is that? The reason is that the algorithm also <em>prunes</em> lower branches of the tree if there are too few cases classified at lower levels. By default, the algorithm will remove any lower leves that classfify fewer than 10% of the original cases. The pruning criteria can be controlled using the <code>stopping.rule</code>, <code>stopping.par</code> and <code>max.levels</code> arguments in <code>grow.FFTrees()</code></p>
 <p>Now let’s use the wrapper function <code>FFTrees()</code> to create the trees all at once. We will then plot tree #4 which, according to our results above, should contain the cues <code>thal, cp, ca</code>&quot;</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Create trees</span>
-heart.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(<span class="dt">formula =</span> diagnosis ~., 
+heart.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(<span class="dt">formula =</span> diagnosis <span class="op">~</span>., 
                      <span class="dt">data =</span> heartdisease)
 
 <span class="co"># Plot tree # 4</span>
@@ -289,31 +289,31 @@ heart.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(<span cl
 
 heart.cost.outcomes &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="dv">0</span>, <span class="dv">500</span>, <span class="dv">1000</span>, <span class="dv">0</span>)</code></pre></div>
 <p>Here is an FFT that is built with the goal of maximizing balanced accuracy and <em>ignoring</em> these costs:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">heart.costA.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(<span class="dt">formula =</span> diagnosis ~.,
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">heart.costA.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(<span class="dt">formula =</span> diagnosis <span class="op">~</span>.,
                           <span class="dt">data =</span> heartdisease,
                           <span class="dt">cost.outcomes =</span> heart.cost.outcomes,
                           <span class="dt">cost.cues =</span> heart.cue.cost,
                           <span class="dt">goal =</span> <span class="st">&quot;bacc&quot;</span>,
                           <span class="dt">goal.chase =</span> <span class="st">&quot;bacc&quot;</span>)</code></pre></div>
 <pre><code>## Growing FFTs with ifan</code></pre>
-<pre><code>## Fitting non-FFTrees algorithms for comparison (you can turn this off with comp = FALSE) ...</code></pre>
+<pre><code>## Fitting non-FFTrees algorithms for comparison (you can turn this off with do.comp = FALSE) ...</code></pre>
 <p>Let’s look at the performance of the best performing tree. The best tree has <code>bacc</code> = 0.812 and <code>cost</code> = 252</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">summary</span>(heart.costA.fft)$train[<span class="dv">1</span>,]</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">summary</span>(heart.costA.fft)<span class="op">$</span>train[<span class="dv">1</span>,]</code></pre></div>
 <pre><code>##   tree   n  hi mi fa  cr  sens  spec   ppv   npv   far   acc  bacc  wacc
 ## 1    1 303 118 21 37 127 0.849 0.774 0.761 0.858 0.226 0.809 0.812 0.812
 ##    bpv dprime cost   pci  mcu
 ## 1 0.81   1.79  252 0.876 1.73</code></pre>
 <p>Now, we can build an FFT that tries to respect these costs:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">heart.costB.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(<span class="dt">formula =</span> diagnosis ~.,
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">heart.costB.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(<span class="dt">formula =</span> diagnosis <span class="op">~</span>.,
                           <span class="dt">data =</span> heartdisease,
                           <span class="dt">cost.outcomes =</span> heart.cost.outcomes,
                           <span class="dt">cost.cues =</span> heart.cue.cost,
                           <span class="dt">goal =</span> <span class="st">&quot;cost&quot;</span>,
                           <span class="dt">goal.chase =</span> <span class="st">&quot;cost&quot;</span>)</code></pre></div>
 <pre><code>## Growing FFTs with ifan</code></pre>
-<pre><code>## Fitting non-FFTrees algorithms for comparison (you can turn this off with comp = FALSE) ...</code></pre>
-<p>Here’s it’s performance: it has a slightly lower balanced accuracy of <code>bacc = 0.732</code>, but a much loser cost of <code>cost = 154</code></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">summary</span>(heart.costB.fft)$train[<span class="dv">1</span>,]</code></pre></div>
+<pre><code>## Fitting non-FFTrees algorithms for comparison (you can turn this off with do.comp = FALSE) ...</code></pre>
+<p>Here’s it’s performance: it has a slightly lower balanced accuracy of <code>bacc = 0.732</code>, but a much lower cost of <code>cost = 154</code></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">summary</span>(heart.costB.fft)<span class="op">$</span>train[<span class="dv">1</span>,]</code></pre></div>
 <pre><code>##   tree   n  hi mi fa cr  sens spec  ppv   npv far   acc  bacc  wacc   bpv
 ## 1    1 303 134  5 82 82 0.964  0.5 0.62 0.943 0.5 0.713 0.732 0.732 0.781
 ##   dprime cost   pci  mcu

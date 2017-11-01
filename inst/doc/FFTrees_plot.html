@@ -88,7 +88,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <p>First, let’s create an FFTrees object called <code>titanic.fft</code> from the <code>titanic</code> dataset.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Create fast-and-frugal trees from the titanic data</span>
 
-titanic.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(<span class="dt">formula =</span> survived ~.,
+titanic.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(<span class="dt">formula =</span> survived <span class="op">~</span>.,
                        <span class="dt">data =</span> titanic,
                        <span class="dt">main =</span> <span class="st">&quot;Titanic&quot;</span>, 
                        <span class="dt">decision.labels =</span> <span class="kw">c</span>(<span class="st">&quot;Died&quot;</span>, <span class="st">&quot;Survived&quot;</span>))       </code></pre></div>
@@ -138,7 +138,7 @@ titanic.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(<span 
 </ul>
 <p>For example, let’s repeat the previous analysis, but now we’ll create separate training and test datasets by including the <code>train.p = .5</code> argument. This will split the dataset into a 50% training set, and a 50% testing set (note: you could also define an explicit test data set with the <code>data.test</code> argument)</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">set.seed</span>(<span class="dv">100</span>) <span class="co"># For replicability of the training/test split</span>
-titanic.pred.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(<span class="dt">formula =</span> survived ~.,
+titanic.pred.fft &lt;-<span class="st"> </span><span class="kw">FFTrees</span>(<span class="dt">formula =</span> survived <span class="op">~</span>.,
                             <span class="dt">data =</span> titanic,
                             <span class="dt">main =</span> <span class="st">&quot;Titanic&quot;</span>, 
                             <span class="dt">decision.labels =</span> <span class="kw">c</span>(<span class="st">&quot;Died&quot;</span>, <span class="st">&quot;Survived&quot;</span>),
