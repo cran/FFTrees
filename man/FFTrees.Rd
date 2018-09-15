@@ -7,13 +7,14 @@
 FFTrees(formula = NULL, data = NULL, data.test = NULL,
   algorithm = "ifan", max.levels = NULL, sens.w = 0.5,
   cost.outcomes = NULL, cost.cues = NULL, stopping.rule = "exemplars",
-  stopping.par = 0.1, goal = "wacc", goal.chase = "bacc",
-  numthresh.method = "o", decision.labels = c("False", "True"),
-  main = NULL, train.p = 1, rounding = NULL, progress = TRUE,
-  repeat.cues = TRUE, my.tree = NULL, tree.definitions = NULL,
-  do.comp = TRUE, do.cart = TRUE, do.lr = TRUE, do.rf = TRUE,
-  do.svm = TRUE, store.data = FALSE, object = NULL, rank.method = NULL,
-  force = FALSE, verbose = NULL, comp = NULL)
+  stopping.par = 0.1, goal = NULL, goal.chase = NULL,
+  goal.threshold = "bacc", numthresh.method = "o",
+  decision.labels = c("False", "True"), main = NULL, train.p = 1,
+  rounding = NULL, repeat.cues = TRUE, my.tree = NULL,
+  tree.definitions = NULL, do.comp = TRUE, do.cart = TRUE, do.lr = TRUE,
+  do.rf = TRUE, do.svm = TRUE, store.data = FALSE, object = NULL,
+  rank.method = NULL, force = FALSE, verbose = NULL, comp = NULL,
+  quiet = TRUE)
 }
 \arguments{
 \item{formula}{formula. A formula specifying a logical criterion as a function of 1 or more predictors.}
@@ -28,9 +29,9 @@ FFTrees(formula = NULL, data = NULL, data.test = NULL,
 
 \item{sens.w}{numeric. A number from 0 to 1 indicating how to weight sensitivity relative to specificity. Only relevant when \code{goal = 'wacc'}}
 
-\item{cost.outcomes}{numeric. A vector of length 4 specifying the costs of a hit, false alarm, miss, and correct rejection rspectively. E.g.; \code{cost.outcomes = c(0, 10, 20, 0)} means that a false alarm and miss cost 10 and 20 respectively while correct decisions have no cost.}
+\item{cost.outcomes}{list. A list of length 4 with names 'hi', 'fa', 'mi', and 'cr' specifying the costs of a hit, false alarm, miss, and correct rejection rspectively. E.g.; \code{cost.outcomes = listc("hi" = 0, "fa" = 10, "mi" = 20, "cr" = 0)} means that a false alarm and miss cost 10 and 20 respectively while correct decisions have no cost.}
 
-\item{cost.cues}{dataframe. A dataframe with two columns specifying the cost of each cue. The first column should be a vector of cue names, and the second column should be a numeric vector of costs. Cues in the dataset not present in \code{cost.cues} are assume to have 0 cost.}
+\item{cost.cues}{list A list containing containing costs for each cue. Each element should have a name corresponding to a column in \code{data}, and each entry should be a single (positive) number. Cues not present in \code{cost.cues} are assume to have 0 cost.}
 
 \item{stopping.rule}{character. A string indicating the method to stop growing trees. "levels" means the tree grows until a certain level. "exemplars" means the tree grows until a certain number of unclassified exemplars remain. "statdelta" means the tree grows until the change in the criterion statistic is less than a specified level.}
 
@@ -38,7 +39,9 @@ FFTrees(formula = NULL, data = NULL, data.test = NULL,
 
 \item{goal}{character. A string indicating the statistic to maximize when selecting final trees: "acc" = overall accuracy, "wacc" = weighted accuracy, "bacc" = balanced accuracy}
 
-\item{goal.chase}{character. A string indicating the statistic to maximize when constructing trees: "acc" = overall accuracy, "wacc" = weighted accuracy, "bacc" = balanced accuracy}
+\item{goal.chase}{character. A string indicating the statistic to maximize when constructing trees: "acc" = overall accuracy, "wacc" = weighted accuracy, "bacc" = balanced accuracy, "cost" = cost.}
+
+\item{goal.threshold}{character. A string indicating the statistic to maximize when calculting cue thresholds: "acc" = overall accuracy, "wacc" = weighted accuracy, "bacc" = balanced accuracy}
 
 \item{numthresh.method}{character. How should thresholds for numeric cues be determined? \code{"o"} will optimize thresholds, while \code{"m"} will always use the median.}
 
@@ -50,11 +53,9 @@ FFTrees(formula = NULL, data = NULL, data.test = NULL,
 
 \item{rounding}{integer. An integer indicating digit rounding for non-integer numeric cue thresholds. The default is NULL which means no rounding. A value of 0 rounds all possible thresholds to the nearest integer, 1 rounds to the nearest .1 (etc.).}
 
-\item{progress}{logical. Should progress reports be printed? Can be helpful for diagnosis when the function is running slowly.}
-
 \item{repeat.cues}{logical. Can cues occur multiple times within a tree?}
 
-\item{my.tree}{string. A string representing an FFT in words. For example, \code{my.tree = "If age > 20, predict TRUE. If sex = [m], predict FALSE. Otherwise, predict TRUE"}}
+\item{my.tree}{string. A string representing an FFT in words. For example, \code{my.tree = "If age > 20, predict TRUE. If sex = {m}, predict FALSE. Otherwise, predict TRUE"}}
 
 \item{tree.definitions}{dataframe. An optional hard-coded definition of trees (see details below). If specified, no new trees are created.}
 
@@ -67,6 +68,8 @@ FFTrees(formula = NULL, data = NULL, data.test = NULL,
 \item{rank.method, verbose, comp}{depricated arguments.}
 
 \item{force}{logical. If TRUE, forces some parameters (like goal) to be as specified by the user even when the algorithm thinks those specifications don't make sense.}
+
+\item{quiet}{logical. Should progress reports be printed? Can be helpful for diagnosis when the function is running slowly.}
 }
 \value{
 An \code{FFTrees} object with the following elements
@@ -83,7 +86,6 @@ An \code{FFTrees} object with the following elements
   \item{levelout}{The level at which each case is classified in each tree. Rows correspond to cases and columns correspond to trees. Training and test data are stored separately.}
   \item{tree.max}{The index of the 'final' tree specified by the algorithm. For algorithms that only return a single tree, this value is always 1.}
   \item{inwords}{A verbal definition of \code{tree.max}.}
-  \item{auc}{Area under the curve statistics}
   \item{params}{A list of defined control parameters (e.g.; \code{algorithm}, \code{goal})}
   \item{comp}{Models and classification statistics for competitive classification algorithms: Regularized logistic regression, CART, and random forest.}
   \item{data}{The original training and test data (only included when \code{store.data = TRUE})}
@@ -94,15 +96,40 @@ This is the workhorse function for the \code{FFTrees} package. It creates (one o
 }
 \examples{
 
- # Create ffts for heart disease
+ # Create fast-and-frugal trees for heart disease
  heart.fft <- FFTrees(formula = diagnosis ~.,
-                      data = heartdisease)
+                      data = heart.train,
+                      data.test = heart.test,
+                      main = "Heart Disease",
+                      decision.labels = c("Healthy", "Diseased"))
 
  # Print the result for summary info
  heart.fft
 
- # Plot the best tree
+ # Plot the tree applied to training data
+ plot(heart.fft, stats = FALSE)
  plot(heart.fft)
+ plot(heart.fft, data = "test")  # Now for testing data
+ plot(heart.fft, data = "test", tree = 2) # Look at tree number 2
+
+
+ ## Predict classes and probabilities for new data
+
+ predict(heart.fft, newdata = heartdisease)
+ predict(heart.fft, newdata = heartdisease, type = "prob")
+
+ ### Create your own custom tree with my.tree
+
+ custom.fft <- FFTrees(formula = diagnosis ~ .,
+                       data = heartdisease,
+                       my.tree = 'If chol > 300, predict True.
+                                  If sex = {m}, predict False,
+                                  If age > 70, predict True, otherwise predict False'
+                                  )
+
+ # Plot the custom tree (it's pretty terrible)
+ plot(custom.fft)
+
 
 
 }

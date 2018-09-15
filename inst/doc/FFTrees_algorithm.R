@@ -4,8 +4,8 @@ library(FFTrees)
 options(digits = 3)
 
 ## ---- message = FALSE----------------------------------------------------
-heartdisease.ca <- FFTrees::cuerank(formula = diagnosis ~., 
-                                    data = heartdisease)
+heartdisease.ca <- cuerank(formula = diagnosis ~., 
+                           data = heartdisease)
 
 # Print key results
 heartdisease.ca[c("cue", "threshold", "direction", "bacc")]
@@ -70,14 +70,25 @@ plot(heart.fft,
      tree = 4)
 
 ## ------------------------------------------------------------------------
-heart.cue.cost <- data.frame("cue" = c("age", "sex", "cp", "trestbps", "chol",  "fbs", "restecg", "thalach", "exang", "oldpeak", "slope", "ca", "thal"),
-                         "cost" = c(1, 1, 1, 1, 7.27, 5.2, 15.5, 102.9, 87.3, 87.3, 87.3, 100.9, 102.9))
+heart.cue.cost <- list(age = 1,  
+                       sex = 1,
+                       cp = 1,
+                       trestbps = 1,
+                       chol = 7.27,
+                       fbs = 5.2,
+                       restecg = 15.5,
+                       thalach = 102.9,
+                       exang = 87.3,
+                       oldpeak = 87.3,
+                       slope = 87.3,
+                       ca = 100.9,
+                       thal = 102.9)
 
 ## ------------------------------------------------------------------------
 # Specify the following costs for heart disease diagnosis:
 # cost(Hit) = 0, cost(False Alarm) = 100, cost(Miss) = 200, cost(correct rejection) = 0
 
-heart.cost.outcomes <- c(0, 500, 1000, 0)
+heart.cost.outcomes <- list(hi = 0, fa = 500, mi = 1000, cr = 0)
 
 ## ------------------------------------------------------------------------
 heart.costA.fft <- FFTrees(formula = diagnosis ~.,
@@ -88,16 +99,16 @@ heart.costA.fft <- FFTrees(formula = diagnosis ~.,
                           goal.chase = "bacc")
 
 ## ------------------------------------------------------------------------
-summary(heart.costA.fft)$train[1,]
+summary(heart.costA.fft)
 
 ## ------------------------------------------------------------------------
 heart.costB.fft <- FFTrees(formula = diagnosis ~.,
-                          data = heartdisease,
-                          cost.outcomes = heart.cost.outcomes,
-                          cost.cues = heart.cue.cost,
-                          goal = "cost",
-                          goal.chase = "cost")
+                           data = heartdisease,
+                           cost.outcomes = heart.cost.outcomes,
+                           cost.cues = heart.cue.cost,
+                           goal = "cost",
+                           goal.chase = "cost")
 
 ## ------------------------------------------------------------------------
-summary(heart.costB.fft)$train[1,]
+summary(heart.costB.fft)
 

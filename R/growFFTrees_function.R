@@ -6,13 +6,14 @@
 #' @param algorithm character. A string indicating how to rank cues during tree construction. "m" (for ifan) means that cues will only be ranked once with the entire training dataset. "c" (conditional) means that cues will be ranked after each level in the tree with the remaining unclassified training exemplars.
 #' @param goal character. A string indicating the statistic to maximize: "acc" = overall accuracy, "bacc" = balanced accuracy, "wacc" = weighted accuracy
 #' @param goal.chase character. A string indicating the statistic to maximize when constructing trees: "acc" = overall accuracy, "wacc" = weighted accuracy, "bacc" = balanced accuracy
+#' @param goal.threshold character. A string indicating the statistic to maximize when calculting cue thresholds: "acc" = overall accuracy, "wacc" = weighted accuracy, "bacc" = balanced accuracy
 #' @param sens.w numeric. A number from 0 to 1 indicating how to weight sensitivity relative to specificity.
 #' @param cost.outcomes numeric. A vector of length 4 specifying the costs of a hit, false alarm, miss, and correct rejection rspectively. E.g.; \code{cost.outcomes = c(0, 10, 20, 0)} means that a false alarm and miss cost 10 and 20 respectively while correct decisions have no cost.
 #' @param cost.cues dataframe. A dataframe with two columns specifying the cost of each cue. The first column should be a vector of cue names, and the second column should be a numeric vector of costs. Cues in the dataset not present in \code{cost.cues} are assume to have 0 cost.
 #' @param numthresh.method character. How should thresholds for numeric cues be determined? \code{"o"} will optimize thresholds, while \code{"m"} will always use the median.
 #' @param stopping.rule character. A string indicating the method to stop growing trees. "levels" means the tree grows until a certain level. "exemplars" means the tree grows until a certain number of unclassified exemplars remain. "statdelta" means the tree grows until the change in the criterion statistic is less than a specified level.
 #' @param stopping.par numeric. A number indicating the parameter for the stopping rule. For stopping.rule == "levels", this is the number of levels. For stopping rule == "exemplars", this is the smallest percentage of examplars allowed in the last level.
-#' @param progress logical. Should tree growing progress be displayed?
+#' @param quiet logical. Should progress messages be shown?
 #' @param repeat.cues logical. Can cues occur multiple times within a tree?
 #' @param rank.method depricated arguments
 #' @param cue.accuracies depricated arguments
@@ -49,20 +50,39 @@ grow.FFTrees <- function(formula,
                          algorithm = "ifan",
                          goal = "wacc",
                          goal.chase = "bacc",
+                         goal.threshold = "bacc",
                          sens.w = .5,
-                         cost.outcomes = c(0, 1, 1, 0),
+                         cost.outcomes = list(hi = 0, fa = 1, mi = 1, cr = 0),
                          cost.cues = NULL,
                          numthresh.method = "o",
                          stopping.rule = "exemplars",
                          stopping.par = .1,
-                         progress = FALSE,
+                         quiet = FALSE,
                          repeat.cues = TRUE,
                          rank.method = NULL,
                          cue.accuracies = NULL,
                          ...
 ) {
 
+  # formula = diagnosis ~.
+  # data = heartdisease
+  # max.levels = NULL
+  # algorithm = "ifan"
+  # goal = "wacc"
+  # goal.chase = "bacc"
+  # sens.w = .5
+  # cost.outcomes = list(hi = 0, fa = 1, mi = 1, cr = 0)
+  # cost.cues = NULL
+  # numthresh.method = "o"
+  # stopping.rule = "exemplars"
+  # stopping.par = .1
+  # progress = FALSE
+  # repeat.cues = TRUE
+  # rank.method = NULL
+  # cue.accuracies = NULL
 
+
+# #
 # Depricated arguments
 if(is.null(rank.method) == FALSE) {
 
@@ -111,13 +131,14 @@ if(algorithm %in% c("ifan", "dfan")) {
                              algorithm = algorithm,
                              goal = goal,
                              goal.chase = goal.chase,
+                             goal.threshold = goal.threshold,
                              sens.w = sens.w,
                              cost.outcomes = cost.outcomes,
                              cost.cues = cost.cues,
                              numthresh.method = numthresh.method,
                              stopping.rule = stopping.rule,
                              stopping.par = stopping.par,
-                             progress = progress,
+                             quiet = quiet,
                              repeat.cues = repeat.cues)
 
   tree.definitions <- fanResult$tree.definitions
@@ -140,11 +161,13 @@ my.apply.tree <- apply.tree(data = data,
 # Setup final output
 
 output <- list(tree.definitions = tree.definitions,
-               tree.stats = my.apply.tree$treestats[,c("tree",  c(names(classtable(c(1, 1, 0), c(1, 0, 0))), "mcu", "pci", "cost"))],
+               tree.stats = my.apply.tree$treestats,
                cue.accuracies = cue.accuracies,
                levelout = my.apply.tree$levelout,
                decision = my.apply.tree$decision,
-               cost = my.apply.tree$treecost)
+               costout = my.apply.tree$costout,
+               costcue = my.apply.tree$costcue,
+               cost = my.apply.tree$cost)
 
 return(output)
 

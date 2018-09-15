@@ -2,7 +2,7 @@
 % Please edit documentation in R/predictFFTrees_function.R
 \name{predict.FFTrees}
 \alias{predict.FFTrees}
-\title{Predict new data from an FFTrees x}
+\title{Predict classifications from newdata using an FFTrees object}
 \usage{
 \method{predict}{FFTrees}(object = NULL, newdata = NULL, data = NULL,
   tree = 1, type = "class", sens.w = NULL, method = "laplace", ...)
@@ -12,7 +12,7 @@
 
 \item{newdata}{dataframe. A dataframe of test data}
 
-\item{tree}{integer. Which tree in the object should be used?}
+\item{tree}{integer. Which tree in the object should be used? By default, tree = 1 is used}
 
 \item{type}{string. What should be predicted? Can be \code{"class"}, which returns a vector of class predictions, or \code{"prob"} which returns a matrix of class probabilities.}
 
@@ -23,10 +23,10 @@
 \item{...}{Additional arguments passed on to \code{predict()}}
 }
 \value{
-A logical vector of predictions
+Either a logical vector of predictions, or a matrix of class probabilities.
 }
 \description{
-Predict new data from an FFTrees x
+Predict classifications from newdata using an FFTrees object
 }
 \examples{
 
@@ -43,8 +43,13 @@ Predict new data from an FFTrees x
   breast.fft <- FFTrees(formula = diagnosis ~.,
                               data = breast.train)
 
- # Predict results for test data
+ # Predict classes of test data
   breast.fft.pred <- predict(breast.fft,
                              data = breast.test)
+
+ # Predict class probabilities
+  breast.fft.pred <- predict(breast.fft,
+                             data = breast.test,
+                             type = "prob")
 
 }

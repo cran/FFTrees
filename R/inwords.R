@@ -9,6 +9,7 @@
 #' @param exits.v numeric.
 #' @param decision.labels string. A string vector (of length 2) indicating labels for negative (0 or FALSE) and positive (1 or TRUE) cases in the crterion
 #' @param digits integer. How many digits to round numeric values
+#' @param version integer. Which version to show? 1 or 2
 #'
 #' @return A list of string vectors
 #' @export
@@ -29,7 +30,8 @@ inwords <- function(x = NULL,
                    thresholds.v = NULL,
                    exits.v = NULL,
                    decision.labels = NULL,
-                   digits = 2) {
+                   digits = 2,
+                   version = 1) {
 
 #
 
@@ -83,7 +85,7 @@ if(exits.i %in% c("0", "1")) {
       if(classes.v[i] == "c") {
 
         sentence.i <- paste0("If ", cues.v[i], " ", directions.v[i], " {", thresholds.v[i],
-                             "}, predict ",decision.labels[2], "")
+                             "}, decide ",decision.labels[2], "")
 
       }
 
@@ -93,7 +95,7 @@ if(exits.i %in% c("0", "1")) {
         threshold.i <- round(as.numeric(thresholds.v[i]), 2)
 
         sentence.i <- paste0("If ", cues.v[i], " ", directions.v[i], " ",threshold.i,
-                             ", predict ",decision.labels[2])
+                             ", decide ",decision.labels[2])
       }
 
 
@@ -112,7 +114,7 @@ if(exits.i %in% c("0", "1")) {
 
       if(classes.v[i] == "c") {
 
-        sentence.i <- paste0("If ", cues.v[i], " ", direction.i, " {", thresholds.v[i], "}, predict ",
+        sentence.i <- paste0("If ", cues.v[i], " ", direction.i, " {", thresholds.v[i], "}, decide ",
                              decision.labels[1], "")
 
       }
@@ -132,7 +134,7 @@ if(exits.i %in% c("0", "1")) {
         }
 
         sentence.i <- paste0("If ", cues.v[i], " ", direction.i, " ", threshold.i,
-                             ", predict ", decision.labels[1], "")
+                             ", decide ", decision.labels[1], "")
       }
 
 
@@ -157,11 +159,11 @@ if(exits.i %in% c("0", "1")) {
 
       if(classes.v[i] == "c") {
 
-        sentence.i.1 <- paste0("If ", cues.v[i], " ", direction.neg.i, " {", thresholds.v[i], "}, predict ",
+        sentence.i.1 <- paste0("If ", cues.v[i], " ", direction.neg.i, " {", thresholds.v[i], "}, decide ",
                              decision.labels[1])
 
 
-        sentence.i.2 <- paste0(", otherwise, predict ",
+        sentence.i.2 <- paste0(", otherwise, decide ",
                                decision.labels[2])
 
         # sentence.i.2 <- paste0(", otherwise, if ", cues.v[i], " ", direction.pos.i, " {", thresholds.v[i], "}, predict ",
@@ -180,11 +182,11 @@ if(exits.i %in% c("0", "1")) {
         }
 
 
-        sentence.i.1 <- paste0("If ", cues.v[i], " ", direction.neg.i, " ", thresholds.v[i], ", predict ",
+        sentence.i.1 <- paste0("If ", cues.v[i], " ", direction.neg.i, " ", thresholds.v[i], ", decide ",
                                decision.labels[1])
 
 
-        sentence.i.2 <- paste0(", otherwise, predict ",
+        sentence.i.2 <- paste0(", otherwise, decide ",
                                decision.labels[2])
 
 
@@ -207,8 +209,9 @@ if(exits.i %in% c("0", "1")) {
 
   sentences.comb <- paste(sentences.v, collapse = ". ")
 
-  output <- list("v1" = sentences.v, "v2" = sentences.comb)
 
-  return(output)
+  if(version == 1) {return(sentences.v)}
+  if(version == 2) {return(sentences.comb)}
+
 
 }

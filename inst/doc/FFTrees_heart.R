@@ -36,13 +36,13 @@ summary(heart.fft)
 ## ----fig.align = "center", out.width="50%", echo = FALSE, fig.cap = "Confusion table illustrating frequencies of 4 possible outcomes."----
 knitr::include_graphics("../inst/confusiontable.jpg")
 
-## ------------------------------------------------------------------------
+## ---- fig.width = 6.5, fig.height = 6------------------------------------
 # Plot the best FFT when applied to the test data
 
 plot(heart.fft,              # An FFTrees object
      data = "test")          # Which data to plot? "train" or "test"
 
-## ------------------------------------------------------------------------
+## ---- fig.width = 10, fig.height = 6-------------------------------------
 # Plot only the tree without accuracy statistics
 plot(heart.fft, 
      stats = FALSE)
@@ -72,16 +72,15 @@ my.heart.fft <- FFTrees(formula = diagnosis ~.,
                                    If cp != {a}, predict False. 
                                    If age <= 35, predict False. Otherwise, predict True")
 
-## ------------------------------------------------------------------------
+## ---- fig.width = 6.5, fig.height = 6------------------------------------
 plot(my.heart.fft)
 
 ## ---- eval = FALSE-------------------------------------------------------
 #  # Create an FFForest object (can take a few minutes)
-#  heart.fff <- FFForest(diagnosis ~.,
+#  heart.fff <- FFForest(formula = diagnosis ~.,
 #                        data = heartdisease,
-#                        ntree = 100,
-#                        train.p = .5,
-#                        cpus = 4)
+#                        ntree = 10,
+#                        train.p = .5)
 
 ## ---- fig.width = 10, fig.height = 7, out.width = "600px"----------------
 plot(heart.fff)

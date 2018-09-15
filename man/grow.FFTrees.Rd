@@ -5,10 +5,11 @@
 \title{Grows fast-and-frugal trees using an algorithm specified by \code{algorithm}.}
 \usage{
 grow.FFTrees(formula, data, max.levels = NULL, algorithm = "ifan",
-  goal = "wacc", goal.chase = "bacc", sens.w = 0.5, cost.outcomes = c(0,
-  1, 1, 0), cost.cues = NULL, numthresh.method = "o",
-  stopping.rule = "exemplars", stopping.par = 0.1, progress = FALSE,
-  repeat.cues = TRUE, rank.method = NULL, cue.accuracies = NULL, ...)
+  goal = "wacc", goal.chase = "bacc", goal.threshold = "bacc",
+  sens.w = 0.5, cost.outcomes = list(hi = 0, fa = 1, mi = 1, cr = 0),
+  cost.cues = NULL, numthresh.method = "o", stopping.rule = "exemplars",
+  stopping.par = 0.1, quiet = FALSE, repeat.cues = TRUE,
+  rank.method = NULL, cue.accuracies = NULL, ...)
 }
 \arguments{
 \item{formula}{formula. A formula}
@@ -23,6 +24,8 @@ grow.FFTrees(formula, data, max.levels = NULL, algorithm = "ifan",
 
 \item{goal.chase}{character. A string indicating the statistic to maximize when constructing trees: "acc" = overall accuracy, "wacc" = weighted accuracy, "bacc" = balanced accuracy}
 
+\item{goal.threshold}{character. A string indicating the statistic to maximize when calculting cue thresholds: "acc" = overall accuracy, "wacc" = weighted accuracy, "bacc" = balanced accuracy}
+
 \item{sens.w}{numeric. A number from 0 to 1 indicating how to weight sensitivity relative to specificity.}
 
 \item{cost.outcomes}{numeric. A vector of length 4 specifying the costs of a hit, false alarm, miss, and correct rejection rspectively. E.g.; \code{cost.outcomes = c(0, 10, 20, 0)} means that a false alarm and miss cost 10 and 20 respectively while correct decisions have no cost.}
@@ -35,7 +38,7 @@ grow.FFTrees(formula, data, max.levels = NULL, algorithm = "ifan",
 
 \item{stopping.par}{numeric. A number indicating the parameter for the stopping rule. For stopping.rule == "levels", this is the number of levels. For stopping rule == "exemplars", this is the smallest percentage of examplars allowed in the last level.}
 
-\item{progress}{logical. Should tree growing progress be displayed?}
+\item{quiet}{logical. Should progress messages be shown?}
 
 \item{repeat.cues}{logical. Can cues occur multiple times within a tree?}
 

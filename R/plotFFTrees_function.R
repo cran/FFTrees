@@ -6,6 +6,7 @@
 #' @param what string. What should be plotted? \code{'tree'} (the default) shows one tree (specified by \code{'tree'}). \code{'cues'} shows the marginal accuracy of cues in an ROC space, \code{"roc"} shows an roc curve of the tree(s)
 #' @param tree integer. An integer indicating which tree to plot (only valid when the tree argument is non-empty). To plot the best training (or test) tree with respect to the \code{goal} specified during FFT construction, use "best.train" or "best.test"
 #' @param main character. The main plot label.
+#' @param hlines logical. Should horizontal panel separation lines be shown?
 #' @param cue.labels character. An optional string of labels for the cues / nodes.
 #' @param decision.labels character. A string vector of length 2 indicating the content-specific name for noise and signal cases.
 #' @param cue.cex numeric. The size of the cue labels.
@@ -49,6 +50,7 @@ plot.FFTrees <- function(
   what = 'tree',
   tree = "best.train",
   main = NULL,
+  hlines = TRUE,
   cue.labels = NULL,
   decision.labels = NULL,
   cue.cex = NULL,
@@ -162,6 +164,7 @@ if(what != 'cues') {
     show.levels <- FALSE
     show.roc <- TRUE
     show.icons <- FALSE
+    show.top <- FALSE
 
   }
 
@@ -217,6 +220,22 @@ if(what != 'cues') {
            heights = c(3))
 
   }
+
+  # Bottom
+  if(show.header == FALSE & show.tree == FALSE) {
+
+    show.top <- FALSE
+    show.middle <- FALSE
+    show.bottom <- TRUE
+
+    nplots <- show.confusion + show.levels + show.roc
+
+    layout(matrix(1:nplots, nrow = 1, ncol = nplots),
+           widths = c(3 * nplots),
+           heights = c(3))
+
+  }
+
 
 
 }
@@ -831,7 +850,10 @@ par(mar = c(0, 0, 1, 0))
 plot(1, xlim = c(0, 1), ylim = c(0, 1), bty = "n", type = "n",
      xlab = "", ylab = "", yaxt = "n", xaxt = "n")
 
+if(hlines) {
 segments(0, .95, 1, .95, col = panel.line.col, lwd = panel.line.lwd, lty = panel.line.lty)
+}
+
 rect(.33, .8, .67, 1.2, col = "white", border = NA)
 
 text(x = .5, y = .95, main, cex = panel.title.cex)
@@ -974,8 +996,10 @@ par(xpd = TRUE)
 
 if(show.top | show.bottom) {
 
+if(hlines) {
 segments(-plot.width, 0, - plot.width * .3, 0, col = panel.line.col, lwd = panel.line.lwd, lty = panel.line.lty)
 segments(plot.width, 0, plot.width * .3, 0, col = panel.line.col, lwd = panel.line.lwd, lty = panel.line.lty)
+}
 
 if(is.null(label.tree)) {label.tree <- paste("FFT #", tree, " (of ", n.trees, ")", sep = "")}
 
@@ -1419,7 +1443,6 @@ if(show.bottom == TRUE) {
 
 # OBTAIN FINAL STATISTICS
 
-fft.auc <- auc(tree.stats$sens, tree.stats$spec)
 fft.sens.vec <- tree.stats$sens
 fft.spec.vec <- tree.stats$spec
 
@@ -1443,19 +1466,22 @@ plot(1, xlim = c(0, 1), ylim = c(0, 1),
      yaxt = "n", xaxt = "n")
 
 par(xpd = T)
+
+if(hlines) {
 segments(0, 1.1, 1, 1.1, col = panel.line.col, lwd = panel.line.lwd, lty = panel.line.lty)
 rect(.25, 1, .75, 1.2, col = "white", border = NA)
+}
+
 
 if(is.null(label.performance)) {
 
-if(data == "train") {label.performance <- "Performance (Training)"}
-if(data == "test") {label.performance <- "Performance (Testing)"}
+if(data == "train") {label.performance <- "Accuracy (Training)"}
+if(data == "test") {label.performance <- "Accuracy (Testing)"}
 
 }
 
 text(.5, 1.1, label.performance, cex = panel.title.cex)
 par(xpd = FALSE)
-
 
 
 pretty.dec <- function(x) {return(paste(round(x, 2) * 100, sep = ""))}
@@ -1469,17 +1495,17 @@ level.top <- level.center.y + level.max.height / 2
 
 
 lloc <- data.frame(
-  element = c("classtable", "mcu", "pci", "sens", "spec", "acc", "wacc", "roc"),
-  long.name = c("Classification Table", "mcu", "pci", "sens", "spec", "acc", "wacc", "ROC"),
+  element = c("classtable", "mcu", "pci", "sens", "spec", "acc", "bacc", "roc"),
+  long.name = c("Classification Table", "mcu", "pci", "sens", "spec", "acc", "bacc", "ROC"),
   center.x = c(.18, seq(.35, .65, length.out = 6), .85),
   center.y = rep(level.center.y, 8),
   width =    c(.2, rep(level.width, 6), .2),
   height =   c(.65, rep(level.max.height, 6), .65),
   value = c(NA,
             abs(final.stats$mcu - 5) / (abs(1 - 5)),
-            final.stats$pci, final.stats$sens, final.stats$spec, with(final.stats, (cr + hi) / n), final.stats$wacc, NA),
+            final.stats$pci, final.stats$sens, final.stats$spec, with(final.stats, (cr + hi) / n), final.stats$bacc, NA),
   value.name = c(NA, round(final.stats$mcu, 1), pretty.dec(final.stats$pci), pretty.dec(final.stats$sens), pretty.dec(final.stats$spec),  pretty.dec(final.stats$acc),
-                 pretty.dec(final.stats$wacc), NA
+                 pretty.dec(final.stats$bacc), NA
   )
 )
 }
@@ -1752,7 +1778,7 @@ paste(final.stats$cr, "/", 1, collapse = "")
 
 # segments(x0 = lloc$center.x[lloc$element == "mcu"] - lloc$width[lloc$element == "mcu"] * .8,
 #          y0 = level.top,
-#          x1 = lloc$center.x[lloc$element == "wacc"] + lloc$width[lloc$element == "wacc"] * .8,
+#          x1 = lloc$center.x[lloc$element == "bacc"] + lloc$width[lloc$element == "bacc"] * .8,
 #          y1 = level.top,
 #          lty = 3, lwd = .75)
 
@@ -1796,7 +1822,7 @@ add.level.fun("acc", min.val = 0, ok.val = .5, level.type = level.type) #, sub =
 
 
 
-add.level.fun("wacc", min.val = 0, max.val = 1, ok.val = .5, level.type = level.type)
+add.level.fun("bacc", min.val = 0, max.val = 1, ok.val = .5, level.type = level.type)
 
 # baseline
 

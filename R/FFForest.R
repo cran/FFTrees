@@ -12,9 +12,9 @@
 #' @param goal character. A string indicating the statistic to maximize when selecting final trees: "acc" = overall accuracy, "bacc" = balanced accuracy, "d" = d-prime
 #' @param goal.chase character. A string indicating the statistic to maximize when constructing trees: "acc" = overall accuracy, "wacc" = weighted accuracy, "bacc" = balanced accuracy
 #' @param sens.w numeric. How much weight to give to maximizing hits versus minimizing false alarms (between 0 and 1)
-#' @param verbose logical. Should progress reports be printed?
+#' @param quiet logical. Should progress reports be printed?
 #' @param cpus integer. Number of cpus to use. Any value larger than 1 will initiate parallel calculations in snowfall.
-#' @param comp,do.lr,do.cart,do.rf,do.svm logical. See arguments in \code{FFTrees()}
+#' @param do.comp,do.lr,do.cart,do.rf,do.svm logical. See arguments in \code{FFTrees()}
 #' @param rank.method,hr.weight depricated arguments
 #' @importFrom stats formula
 #' @importFrom parallel mclapply
@@ -25,10 +25,10 @@
 #'
 #'\dontrun{
 #' cancer.fff <- FFForest(formula = diagnosis ~.,
-#'                      data = breastcancer,
-#'                      ntree = 10,
-#'                      train.p = .5,
-#'                      cpus = 1)
+#'                        data = breastcancer,
+#'                        ntree = 10,
+#'                        train.p = .5,
+#'                        cpus = 1)
 #'}
 #'
 #'
@@ -42,9 +42,9 @@ FFForest <- function(formula = NULL,
                      goal = "wacc",
                      goal.chase = "wacc",
                      sens.w = .5,
-                     verbose = TRUE,
+                     quiet = TRUE,
                      cpus = 1,
-                     comp = FALSE,
+                     do.comp = FALSE,
                      do.lr = TRUE,
                      do.cart = TRUE,
                      do.rf = TRUE,
@@ -53,30 +53,28 @@ FFForest <- function(formula = NULL,
                      hr.weight = NULL
 ) {
 
-
-  # formula = NULL
-  # data = NULL
   # data.test = NULL
   # max.levels = 5
   # ntree = 10
   # train.p = .5
   # algorithm = "ifan"
-  # goal = "wacc"
+  # goal = "wacc"3
   # goal.chase = "wacc"
   # sens.w = .5
   # verbose = TRUE
   # cpus = 1
-  # comp = FALSE
+  # do.comp = FALSE
   # do.lr = TRUE
-  # do.cart = TRUE
+  # do.cart = TRUEbreast
   # do.rf = TRUE
   # do.svm = TRUE
   # rank.method = NULL
   # hr.weight = NULL
   #
-  # formula <- diagnosis ~.
+  # formula = diagnosis ~.
   # data = heartdisease
-
+  # ntree = 10
+  # train.p = .5
 
 
 # Check for depricated arguments
@@ -117,7 +115,7 @@ simulations <- data.frame(
 # getsim.fun does one training split and returns tree statistics
 getsim.fun <- function(i) {
 
-result.i <- FFTrees::FFTrees(formula = formula,
+result.i <- FFTrees(formula = formula,
                               data = data,
                               data.test = NULL,
                               object = NULL,
@@ -126,9 +124,9 @@ result.i <- FFTrees::FFTrees(formula = formula,
                               algorithm = algorithm,
                               goal = goal,
                               goal.chase = goal.chase,
-                              progress = FALSE,
+                              quiet = FALSE,
                               sens.w = sens.w,
-                              comp = comp,
+                              do.comp = do.comp,
                               do.cart = do.cart,
                               do.lr = do.lr,
                               do.rf = do.rf,
@@ -140,26 +138,26 @@ tree.stats.i <- result.i$tree.stats
 tree.definitions.i <- result.i$tree.definitions
 comp.stats.i <- c()
 
-if(do.lr & comp) {
+if(do.lr & do.comp) {
 lr.stats.i <- result.i$comp$lr$stats
 names(lr.stats.i) <- paste0("lr.", names(lr.stats.i))
 comp.stats.i <- c(comp.stats.i, lr.stats.i)
 }
 
 
-if(do.cart & comp) {
+if(do.cart & do.comp) {
   cart.stats.i <- result.i$comp$cart$stats
   names(cart.stats.i) <- paste0("cart.", names(cart.stats.i))
   comp.stats.i <- c(comp.stats.i, cart.stats.i)
   }
 
-if(do.rf & comp) {
+if(do.rf & do.comp) {
   rf.stats.i <- result.i$comp$rf$stats
   names(rf.stats.i) <- paste0("rf.", names(rf.stats.i))
   comp.stats.i <- c(comp.stats.i, rf.stats.i)
 }
 
-if(do.svm & comp) {
+if(do.svm & do.comp) {
   svm.stats.i <- result.i$comp$svm$stats
   names(svm.stats.i) <- paste0("svm.", names(svm.stats.i))
   comp.stats.i <- c(comp.stats.i, svm.stats.i)
@@ -180,7 +178,7 @@ return(list("trees" = tree.stats.i,
 
 result.ls <- parallel::mclapply(1:nrow(simulations), FUN = function(x) {
 
-  if(verbose) {cat(paste0(x, " of ", nrow(simulations), ", "))}
+  if(!quiet) {cat(paste0(x, " of ", nrow(simulations), ", "))}
 
   return(getsim.fun(x))}, mc.cores = cpus)
 
@@ -215,7 +213,7 @@ decisions <- matrix(unlist(lapply(1:length(result.ls), FUN = function(i) {
 
 # Tree definitions
 
-for(stat.i in c("cues", "thresholds", "directions", "classes", "exits")) {
+for(stat.i in c("nodes", "cues", "thresholds", "directions", "classes", "exits")) {
 
   simulations[[stat.i]] <- sapply(1:length(result.ls),
                                   FUN = function(x) {
@@ -274,7 +272,7 @@ for(i in 1:nrow(connections)) {
 # Get training performance
 FFForest.Train.Decisions <- rowMeans(decisions) >= .5
 
-train.stats <- classtable(FFForest.Train.Decisions, criterion.v)
+train.stats <- classtable(as.logical(FFForest.Train.Decisions), as.logical(criterion.v))
 
 # Get testing performance
 if(is.null(data.test) == FALSE) {
@@ -320,7 +318,7 @@ surrogate.tree <- which(agree.combined == max(agree.combined))
 
 if(length(surrogate.tree) > 1) {surrogate.tree <- sample(surrogate.tree, size = 1)}
 
-surrogate.tree.definition <- simulations[surrogate.tree, c("cues", "thresholds", "directions", "classes", "exits")]
+surrogate.tree.definition <- simulations[surrogate.tree, c("nodes", "cues", "thresholds", "directions", "classes", "exits")]
 surrogate.tree.definition$tree <- 1
 
 # Create new FFTrees object from surrogate tree
