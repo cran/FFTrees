@@ -44,15 +44,15 @@ titanic.pred.fft <- FFTrees(formula = survived ~.,
 
 ## ---- fig.width = 6, fig.height = 6.5, fig.align='center'----------------
 plot(titanic.pred.fft,
-     tree = "best.train")
+     tree = 1)
 
 ## ---- fig.width = 6, fig.height = 6.5, fig.align='center'----------------
 plot(titanic.pred.fft,
-     tree = "best.train",
+     tree = 1,
      data = "test")
 
 ## ---- fig.width = 6, fig.height = 6.5, fig.align='center'----------------
 plot(titanic.pred.fft,
-     tree = 4,
+     tree = 2,
      data = "test")
 

@@ -15,25 +15,30 @@ showcues <- function(x = NULL,
                      main = NULL,
                      top = 5) {
 
-  #
-  # x <- heart.fft
-  # data = "train"
-  # cue.accuracies <- NULL
-  # main = NULL
-  # top = 5
-  #
 
-  palette <- "basel"
+#
+#
+# #
+#   data = "train"
+#   cue.accuracies <- NULL
+#   main = NULL
+#   top = 5
 
-  if(palette %in% yarrr::piratepal("names")) {
 
-    palette <- yarrr::piratepal(palette, length.out = top, trans = .1)
 
-  } else {
-
-    palette <- rep(palette, length.out = top)
-
-  }
+  palette <- rep(gray(.5, .5), length.out = top)
+#
+#   palette <- "basel"
+#
+#   if(palette %in% yarrr::piratepal("names")) {
+#
+#     palette <- yarrr::piratepal(palette, length.out = top, trans = .1)
+#
+#   } else {
+#
+#     palette <- rep(palette, length.out = top)
+#
+#   }
 
 
 if(is.null(x) == FALSE) {
@@ -42,14 +47,20 @@ goal <- x$params$goal
 
 if(data == "train") {
 
-  cue.df <- x$cue.accuracies$train
+  if(is.null(x$cues$stats$train)) {
+
+    stop("There are no training statistics in this object")
+
+    }
+
+  cue.df <- x$cues$stats$train
 
 }
 
 if(data == "test") {
 
-  if(is.null(x$cue.accuracies$test)) {stop("There are no test statistics")}
-  if(is.null(x$cue.accuracies$test) == FALSE) {cue.df <- x$cue.accuracies$test}
+  if(is.null(x$cues$stats$test)) {stop("There are no test statistics")}
+  if(is.null(x$cues$stats$test) == FALSE) {cue.df <- x$cues$stats$test}
 
 }
 
@@ -153,7 +164,7 @@ label.cex <- .8
 
 # Background
 rect(cue.box.x0, cue.box.y0, cue.box.x1, .48,
-     col = transparent("white", trans.val = .1),
+     col = scales::alpha("white", .2),
      border = gray(.2))
 
 # Column labels

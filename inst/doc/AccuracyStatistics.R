@@ -20,15 +20,15 @@ heart.fft
 
 ## ------------------------------------------------------------------------
 # A vector of nodes at which each case was classified in FFT #1
-heart.fft$levelout$train[,1]
+heart.fft$trees$decisions$train$tree_1$levelout
 
 ## ------------------------------------------------------------------------
 # Calculate the mean (this is mcu)
-mean(heart.fft$levelout$train[,1])
+mean(heart.fft$trees$decisions$train$tree_1$levelout)
 
 ## ------------------------------------------------------------------------
 # Calculate pci (percent cues ignored) directly:
 # (N.Cues - mcu) / (N.Cues)
 
-(ncol(heartdisease) - heart.fft$tree.stats$train$mcu[1]) / ncol(heartdisease)
+(ncol(heartdisease) - heart.fft$trees$stats$train$mcu[1]) / ncol(heartdisease)
 

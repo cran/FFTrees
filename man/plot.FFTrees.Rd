@@ -4,19 +4,40 @@
 \alias{plot.FFTrees}
 \title{Plots an FFTrees object.}
 \usage{
-\method{plot}{FFTrees}(x = NULL, data = "train", what = "tree",
-  tree = "best.train", main = NULL, hlines = TRUE, cue.labels = NULL,
-  decision.labels = NULL, cue.cex = NULL, threshold.cex = NULL,
-  decision.cex = 1, comp = TRUE, stats = TRUE, show.header = NULL,
-  show.tree = NULL, show.confusion = NULL, show.levels = NULL,
-  show.roc = NULL, show.icons = NULL, show.iconguide = NULL,
-  label.tree = NULL, label.performance = NULL, n.per.icon = NULL,
-  which.tree = NULL, level.type = "bar", decision.names = NULL, ...)
+\method{plot}{FFTrees}(
+  x = NULL,
+  data = "train",
+  what = "tree",
+  tree = 1,
+  main = NULL,
+  hlines = TRUE,
+  cue.labels = NULL,
+  decision.labels = NULL,
+  cue.cex = NULL,
+  threshold.cex = NULL,
+  decision.cex = 1,
+  comp = TRUE,
+  stats = TRUE,
+  show.header = NULL,
+  show.tree = NULL,
+  show.confusion = NULL,
+  show.levels = NULL,
+  show.roc = NULL,
+  show.icons = NULL,
+  show.iconguide = NULL,
+  label.tree = NULL,
+  label.performance = NULL,
+  n.per.icon = NULL,
+  which.tree = NULL,
+  level.type = "bar",
+  decision.names = NULL,
+  ...
+)
 }
 \arguments{
 \item{x}{A FFTrees object created from \code{"FFTrees()"}}
 
-\item{data}{Either a dataframe of new data, or one of two strings 'train' or 'test'. In this case, the corresponding dataset in the x object will be used.}
+\item{data}{One of two strings 'train' or 'test'. In this case, the corresponding dataset in the x object will be used.}
 
 \item{what}{string. What should be plotted? \code{'tree'} (the default) shows one tree (specified by \code{'tree'}). \code{'cues'} shows the marginal accuracy of cues in an ROC space, \code{"roc"} shows an roc curve of the tree(s)}
 
@@ -50,7 +71,7 @@
 
 \item{level.type}{string. How should bottom levels be drawn? Can be \code{"bar"} or \code{"line"}}
 
-\item{decision.names}{depricated arguments.}
+\item{decision.names}{deprecated arguments.}
 
 \item{...}{Currently ignored.}
 }

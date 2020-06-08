@@ -3,10 +3,11 @@
 #' @param object An FFTrees object created from the FFTrees() function.
 #' @param newdata dataframe. A dataframe of test data
 #' @param tree integer. Which tree in the object should be used? By default, tree = 1 is used
-#' @param type string. What should be predicted? Can be \code{"class"}, which returns a vector of class predictions, or \code{"prob"} which returns a matrix of class probabilities.
+#' @param type string. What should be predicted? Can be \code{"class"}, which returns a vector of class predictions, \code{"prob"} which returns a matrix of class probabilities,
+#'  or \code{"both"} which returns a matrix with both class and probability predictions.
 #' @param method string. Method of calculating class probabilities. Either 'laplace', which applies the Laplace correction, or 'raw' which applies no correction.
 #' @param ... Additional arguments passed on to \code{predict()}
-#' @param sens.w,data depricated
+#' @param sens.w,data deprecated
 #' @return Either a logical vector of predictions, or a matrix of class probabilities.
 #' @export
 #' @examples
@@ -22,60 +23,58 @@
 #'   # Create an FFTrees x from the training data
 #'
 #'   breast.fft <- FFTrees(formula = diagnosis ~.,
-#'                               data = breast.train)
+#'                         data = breast.train)
 #'
 #'  # Predict classes of test data
 #'   breast.fft.pred <- predict(breast.fft,
-#'                              data = breast.test)
+#'                              newdata = breast.test)
 #'
 #'  # Predict class probabilities
 #'   breast.fft.pred <- predict(breast.fft,
-#'                              data = breast.test,
+#'                              newdata = breast.test,
 #'                              type = "prob")
 #'
 
 predict.FFTrees <- function(
   object = NULL,
   newdata = NULL,
-  data = NULL,
   tree = 1,
   type = "class",
   sens.w = NULL,
   method = "laplace",
+  data = NULL,
   ...
 ) {
 
-  if(is.null(data)) {
+  testthat::expect_true(is.null(data), info = "data is deprecated. Please use newdata instead")
 
-    if(is.null(newdata) == FALSE) {
+  testthat::expect_true(!is.null(newdata))
 
-      data <- newdata} else {
+  if(is.null(sens.w) == FALSE) {stop("sens.w is deprecated and will be ignored.")}
 
-      stop("Either data or newdata must be specified.")
-
-      }
-
-  }
-
-  if(is.null(sens.w) == FALSE) {stop("sens.w is depricated and will be ignored.")}
+  testthat::expect_true(type %in% c("both", "class", "prob"))
 
   goal <- object$params$goal
 
-  new.apply.tree <-  apply.tree(formula = object$formula,
-                                data = data,
-                                tree.definitions = object$tree.definitions)
+  new.apply.tree <-  fftrees_apply(x = object,
+                                             mydata = "test",
+                                             newdata = newdata)
 
   # Calculate predictions from tree
-  predictions <- new.apply.tree$decision[,tree]
+  predictions <- new.apply.tree$trees$decisions$test[[tree]]$decision
 
-   if(type == "class") {output <- predictions}
+  # Get classification output
+class_output <- predictions
 
-if(type == "prob") {
+  # Get probability output
 
-output <- matrix(NA, nrow = nrow(data), ncol = 2)
+
+# For each case, determine where it is decided in the tree
+
+prob_output <- matrix(NA, nrow = nrow(newdata), ncol = 2)
 
 # Get cumulative level stats for current tree in training data
-levelstats.c <- object$level.stats$train[object$level.stats$train$tree == tree,]
+levelstats.c <- new.apply.tree$trees$level_stats$train[new.apply.tree$trees$level_stats$train$tree == tree,]
 levels.n <- nrow(levelstats.c)
 
 # Get marginal counts for levels
@@ -97,36 +96,60 @@ ppv.lp.m <- (hi.m + 1) / (hi.m + fa.m + 2)
 # Loop over levels
 for(level.i in 1:levels.n) {
 
-  decide.now.0.log <- new.apply.tree$levelout[,tree] == level.i &
-                      new.apply.tree$decision[,tree] == 0
+  # Which cases are classified as FALSE in this level?
+  decide.now.0.log <- new.apply.tree$trees$decisions$test[[paste0("tree_", tree)]]$levelout == level.i &
+                      new.apply.tree$trees$decisions$test[[paste0("tree_", tree)]]$decision == FALSE
 
-  decide.now.1.log <- new.apply.tree$levelout[,tree] == level.i &
-                      new.apply.tree$decision[,tree] == 1
+  # Which cases are classified as TRUE in this level?
+  decide.now.1.log <- new.apply.tree$trees$decisions$test[[paste0("tree_", tree)]]$levelout == level.i &
+                      new.apply.tree$trees$decisions$test[[paste0("tree_", tree)]]$decision == TRUE
 
   if(method == "laplace") {
 
- output[decide.now.0.log, 1] <- npv.lp.m[level.i]
- output[decide.now.0.log, 2] <- 1 - npv.lp.m[level.i]
+    # Assign the npv for those assigned 0
+    prob_output[decide.now.0.log, 1] <- npv.lp.m[level.i]
+    prob_output[decide.now.0.log, 2] <- 1 - npv.lp.m[level.i]
 
- output[decide.now.1.log, 2] <- ppv.lp.m[level.i]
- output[decide.now.1.log, 1] <- 1 - ppv.lp.m[level.i]
+   # Assign the ppv for those assigned 1
+    prob_output[decide.now.1.log, 2] <- ppv.lp.m[level.i]
+    prob_output[decide.now.1.log, 1] <- 1 - ppv.lp.m[level.i]
 
   }
 
   if(method == "raw") {
 
-  output[decide.now.0.log, 1] <- npv.m[level.i]
-  output[decide.now.0.log, 2] <- 1 - npv.m[level.i]
+    prob_output[decide.now.0.log, 1] <- npv.m[level.i]
+    prob_output[decide.now.0.log, 2] <- 1 - npv.m[level.i]
 
-  output[decide.now.1.log, 2] <- ppv.m[level.i]
-  output[decide.now.1.log, 1] <- 1 - ppv.m[level.i]
+    prob_output[decide.now.1.log, 2] <- ppv.m[level.i]
+    prob_output[decide.now.1.log, 1] <- 1 - ppv.m[level.i]
 
   }
 
 }
 
+  if (type == "prob") {
 
-}
+    colnames(prob_output) <- c("prob_0", "prob_1")
+output <-tibble::as_tibble(prob_output)
+
+
+  }
+
+  if (type == "class") {
+
+  output <- class_output
+
+  }
+
+  if(type == "both") {
+
+    output <- tibble::as_tibble(data.frame(class = class_output,
+                               prob_0 = prob_output[,1],
+                               prob_1 = prob_output[,2]))
+
+  }
+
 
   return(output)
 

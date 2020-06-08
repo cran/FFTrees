@@ -29,10 +29,6 @@ heart.fft <- FFTrees(formula = diagnosis ~ .,           # Criterion and (all) pr
 ## ------------------------------------------------------------------------
 heart.fft   # Print the object
 
-## ------------------------------------------------------------------------
-# Pring summary statistics of all trees
-summary(heart.fft)
-
 ## ----fig.align = "center", out.width="50%", echo = FALSE, fig.cap = "Confusion table illustrating frequencies of 4 possible outcomes."----
 knitr::include_graphics("../inst/confusiontable.jpg")
 
@@ -67,21 +63,11 @@ names(heart.fft)
 my.heart.fft <- FFTrees(formula = diagnosis ~.,
                         data = heart.train,
                         data.test = heart.test,
-                        main = "My custom Heart Disease FFT",
+                        main = "Custom Heart FFT",
                         my.tree = "If chol > 350, predict True. 
                                    If cp != {a}, predict False. 
                                    If age <= 35, predict False. Otherwise, predict True")
 
 ## ---- fig.width = 6.5, fig.height = 6------------------------------------
 plot(my.heart.fft)
-
-## ---- eval = FALSE-------------------------------------------------------
-#  # Create an FFForest object (can take a few minutes)
-#  heart.fff <- FFForest(formula = diagnosis ~.,
-#                        data = heartdisease,
-#                        ntree = 10,
-#                        train.p = .5)
-
-## ---- fig.width = 10, fig.height = 7, out.width = "600px"----------------
-plot(heart.fff)
 
