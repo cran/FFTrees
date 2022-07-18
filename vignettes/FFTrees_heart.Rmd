@@ -11,7 +11,6 @@ vignette: >
 ---
 
 ```{r, echo = FALSE}
-options(digits = 3)
 knitr::opts_chunk$set(echo = TRUE, fig.width = 7.5, fig.height = 7.5, dpi = 100, out.width = "600px", fig.align='center', message = FALSE)
 ```
 
@@ -20,7 +19,7 @@ knitr::opts_chunk$set(echo = TRUE, fig.width = 7.5, fig.height = 7.5, dpi = 100,
 library(FFTrees)
 ```
 
-The following example follows the tutorial presented in @phillips2017FFTrees *FFTrees: A toolbox to create, visualize, and evaluate fast-and-frugal decision trees.* available online at [http://journal.sjdm.org/17/17217/jdm17217.pdf](http://journal.sjdm.org/17/17217/jdm17217.pdf)
+The following example follows the tutorial presented in @phillips2017FFTrees *FFTrees: A toolbox to create, visualize, and evaluate fast-and-frugal decision trees.* available online at [https://journal.sjdm.org/17/17217/jdm17217.pdf](https://journal.sjdm.org/17/17217/jdm17217.pdf)
 
 
 ## Step 1: Install and load the FFTrees package
@@ -66,7 +65,7 @@ The resulting trees, decisions, and accuracy statistics are now stored in the `F
 
 #### Other arguments
 
-- `algorithm`: There are several different algorithms available to build FFTs, including "ifan" [@phillips2017FFTrees], "dfan"[@phillips2017FFTrees], "max" [@martignon2008categorization], and "zigzag" [@martignon2008categorization].
+- `algorithm`: There are two different algorithms available to build FFTs "ifan" [@phillips2017FFTrees] and "dfan"[@phillips2017FFTrees]. ("max" [@martignon2008categorization], and "zigzag" [@martignon2008categorization] are no longer supported)
 - `max.levels`: Changes the maximum number of levels allowed in the tree.
 
 The following arguments apply to the "ifan" and "dfan" algorithms only:

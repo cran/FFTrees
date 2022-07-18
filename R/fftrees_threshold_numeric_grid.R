@@ -9,19 +9,18 @@
 #' @param cost.outcomes list. A list of length 4 with names 'hi', 'fa', 'mi', and 'cr' specifying the costs of a hit, false alarm, miss, and correct rejection rspectively. E.g.; \code{cost.outcomes = listc("hi" = 0, "fa" = 10, "mi" = 20, "cr" = 0)} means that a false alarm and miss cost 10 and 20 respectively while correct decisions have no cost.
 #' @param goal.threshold character. A string indicating the statistic to maximize when calculting cue thresholds: "acc" = overall accuracy, "wacc" = weighted accuracy, "bacc" = balanced accuracy
 #'
-#'
 #' @export
 #'
+#' @return A data frame containing accuracy statistics for several numeric thresholds
+#'
 fftrees_threshold_numeric_grid <- function(thresholds,
-                                   cue_v,
-                                   criterion_v,
-                                   directions = c(">", "<="),
-                                   sens.w = .5,
-                                   cost.each = 0,
-                                   cost.outcomes = list(hi = 0, fa = 1, mi = 1, cr = 0),
-                                   goal.threshold = "bacc") {
-
-
+                                           cue_v,
+                                           criterion_v,
+                                           directions = c(">", "<="),
+                                           sens.w = .5,
+                                           cost.each = 0,
+                                           cost.outcomes = list(hi = 0, fa = 1, mi = 1, cr = 0),
+                                           goal.threshold = "bacc") {
   thresholds_n <- length(thresholds)
 
   results_gt <- matrix(NA, nrow = thresholds_n, ncol = 5)
@@ -29,8 +28,7 @@ fftrees_threshold_numeric_grid <- function(thresholds,
   # Loop over all thresholds
   # C++
 
-  for(i in 1:thresholds_n) {
-
+  for (i in 1:thresholds_n) {
     threshold_i <- thresholds[i]
 
     # Create vector of decisions
@@ -45,8 +43,7 @@ fftrees_threshold_numeric_grid <- function(thresholds,
     n_i <- hi_i + fa_i + mi_i + cr_i
 
     # Return values to results
-    results_gt[i, ] <- c(n_i, hi_i, fa_i, mi_i,  cr_i)
-
+    results_gt[i, ] <- c(n_i, hi_i, fa_i, mi_i, cr_i)
   }
 
 
@@ -58,46 +55,45 @@ fftrees_threshold_numeric_grid <- function(thresholds,
   results_gt$threshold <- thresholds
 
   # Get results if using <= threshold
-  results_lt <- results_gt[,c(1, 4, 5, 2, 3)]
+  results_lt <- results_gt[, c(1, 4, 5, 2, 3)]
   names(results_lt) <- c("n", "hi", "fa", "mi", "cr")
-  results_lt <- results_lt[,c("n", "hi", "fa", "mi", "cr")]
+  results_lt <- results_lt[, c("n", "hi", "fa", "mi", "cr")]
 
   results_lt$direction <- "<="
   results_lt$threshold <- thresholds
 
-  if(setequal("<=", directions)) {
-
+  if (setequal("<=", directions)) {
     results <- results_lt
-
   }
 
-  if(setequal(">", directions)) {
-
+  if (setequal(">", directions)) {
     results <- results_gt
-
   }
 
-  if(setequal(c(">", "<="), directions)) {
-
+  if (setequal(c(">", "<="), directions)) {
     results <- rbind(results_gt, results_lt)
-
   }
 
-
-  new_stats <-  Add_Stats(results,
-                          sens.w = sens.w,
-                          cost.outcomes = cost.outcomes,
-                          cost.each = cost.each)
+  new_stats <- Add_Stats(results,
+    sens.w = sens.w,
+    cost.outcomes = cost.outcomes,
+    cost.each = cost.each
+  )
 
   # Add accuracy statistics
   results <- cbind(results, new_stats)
 
   # Order by goal.threshold and change column order
-  results <- results[order(-results[goal.threshold]), c("threshold", "direction", "n", "hi", "fa", "mi", "cr", "sens", "spec", "ppv", "npv", "bacc", "acc", "wacc", "cost_decisions", "cost")]
+  ord_new <- order(results[, goal.threshold], decreasing = TRUE)
+
+  results <- results[ord_new, c(
+    "threshold", "direction", "n", "hi", "fa", "mi", "cr",
+    "sens", "spec", "ppv", "npv", "bacc", "acc", "wacc",
+    "cost_decisions", "cost"
+  )]
 
   # Remove invalid directions
   results[results$direction %in% directions, ]
 
   return(results)
-
 }

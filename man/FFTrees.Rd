@@ -49,7 +49,7 @@ FFTrees(
 
 \item{data.test}{dataframe. An optional testing dataset with the same structure as data.}
 
-\item{algorithm}{character. The algorithm to create FFTs. Can be \code{'ifan'}, \code{'dfan'}, \code{'max'}, or \code{'zigzag'}.}
+\item{algorithm}{character. The algorithm to create FFTs. Can be \code{'ifan'}, \code{'dfan'}}
 
 \item{max.levels}{integer. The maximum number of levels considered for the trees. Because all permutations of exit structures are considered, the larger \code{max.levels} is, the more trees will be created.}
 
@@ -126,40 +126,41 @@ Create fast and frugal trees
 }
 \examples{
 
- # Create fast-and-frugal trees for heart disease
- heart.fft <- FFTrees(formula = diagnosis ~.,
-                      data = heart.train,
-                      data.test = heart.test,
-                      main = "Heart Disease",
-                      decision.labels = c("Healthy", "Diseased"))
+# Create fast-and-frugal trees for heart disease
+heart.fft <- FFTrees(
+  formula = diagnosis ~ .,
+  data = heart.train,
+  data.test = heart.test,
+  main = "Heart Disease",
+  decision.labels = c("Healthy", "Diseased")
+)
 
- # Print the result for summary info
- heart.fft
+# Print the result for summary info
+heart.fft
 
- # Plot the tree applied to training data
- plot(heart.fft, stats = FALSE)
- plot(heart.fft)
- plot(heart.fft, data = "test")  # Now for testing data
- plot(heart.fft, data = "test", tree = 2) # Look at tree number 2
+# Plot the tree applied to training data
+plot(heart.fft, stats = FALSE)
+plot(heart.fft)
+plot(heart.fft, data = "test") # Now for testing data
+plot(heart.fft, data = "test", tree = 2) # Look at tree number 2
 
 
- ## Predict classes and probabilities for new data
+## Predict classes and probabilities for new data
 
- predict(heart.fft, newdata = heartdisease)
- predict(heart.fft, newdata = heartdisease, type = "prob")
+predict(heart.fft, newdata = heartdisease)
+predict(heart.fft, newdata = heartdisease, type = "prob")
 
- ### Create your own custom tree with my.tree
+### Create your own custom tree with my.tree
 
- custom.fft <- FFTrees(formula = diagnosis ~ .,
-                       data = heartdisease,
-                       my.tree = 'If chol > 300, predict True.
+custom.fft <- FFTrees(
+  formula = diagnosis ~ .,
+  data = heartdisease,
+  my.tree = "If chol > 300, predict True.
                                   If sex = {m}, predict False,
-                                  If age > 70, predict True, otherwise predict False'
-                                  )
+                                  If age > 70, predict True, otherwise predict False"
+)
 
- # Plot the custom tree (it's pretty terrible)
- plot(custom.fft)
-
-
+# Plot the custom tree (it's pretty terrible)
+plot(custom.fft)
 
 }

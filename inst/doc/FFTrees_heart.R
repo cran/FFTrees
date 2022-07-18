@@ -1,23 +1,22 @@
-## ---- echo = FALSE-------------------------------------------------------
-options(digits = 3)
+## ---- echo = FALSE------------------------------------------------------------
 knitr::opts_chunk$set(echo = TRUE, fig.width = 7.5, fig.height = 7.5, dpi = 100, out.width = "600px", fig.align='center', message = FALSE)
 
-## ---- echo = F, message = F, results = 'hide'----------------------------
+## ---- echo = F, message = F, results = 'hide'---------------------------------
 library(FFTrees)
 
-## ---- eval = FALSE-------------------------------------------------------
+## ---- eval = FALSE------------------------------------------------------------
 #  # Install the package from CRAN
 #  install.packages("FFTrees")
 
-## ---- eval = TRUE, message = TRUE----------------------------------------
+## ---- eval = TRUE, message = TRUE---------------------------------------------
 # Load the package
 library(FFTrees)
 
-## ---- eval = FALSE-------------------------------------------------------
+## ---- eval = FALSE------------------------------------------------------------
 #  # Open the main package guide
 #  FFTrees.guide()
 
-## ---- message = FALSE----------------------------------------------------
+## ---- message = FALSE---------------------------------------------------------
 # Create an FFTrees object
 
 heart.fft <- FFTrees(formula = diagnosis ~ .,           # Criterion and (all) predictors
@@ -26,39 +25,39 @@ heart.fft <- FFTrees(formula = diagnosis ~ .,           # Criterion and (all) pr
                      main = "Heart Disease",            # General label
                      decision.labels = c("Low-Risk", "High-Risk"))  # Labels for decisions
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 heart.fft   # Print the object
 
 ## ----fig.align = "center", out.width="50%", echo = FALSE, fig.cap = "Confusion table illustrating frequencies of 4 possible outcomes."----
 knitr::include_graphics("../inst/confusiontable.jpg")
 
-## ---- fig.width = 6.5, fig.height = 6------------------------------------
+## ---- fig.width = 6.5, fig.height = 6-----------------------------------------
 # Plot the best FFT when applied to the test data
 
 plot(heart.fft,              # An FFTrees object
      data = "test")          # Which data to plot? "train" or "test"
 
-## ---- fig.width = 10, fig.height = 6-------------------------------------
+## ---- fig.width = 10, fig.height = 6------------------------------------------
 # Plot only the tree without accuracy statistics
 plot(heart.fft, 
      stats = FALSE)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 # Show marginal cue accuracies in ROC space
 plot(heart.fft, 
      what = "cues")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 # Show the names of all of the outputs in heart.fft
 
 names(heart.fft)
 
-## ---- eval = FALSE-------------------------------------------------------
+## ---- eval = FALSE------------------------------------------------------------
 #  # Predict classifications for a new dataset
 #  predict(heart.fft,
 #          data = heartdisease)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 # Create an FFT manuly
 my.heart.fft <- FFTrees(formula = diagnosis ~.,
                         data = heart.train,
@@ -68,6 +67,6 @@ my.heart.fft <- FFTrees(formula = diagnosis ~.,
                                    If cp != {a}, predict False. 
                                    If age <= 35, predict False. Otherwise, predict True")
 
-## ---- fig.width = 6.5, fig.height = 6------------------------------------
+## ---- fig.width = 6.5, fig.height = 6-----------------------------------------
 plot(my.heart.fft)
 

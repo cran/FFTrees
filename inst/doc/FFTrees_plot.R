@@ -1,13 +1,13 @@
-## ---- echo = F, message = F, results = 'hide'----------------------------
+## ---- echo = F, message = F, results = 'hide'---------------------------------
 library(FFTrees)
 
-## ----fig.align = "center", out.width="75%", echo = FALSE-----------------
+## ----fig.align = "center", out.width="75%", echo = FALSE----------------------
 knitr::include_graphics("../inst/titanic.jpg")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 head(titanic)
 
-## ---- message = FALSE, results = 'hide'----------------------------------
+## ---- message = FALSE, results = 'hide'---------------------------------------
 # Create fast-and-frugal trees from the titanic data
 
 titanic.fft <- FFTrees(formula = survived ~.,
@@ -19,7 +19,7 @@ titanic.fft <- FFTrees(formula = survived ~.,
 plot(titanic.fft,
      what = 'cues')
 
-## ---- fig.width = 6, fig.height = 6.5, fig.align = 'center'--------------
+## ---- fig.width = 6, fig.height = 6.5, fig.align = 'center'-------------------
 plot(titanic.fft)
 
 ## ---- fig.align = 'center', fig.height = 6, fig.width = 9, out.width = "70%"----
@@ -34,7 +34,7 @@ plot(titanic.fft,
      show.header = FALSE     # Turn off header
      )
 
-## ---- message = FALSE, results = 'hide'----------------------------------
+## ---- message = FALSE, results = 'hide'---------------------------------------
 set.seed(100) # For replicability of the training/test split
 titanic.pred.fft <- FFTrees(formula = survived ~.,
                             data = titanic,
@@ -42,16 +42,16 @@ titanic.pred.fft <- FFTrees(formula = survived ~.,
                             decision.labels = c("Died", "Survived"),
                             train.p = .5)
 
-## ---- fig.width = 6, fig.height = 6.5, fig.align='center'----------------
+## ---- fig.width = 6, fig.height = 6.5, fig.align='center'---------------------
 plot(titanic.pred.fft,
      tree = 1)
 
-## ---- fig.width = 6, fig.height = 6.5, fig.align='center'----------------
+## ---- fig.width = 6, fig.height = 6.5, fig.align='center'---------------------
 plot(titanic.pred.fft,
      tree = 1,
      data = "test")
 
-## ---- fig.width = 6, fig.height = 6.5, fig.align='center'----------------
+## ---- fig.width = 6, fig.height = 6.5, fig.align='center'---------------------
 plot(titanic.pred.fft,
      tree = 2,
      data = "test")

@@ -1,5 +1,5 @@
 ---
-title: "Specifying FFTs directly"
+title: "Manually specifying FFTs"
 author: "Nathaniel Phillips"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
@@ -10,7 +10,6 @@ vignette: >
 ---
 
 ```{r, echo = FALSE}
-options(digits = 3)
 knitr::opts_chunk$set(echo = TRUE, 
                       fig.width = 7.5, 
                       fig.height = 7.5, 

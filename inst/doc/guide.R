@@ -1,4 +1,4 @@
-## ---- echo = F, message = FALSE, results = 'hide'------------------------
+## ---- echo = F, message = FALSE, results = 'hide'-----------------------------
 library(FFTrees)
 
 ## ----fig1, fig.width = 6.5, fig.height = 6, echo = TRUE, fig.align='center', echo = TRUE, message = FALSE, fig.cap="A fast-and-frugal tree (FFT) to predict heart disease status"----
@@ -12,7 +12,7 @@ heart.fft <- FFTrees(formula = diagnosis ~.,
 # Visualize the best training tree applied to the test data
 plot(heart.fft, data = "test")
 
-## ---- eval = FALSE-------------------------------------------------------
+## ---- eval = FALSE------------------------------------------------------------
 #  @article{phillips2017FFTrees,
 #   title = {FFTrees: A toolbox to create, visualize, and evaluate fast-and-frugal decision trees},
 #   author = {Phillips, Nathaniel D and Neth, Hansjoerg and Woike, Jan K and Gaissmaier, Wolfgang},
@@ -23,6 +23,6 @@ plot(heart.fft, data = "test")
 #   pages = {344--368}
 #  }
 
-## ----fig.align = "center", out.width="50%", echo = FALSE-----------------
+## ----fig.align = "center", out.width="50%", echo = FALSE----------------------
 knitr::include_graphics("../inst/FFTrees_Logo.jpg")
 

@@ -1,5 +1,4 @@
-## ---- echo = FALSE-------------------------------------------------------
-options(digits = 3)
+## ---- echo = FALSE------------------------------------------------------------
 knitr::opts_chunk$set(echo = TRUE, 
                       fig.width = 7.5, 
                       fig.height = 7.5, 
@@ -8,18 +7,18 @@ knitr::opts_chunk$set(echo = TRUE,
                       fig.align='center', 
                       message = FALSE)
 
-## ---- echo = F, message = F, results = 'hide'----------------------------
+## ---- echo = F, message = F, results = 'hide'---------------------------------
 library(FFTrees)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 head(heartdisease[c("sex", "age", "thal")])
 
-## ---- eval = FALSE-------------------------------------------------------
+## ---- eval = FALSE------------------------------------------------------------
 #  my.tree = "If sex = 1, predict True.
 #             If age < 45, predict False.
 #             If thal = {fd, normal}, predict True. Otherwise, predict False"
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 # Pass a verbally defined FFT to FFTrees with the my.tree argument
 my.heart.fft <- FFTrees(diagnosis ~.,
                         data = heartdisease,
@@ -28,11 +27,11 @@ my.heart.fft <- FFTrees(diagnosis ~.,
                                    If thal = {fd, normal}, predict True. 
                                    Otherwise, predict False")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 # Plot 
 plot(my.heart.fft)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 # Specify an FFt verbally with the my.tree argument
 my.heart.fft <- FFTrees(diagnosis ~.,
                         data = heartdisease,
