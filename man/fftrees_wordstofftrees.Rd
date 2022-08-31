@@ -2,18 +2,35 @@
 % Please edit documentation in R/fftrees_wordstofftrees.R
 \name{fftrees_wordstofftrees}
 \alias{fftrees_wordstofftrees}
-\title{Converts text describing an FFT into an FFT definition.}
+\title{Convert a text description of an FFT into an \code{FFTrees} object}
 \usage{
 fftrees_wordstofftrees(x, my.tree)
 }
 \arguments{
-\item{x}{FFTrees.}
+\item{x}{An \code{FFTrees} object.}
 
-\item{my.tree}{string. A string defining an FFT}
+\item{my.tree}{string. A verbal string defining an FFT.}
 }
 \value{
-An FFTrees object with a new definition defined by my.tree
+An \code{FFTrees} object with a new tree definition as described by \code{my.tree}.
 }
 \description{
-Converts text describing an FFT into an FFT definition.
+\code{fftrees_wordstofftrees} converts a verbal description
+of an FFT (provided as a text string) into a tree definition (of an \code{FFTrees} object).
+
+\code{fftrees_wordstofftrees} is the complement function to
+\code{\link{fftrees_ffttowords}}, which converts a tree definition
+(of an \code{FFTrees} object) into a verbal description.
+
+To increase robustness, the parsing of \code{fftrees_wordstofftrees}
+allows for lower- or uppercase spellings (but not typographical variants)
+and ignores the else-part of the final sentence (i.e., the part
+beginning with "otherwise").
+}
+\seealso{
+\code{\link{fftrees_ffttowords}} for converting FFTs into verbal descriptions;
+\code{\link{print.FFTrees}} for printing FFTs;
+\code{\link{plot.FFTrees}} for plotting FFTs;
+\code{\link{summary.FFTrees}} for summarizing FFTs;
+\code{\link{FFTrees}} for creating FFTs from and applying them to data.
 }

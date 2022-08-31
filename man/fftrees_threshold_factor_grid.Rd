@@ -2,7 +2,7 @@
 % Please edit documentation in R/fftrees_threshold_factor_grid.R
 \name{fftrees_threshold_factor_grid}
 \alias{fftrees_threshold_factor_grid}
-\title{Performs a grid search over factor and returns accuracy statistics for a given factor cue}
+\title{Perform a grid search over factor and return accuracy statistics for a given factor cue}
 \usage{
 fftrees_threshold_factor_grid(
   thresholds = NULL,
@@ -16,17 +16,21 @@ fftrees_threshold_factor_grid(
 )
 }
 \arguments{
-\item{thresholds}{numeric. A vector of factor thresholds to consider}
+\item{thresholds}{numeric. A vector of factor thresholds to consider.}
 
-\item{cue_v}{numeric. Feature values}
+\item{cue_v}{numeric. Feature/cue values.}
 
-\item{criterion_v}{logical. Criterion values}
+\item{criterion_v}{logical. A logical vector of (TRUE) criterion values.}
 
 \item{directions}{character. Character vector of threshold directions to consider.}
 
-\item{sens.w}{numeric.}
+\item{sens.w}{numeric. Sensitivity weight parameter (from 0 to 1, for computing \code{wacc}).
+Default: \code{sens.w = .50}.}
 
-\item{cost.outcomes}{list. A list of length 4 with names 'hi', 'fa', 'mi', and 'cr' specifying the costs of a hit, false alarm, miss, and correct rejection rspectively. E.g.; \code{cost.outcomes = listc("hi" = 0, "fa" = 10, "mi" = 20, "cr" = 0)} means that a false alarm and miss cost 10 and 20 respectively while correct decisions have no cost.}
+\item{cost.outcomes}{list. A list of length 4 with names 'hi', 'fa', 'mi', and 'cr' specifying
+the costs of a hit, false alarm, miss, and correct rejection, respectively.
+For instance, \code{cost.outcomes = listc("hi" = 0, "fa" = 10, "mi" = 20, "cr" = 0)} means that
+a false alarm and miss cost 10 and 20, respectively, while correct decisions have no cost.}
 
 \item{cost.each}{numeric.}
 
@@ -36,5 +40,8 @@ fftrees_threshold_factor_grid(
 A data frame containing accuracy statistics for several factor thresholds
 }
 \description{
-Performs a grid search over factor and returns accuracy statistics for a given factor cue
+Perform a grid search over factor and return accuracy statistics for a given factor cue
+}
+\seealso{
+\code{\link{fftrees_threshold_numeric_grid}} for numeric cues.
 }

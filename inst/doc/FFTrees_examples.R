@@ -1,68 +1,77 @@
-## ---- echo = F, message = FALSE, results = 'hide'-----------------------------
+## ----setup, echo = FALSE, message = FALSE, results = 'hide'-------------------
 library(FFTrees)
-knitr::opts_chunk$set(echo = TRUE, fig.width = 7.5, fig.height = 7.5, dpi = 100, out.width = "600px", fig.align='center', message = FALSE)
+knitr::opts_chunk$set(echo = TRUE, fig.width = 7, fig.height = 7, dpi = 100, out.width = "600px", fig.align='center', message = FALSE)
 
-## ----fig.align = "center", out.width="250px", echo = FALSE--------------------
+## ----image-mushrooms, fig.align = "center", out.width="225px", echo = FALSE----
 knitr::include_graphics("../inst/mushrooms.jpg")
 
-## -----------------------------------------------------------------------------
-head(mushrooms)
+## ----data-mushrooms, echo = FALSE---------------------------------------------
+# Select subset:
+mushrooms_sub <- mushrooms[1:6, c(1:6, 18:23)]
 
-## ---- message = FALSE, results = 'hide', warning=FALSE------------------------
-# Create FFTs from the mushrooms data
+knitr::kable(head(mushrooms_sub))
 
-set.seed(100) # For replicability of the training / test data split
+## ----fft-mushrooms-1, message = FALSE, results = 'hide', warning=FALSE--------
+# Create FFTs from the mushrooms data: 
+set.seed(1) # for replicability of the training / test data split
 
 mushrooms.fft <- FFTrees(formula = poisonous ~.,
                          data = mushrooms,
-                         train.p = .5,      # Split data into 50\50 training \ test
+                         train.p = .50,   # split data into 50:50 training/test subsets
                          main = "Mushrooms",
                          decision.labels = c("Safe", "Poison"))   
 
-## -----------------------------------------------------------------------------
-# Print information about the best performing tree
+## ----fft-mushrooms-1-print----------------------------------------------------
+# Print information about the best performing tree:
 mushrooms.fft
 
-## -----------------------------------------------------------------------------
-# Show mushrooms cue accuracies
-plot(mushrooms.fft,
-     what = "cues")
+## ----fft-mushrooms-1-plot-cues------------------------------------------------
+# Plot the cue accuracies of an FFTrees object:
+plot(mushrooms.fft, what = "cues")
 
-## -----------------------------------------------------------------------------
-# Plot the best FFT for the mushrooms data
+## ----fft-mushrooms-1-plot-----------------------------------------------------
+# Plot the best FFT for the mushrooms test data: 
 plot(mushrooms.fft, 
      data = "test")
 
-## ---- message = FALSE, results = 'hide', warning = FALSE----------------------
-# Create trees using only ringtype and ringnum
+## ----fft-mushrooms-2-seed, include = FALSE------------------------------------
+set.seed(200)
 
+## ----fft-mushrooms-2, message = FALSE, results = 'hide', warning = FALSE------
+# Create trees using only the ringtype and ringnum cues: 
 mushrooms.ring.fft <- FFTrees(formula = poisonous ~ ringtype + ringnum,
                               data = mushrooms,
-                              train.p = .5,
-                              main = "Mushrooms (Ring Only)",
+                              train.p = .50,
+                              main = "Mushrooms (ring only)",
                               decision.labels = c("Safe", "Poison"))
 
-## -----------------------------------------------------------------------------
-plot(mushrooms.ring.fft, 
+## ----fft-mushrooms-2-plot-----------------------------------------------------
+# Plotting the best training FFT for test data: 
+plot(mushrooms.ring.fft,
      data = "test")
 
-## ----fig.align = "center", out.width="250px", echo = FALSE--------------------
+## ----iris-image, fig.align = "center", out.width="225px", echo = FALSE--------
 knitr::include_graphics("../inst/virginica.jpg")
 
-## ---- message = FALSE, results = 'hide'---------------------------------------
+## ----iris-fft, message = FALSE, results = 'hide'------------------------------
+# Create FFTrees object for iris data:
 iris.fft <- FFTrees(formula = virginica ~.,
                     data = iris.v,
                     main = "Iris",
                     decision.labels = c("Not-V", "V"))
 
-## -----------------------------------------------------------------------------
-plot(iris.fft, 
-     what = "cues")
+## ----iris-fft-print, eval = FALSE, results = 'hide'---------------------------
+#  iris.fft
 
-## -----------------------------------------------------------------------------
+## ----iris-plot-cues-----------------------------------------------------------
+# Plot cue values: 
+plot(iris.fft, what = "cues")
+
+## ----iris-plot-fft------------------------------------------------------------
+# Plot best FFT: 
 plot(iris.fft)
 
-## -----------------------------------------------------------------------------
-plot(iris.fft,
-     tree = 2)     # Show tree #2
+## ----iris-plot-fft-2----------------------------------------------------------
+# Plot FFT #2 in iris FFTrees: 
+plot(iris.fft, tree = 2)
 

@@ -2,13 +2,13 @@
 % Please edit documentation in R/FFTreesguide_function.R
 \name{FFTrees.guide}
 \alias{FFTrees.guide}
-\title{Opens the FFTrees package guide}
+\title{Open the \strong{FFTrees} package guide}
 \usage{
 FFTrees.guide()
 }
 \value{
-No return value, called for side effects
+No return value, called for side effects.
 }
 \description{
-Opens the FFTrees package guide
+Open the \strong{FFTrees} package guide
 }

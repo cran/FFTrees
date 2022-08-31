@@ -2,7 +2,7 @@
 % Please edit documentation in R/helper.R
 \name{comp.pred}
 \alias{comp.pred}
-\title{Wrapper for classfication algorithms}
+\title{A wrapper for competing classification algorithms.}
 \usage{
 comp.pred(
   formula,
@@ -16,16 +16,20 @@ comp.pred(
 \arguments{
 \item{formula}{a formula}
 
-\item{data.train}{dataframe. A training dataset}
+\item{data.train}{dataframe. A training dataset.}
 
-\item{data.test}{dataframe. A testing dataset}
+\item{data.test}{dataframe. A testing dataset.}
 
-\item{algorithm}{string. An algorithm in the set "lr" -- logistic regression, cart" -- decision trees, "rlr" -- regularised logistic regression, "svm" -- support vector machines, "rf" -- random forests}
+\item{algorithm}{string. An algorithm in the set
+"lr" -- logistic regression, "cart" -- decision trees, "rlr" -- regularized logistic regression,
+"svm" -- support vector machines, "rf" -- random forests}
 
 \item{model}{model. An optional existing model applied to test data}
 
-\item{new.factors}{string. What should be done if new factor values are discovered in the test set? "exclude" = exclude (i.e.; remove these cases), "base" = predict the base rate of the criterion.}
+\item{new.factors}{string. What should be done if new factor values are discovered in the test set?
+"exclude" = exclude (i.e.; remove these cases), "base" = predict the base rate of the criterion.}
 }
 \description{
-This function is a wrapper for many classification algorithms such as CART (rpart::rpart), logistic regression (glm), support vector machines (svm::svm) and random forests (randomForest::randomForest)
+\code{comp.pred} provides a wrapper for many classification algorithms --- such as CART (\code{rpart::rpart}),
+logistic regression (\code{glm}), support vector machines (\code{svm::svm}), and random forests (\code{randomForest::randomForest}).
 }

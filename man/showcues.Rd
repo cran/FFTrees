@@ -2,24 +2,68 @@
 % Please edit documentation in R/showcues_function.R
 \name{showcues}
 \alias{showcues}
-\title{Visualizes cue accuracies from an FFTrees object in a ROC space}
+\title{Visualize cue accuracies (as points in ROC space)}
 \usage{
-showcues(x = NULL, data = "train", cue.accuracies = NULL, main = NULL, top = 5)
+showcues(
+  x = NULL,
+  cue.accuracies = NULL,
+  alt.goal = NULL,
+  main = NULL,
+  top = 5,
+  quiet = FALSE,
+  ...
+)
 }
 \arguments{
-\item{x}{An FFTrees object}
+\item{x}{An \code{FFTrees} object created by the \code{\link{FFTrees}} function.}
 
-\item{data}{A string indicating whether or not to show training ("train") or testing ("test") cue accuracies}
+\item{cue.accuracies}{An optional data frame specifying cue accuracies directly (without specifying \code{FFTrees} object \code{x}).}
 
-\item{cue.accuracies}{dataframe. An optional dataframe specifying cue accuracies directly (without specifying an FFTrees object x)}
+\item{alt.goal}{An optional alternative goal to sort the current cue accuracies (without using the goal of \code{FFTrees} object \code{x}).}
 
-\item{main}{Main plot description}
+\item{main}{A main plot title (as character string).}
 
-\item{top}{An integer indicating how many of the top cues to highlight}
+\item{top}{How many of the top cues should be highlighted (as an integer)?}
+
+\item{quiet}{Should user feedback messages be printed (as logical)?
+Default: \code{quiet = FALSE} (i.e., show messages).}
+
+\item{...}{Graphical parameters (passed to \code{\link{plot}}).}
 }
 \value{
-A plot showing cue accuracies from an FFTrees object in a ROC space
+A plot showing cue accuracies (of an \code{FFTrees} object) (as points in ROC space).
 }
 \description{
-Visualizes cue accuracies from an FFTrees object in a ROC space
+\code{showcues} plots the cue accuracies of an \code{FFTrees} object
+created by the \code{\link{FFTrees}} function (as points in ROC space).
+
+If the optional arguments \code{cue.accuracies} and \code{alt.goal} are specified,
+their values take precedence over the corresponding settings of an \code{FFTrees} object \code{x}
+(but do not change \code{x}).
+
+\code{showcues} is called when the main \code{\link{plot.FFTrees}} function is set to \code{what = "cues"}.
 }
+\examples{
+# Create fast-and-frugal trees (FFTs) for heart disease:
+heart.fft <- FFTrees(formula = diagnosis ~ .,
+                     data = heart.train,
+                     data.test = heart.test,
+                     main = "Heart Disease",
+                     decision.labels = c("Healthy", "Diseased")
+                     )
+
+# Show cue accuracies (in ROC space):
+showcues(heart.fft,
+         main = "Predicting heart disease")
+
+}
+\seealso{
+\code{\link{print.FFTrees}} for printing FFTs;
+\code{\link{plot.FFTrees}} for plotting FFTs;
+\code{\link{summary.FFTrees}} for summarizing FFTs;
+\code{\link{FFTrees}} for creating FFTs from and applying them to data.
+
+Other plot functions: 
+\code{\link{plot.FFTrees}()}
+}
+\concept{plot functions}

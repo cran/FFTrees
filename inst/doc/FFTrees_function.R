@@ -1,89 +1,102 @@
-## ---- echo = FALSE------------------------------------------------------------
+## ----setup, echo = FALSE------------------------------------------------------
 knitr::opts_chunk$set(echo = TRUE, fig.width = 7.5, fig.height = 7.5, dpi = 100, out.width = "600px", fig.align='center', message = FALSE)
 
-## ---- echo = F, message = F, results = 'hide'---------------------------------
+## ----load-pkg, echo = FALSE, message = FALSE, results = 'hide'----------------
 library(FFTrees)
 
-## ----fig.align = "center", out.width="250px", echo = FALSE--------------------
+## ----image, fig.align = "center", out.width="250px", echo = FALSE-------------
 knitr::include_graphics("../inst/CoronaryArtery.jpg")
 
-## -----------------------------------------------------------------------------
-# Training data
-head(heartdisease)
+## ----heart-data---------------------------------------------------------------
+# Training data: 
+head(heart.train)
 
-# Test data
-head(heartdisease)
+# Testing data:
+head(heart.test)
 
-## ---- message = FALSE---------------------------------------------------------
-# Create an FFTrees object called heart.fft predicting diagnosis
+## ----heart-fft, message = FALSE-----------------------------------------------
+# Create an FFTrees object called heart.fft predicting diagnosis: 
 heart.fft <- FFTrees(formula = diagnosis ~.,
-                    data = heart.train,
-                    data.test = heart.test)
+                     data = heart.train,
+                     data.test = heart.test)
 
-## -----------------------------------------------------------------------------
-# Print the names of the elements of an FFTrees object
+## ----print-names--------------------------------------------------------------
+# See the elements of an FFTrees object:
 names(heart.fft)
 
-## -----------------------------------------------------------------------------
-# Print the object, with details about the tree with the best training wacc values
-heart.fft
+## ----print-fftrees-object-data-train------------------------------------------
+# Training performance of the best tree (on "train" data, given current goal):
+heart.fft  # same as: print(heart.fft, data = "train")
 
-## -----------------------------------------------------------------------------
-# Show decision thresholds and marginal classification training accuracies for each cue
+## ----print-fftrees-object-data-test, eval = FALSE-----------------------------
+#  # Prediction performance of the best training tree (on "test" data):
+#  print(heart.fft, data = "test")
+
+## ----print-fftrees-object-else, eval = FALSE----------------------------------
+#  # Performance of alternative FFTs (Tree 3) in an FFTrees object:
+#  print(heart.fft, tree = 3, data = "test")
+
+## ----fft-cues-stats-train-----------------------------------------------------
+# Decision thresholds and marginal classification training accuracies for each cue: 
 heart.fft$cues$stats$train
 
-## ----fig.width = 6.5, fig.height = 6.5, dpi = 400, out.width = "600px", fig.align='center'----
-# Visualize individual cue accuracies
-plot(heart.fft, 
-     main = "Heartdisease Cue Accuracy",
+## ----fft-plot-cues, fig.width = 6.5, fig.height = 6.5, dpi = 400, out.width = "600px", fig.align='center'----
+# Visualize individual cue accuracies: 
+plot(heart.fft,
+     main = "Cue accuracy for heartdisease",
      what = "cues")
 
-## -----------------------------------------------------------------------------
-# Print the definitions of all trees
+## ----fft-definitions----------------------------------------------------------
+# See the definitions of all trees:
 heart.fft$trees$definitions
 
-## -----------------------------------------------------------------------------
-# Describe the best training tree
-
+## ----fft-inwords--------------------------------------------------------------
+# Describe the best training tree (i.e., Tree #1):
 inwords(heart.fft, tree = 1)
 
-## -----------------------------------------------------------------------------
-# Print training statistics for all trees
+## ----fft-stats-train----------------------------------------------------------
+# Training statistics for all trees:
 heart.fft$trees$stats$train
 
-## -----------------------------------------------------------------------------
-# Look at the tree decisisions
+## ----fft-stats-test-----------------------------------------------------------
+# Testing statistics for all trees:
+heart.fft$trees$stats$test
+
+## ----fft-decisions------------------------------------------------------------
+# Inspect the decisions of Tree 1:
 heart.fft$trees$decisions$train$tree_1
 
-## -----------------------------------------------------------------------------
-# Predict classes for new data from the best training tree
+## ----fft-predict-class--------------------------------------------------------
+# Predict classes for new data from the best training tree: 
 predict(heart.fft,
-        newdata = heartdisease[1:10,])
+        newdata = heartdisease[1:10, ])
 
-## -----------------------------------------------------------------------------
-# Predict class probabilities for new data from the best training tree
+## ----fft-predict-prob---------------------------------------------------------
+# Predict class probabilities for new data from the best training tree:
 predict(heart.fft,
         newdata = heartdisease,
         type = "prob")
 
-## -----------------------------------------------------------------------------
-# Predict classes and probabilities
+## ----fft-predict-both---------------------------------------------------------
+# Predict both classes and probabilities:
 predict(heart.fft,
         newdata = heartdisease,
         type = "both")
 
-## ---- fig.width = 7, fig.height = 7-------------------------------------------
+## ----fft-plot, fig.width = 7, fig.height = 7----------------------------------
 plot(heart.fft,
      main = "Heart Disease",
      decision.labels = c("Healthy", "Disease"))
 
-## -----------------------------------------------------------------------------
-# Define a tree manually using the my.tree argument
+## ----fft-my-tree-def----------------------------------------------------------
+# Manually define a tree using the my.tree argument:
 myheart.fft <- FFTrees(diagnosis ~., 
                        data = heartdisease, 
-                       my.tree = "If chol > 300, predict True. If thal = {fd,rd}, predict False. Otherwise, predict True")
+                       my.tree = "If chol > 300, predict True. 
+                                  If thal = {fd,rd}, predict False. 
+                                  Otherwise, predict True")
 
-# Here is the result
+## ----fft-my-tree-plot---------------------------------------------------------
 plot(myheart.fft, 
      main = "Specifying an FFT manually")
 

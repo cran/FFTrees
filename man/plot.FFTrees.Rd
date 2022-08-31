@@ -2,7 +2,7 @@
 % Please edit documentation in R/plotFFTrees_function.R
 \name{plot.FFTrees}
 \alias{plot.FFTrees}
-\title{Plots an FFTrees object.}
+\title{Plot an \code{FFTrees} object}
 \usage{
 \method{plot}{FFTrees}(
   x = NULL,
@@ -10,7 +10,6 @@
   what = "tree",
   tree = 1,
   main = NULL,
-  hlines = TRUE,
   cue.labels = NULL,
   decision.labels = NULL,
   cue.cex = NULL,
@@ -25,6 +24,7 @@
   show.roc = NULL,
   show.icons = NULL,
   show.iconguide = NULL,
+  hlines = TRUE,
   label.tree = NULL,
   label.performance = NULL,
   n.per.icon = NULL,
@@ -35,68 +35,133 @@
 )
 }
 \arguments{
-\item{x}{A FFTrees object created from \code{"FFTrees()"}}
+\item{x}{An \code{FFTrees} object created by the \code{\link{FFTrees}} function.}
 
-\item{data}{One of two strings 'train' or 'test'. In this case, the corresponding dataset in the x object will be used.}
+\item{data}{The data in \code{x} to be plotted (as a string);
+must be either \code{'train'} (for fitting performance) or \code{'test'} (for prediction performance).
+By default, \code{data = 'train'} (as \code{x} may not contain test data).}
 
-\item{what}{string. What should be plotted? \code{'tree'} (the default) shows one tree (specified by \code{'tree'}). \code{'cues'} shows the marginal accuracy of cues in an ROC space, \code{"roc"} shows an roc curve of the tree(s)}
+\item{what}{What should be plotted (as a string)?
+\code{'tree'} (the default) shows details of one tree (specified by \code{tree});
+\code{'cues'} shows the marginal accuracy of cues in ROC space;
+\code{'roc'} shows the performance of tree(s) (and comparison algorithms) in ROC space.}
 
-\item{tree}{integer. An integer indicating which tree to plot (only valid when the tree argument is non-empty). To plot the best training (or test) tree with respect to the \code{goal} specified during FFT construction, use "best.train" or "best.test"}
+\item{tree}{The tree to be plotted (as an integer, only valid when the corresponding tree argument is non-empty).
+Default: \code{tree = 1}.
+To plot the best training or best test tree with respect to the \code{goal} specified during FFT construction,
+use \code{"best.train"} or \code{"best.test"}, respectively.}
 
-\item{main}{character. The main plot label.}
+\item{main}{The main plot label (as a character string).}
 
-\item{hlines}{logical. Should horizontal panel separation lines be shown?}
+\item{cue.labels}{An optional string of labels for the cues / nodes (as character vector).}
 
-\item{cue.labels}{character. An optional string of labels for the cues / nodes.}
+\item{decision.labels}{A character vector of length 2 indicating the content-specific names for noise and signal predictions/exits.}
 
-\item{decision.labels}{character. A string vector of length 2 indicating the content-specific name for noise and signal cases.}
+\item{cue.cex}{The size of the cue labels (as numeric).}
 
-\item{cue.cex}{numeric. The size of the cue labels.}
+\item{threshold.cex}{The size of the threshold labels (as numeric).}
 
-\item{threshold.cex}{numeric. The size of the threshold labels.}
+\item{decision.cex}{The size of the decision labels (as numeric).}
 
-\item{decision.cex}{numeric. The size of the decision labels.}
+\item{comp}{Should the performance of competitive algorithms (e.g.; logistic regression, random forests, etc.)
+be shown in the ROC plot (if available, as logical)?}
 
-\item{comp}{logical. Should the performance of competitive algorithms (e.g.; logistic regression, random forests etc.) be shown in the ROC plot (if available?)}
+\item{stats}{Should statistical information be plotted (as logical)?
+If \code{FALSE}, only the tree diagram (without any reference to statistics) will be plotted.}
 
-\item{stats}{logical. Should statistical information be plotted? If \code{FALSE}, then only the tree (without any reference to statistics) will be plotted.}
+\item{show.header}{Show header with basic data properties (in top panel, as logical)?}
 
-\item{show.header, show.tree, show.confusion, show.levels, show.roc, show.icons, show.iconguide}{logical. Logical arguments indicating which specific elements of the plot to show.}
+\item{show.tree}{Show nodes and exits of FFT (in middle panel, as logical)?}
 
-\item{label.tree, label.performance}{string. Optional arguments to define lables for the tree and performance section(s).}
+\item{show.confusion}{Show 2x2 confusion matrix (in bottom panel, as logical)?}
 
-\item{n.per.icon}{Number of cases per icon}
+\item{show.levels}{Show performance levels (in bottom panel, as logical)?}
 
-\item{which.tree}{deprecated argument, only for backwards compatibility, use \code{"tree"} instead.}
+\item{show.roc}{Show ROC curve (in bottom panel, as logical)?}
 
-\item{level.type}{string. How should bottom levels be drawn? Can be \code{"bar"} or \code{"line"}}
+\item{show.icons}{Show exit cases as icon arrays (in middle panel, as logical)?}
 
-\item{decision.names}{deprecated arguments.}
+\item{show.iconguide}{Show icon guide (in middle panel, as logical)?}
 
-\item{...}{Currently ignored.}
+\item{hlines}{Show horizontal panel separation lines (as logical)?
+Default: \code{hlines = TRUE}.}
+
+\item{label.tree}{Label for the FFT (optional, as character string).}
+
+\item{label.performance}{Labels for the performance section (optional, as character string).}
+
+\item{n.per.icon}{Number of cases per icon (as numeric).}
+
+\item{which.tree}{deprecated argument, included for backwards compatibility, use \code{"tree"} instead.}
+
+\item{level.type}{How should bottom levels be drawn (as a string)? Can be \code{"bar"} (the default) or \code{"line"}.}
+
+\item{decision.names}{deprecated argument.}
+
+\item{...}{Graphical parameters (passed either
+to \code{\link{showcues}} when \code{what = 'cues'} or
+to \code{\link{title}} when \code{what = 'roc'}).}
 }
 \value{
-A plot vizualizing an FFT
+A plot visualizing and describing an FFT.
 }
 \description{
-Plots an FFTrees object created by the FFTrees() function.
+\code{plot.FFTrees} visualizes an \code{FFTrees} object created by the \code{\link{FFTrees}} function.
+
+\code{plot.FFTrees} is the main plotting function of the \strong{FFTrees} package and
+called when evaluating the generic \code{\link{plot}} on an \code{FFTrees} object.
+
+\code{plot.FFTrees} visualizes a selected FFT, key data characteristics, and various aspects of classification performance.
+
+As \code{x} may not contain test data, \code{plot.FFTrees} by default plots the performance characteristics
+for training data (i.e., fitting), rather than for test data (i.e., for prediction).
+When test data is available, specifying \code{data = "test"} plots prediction performance.
+
+Whenever the sensitivity weight (\code{sens.w}) is set to its default of \code{sens.w = 0.50},
+a level shows \emph{balanced} accuracy (\code{bacc}). If, however, \code{sens.w} deviates from its default,
+the level shows the tree's \emph{weighted} accuracy value (\code{wacc}) and the current \code{sens.w} value (below the level).
+
+Many aspects of the plot (e.g., its panels) and the FFT's appearance (e.g., labels of its nodes and exits)
+can be customized by setting corresponding arguments.
 }
 \examples{
+# Create FFTs (for heartdisease data):
+heart.fft <- FFTrees(formula = diagnosis ~ .,
+                     data = heartdisease
+                     )
 
-# Create FFTrees of the heart disease data
-heart.fft <- FFTrees(
-  formula = diagnosis ~ .,
-  data = heartdisease
-)
-
-# Visualise the tree
+# Visualize the default FFT (Tree #1):
 plot(heart.fft,
-  main = "Heart Disease Diagnosis",
-  decision.labels = c("Absent", "Present")
-)
+     main = "Heart Disease Diagnosis",
+     decision.labels = c("Absent", "Present")
+     )
 
+# Visualize FFT #2 (with customized labels):
+plot(heart.fft,
+     tree = 2,
+     main = "An FFT for heart disease diagnosis",
+     cue.labels = c("1. thal?", "2. cp?", "3. ca?", "4. exang"),
+     decision.labels = c("ok", "sick"),
+     show.header = FALSE,
+     show.confusion = FALSE,
+     show.levels = FALSE,
+     show.roc = FALSE
+     )
 
-# See the vignette for more details
+# Visualize cue accuracies:
+plot(heart.fft, what = "cues")
+
+# For more details, see
 vignette("FFTrees_plot", package = "FFTrees")
 
 }
+\seealso{
+\code{\link{showcues}} for plotting cue accuracies;
+\code{\link{print.FFTrees}} for printing FFTs;
+\code{\link{summary.FFTrees}} for summarizing FFTs;
+\code{\link{FFTrees}} for creating FFTs from and applying them to data.
+
+Other plot functions: 
+\code{\link{showcues}()}
+}
+\concept{plot functions}

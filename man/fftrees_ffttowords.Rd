@@ -2,20 +2,32 @@
 % Please edit documentation in R/fftrees_ffttowords.R
 \name{fftrees_ffttowords}
 \alias{fftrees_ffttowords}
-\title{Describes an FFT in words}
+\title{Describe a fast-and-frugal tree (FFT) in words}
 \usage{
 fftrees_ffttowords(x = NULL, digits = 2)
 }
 \arguments{
-\item{x}{FFTrees. An FFTrees object created with FFTrees()}
+\item{x}{An \code{FFTrees} object created with \code{\link{FFTrees}}.}
 
-\item{digits}{integer. How many digits to round numeric values}
+\item{digits}{How many digits to round numeric values (as integer)?}
 }
 \value{
-A list of string vectors
+A list of string vectors.
 }
 \description{
-Describes an FFT in words
+\code{fftrees_ffttowords} provides a verbal description
+of an FFT (in an \code{FFTrees} object).
+
+\code{fftrees_ffttowords} is the complement to
+\code{\link{fftrees_wordstofftrees}}, which parses a verbal description
+of an FFT into an \code{FFTrees} object.
+
+The final sentence (or tree node) of the FFT's description
+always predicts positive criterion values (i.e., TRUE instances) first,
+before predicting negative criterion values (i.e., FALSE instances).
+Note that this may require a reversal of cue directions (if the
+original tree description predicted FALSE instances
+before predicting TRUE instances).
 }
 \examples{
 
@@ -26,4 +38,14 @@ heart.fft <- FFTrees(diagnosis ~ .,
 
 inwords(heart.fft)
 
+}
+\seealso{
+\code{\link{fftrees_wordstofftrees}} for converting a verbal description
+of an FFT into an \code{FFTrees} object;
+\code{\link{fftrees_create}} for creating \code{FFTrees} objects;
+\code{\link{fftrees_grow_fan}} for creating FFTs by applying algorithms to data;
+\code{\link{print.FFTrees}} for printing FFTs;
+\code{\link{plot.FFTrees}} for plotting FFTs;
+\code{\link{summary.FFTrees}} for summarizing FFTs;
+\code{\link{FFTrees}} for creating FFTs from and applying them to data.
 }
