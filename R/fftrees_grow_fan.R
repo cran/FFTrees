@@ -16,6 +16,7 @@
 #' \code{\link{FFTrees}} for creating FFTs from and applying them to data.
 #'
 #' @importFrom stats anova predict glm as.formula var
+#' @importFrom dplyr near
 
 fftrees_grow_fan <- function(x,
                              repeat.cues = TRUE) {
@@ -26,7 +27,7 @@ fftrees_grow_fan <- function(x,
     message(paste0("Growing FFTs with ", x$params$algorithm, ":"))
   }
 
-  # Some global variables which could be changed later:
+  # Global variables which can be changed later:
   exit.method <- "fixed"
   correction  <- .25
 
@@ -140,7 +141,7 @@ fftrees_grow_fan <- function(x,
     level_stats_i[level_stat_names] <- NA
 
     # asif.stats shows cumulative classification statistics as if all exemplars were
-    #      classified at the current level (i.e; if the tree stopped here)
+    #            classified at the current level (i.e., if the tree stopped here).
 
     asif.stats <- data.frame(
       "level" = 1:level_n,
@@ -166,7 +167,7 @@ fftrees_grow_fan <- function(x,
       exit_current  <- exits_i[level_current]
       cases_remaining <- is.na(decision_v)
 
-      # Step 1: Determine cue for current level: ----
+      # Step 1: Determine cue for current level: ------
       {
         # ifan x$params$algorithm
         if (x$params$algorithm == "ifan") {
@@ -192,17 +193,17 @@ fftrees_grow_fan <- function(x,
             break
           }
 
-          # Create new dynamic cue range:
+          # Create a new "dynamic" cue range:
           x <- fftrees_cuerank(x,
                                newdata = data_current,
                                data = "dynamic"
           )
 
-          # Calculate cue accuracies with remaining exemplars
+          # Calculate cue accuracies with remaining exemplars:
           cue_best_df_current <- x$cues$stats$dynamic
         }
 
-        # Get next cue based on maximizing goal:
+        # Get next cue based on maximizing goal (goal.chase):
         performance_max <- max(cue_best_df_current[[x$params$goal.chase]], na.rm = TRUE)
         cue_best_i <- which(dplyr::near(cue_best_df_current[[x$params$goal.chase]], performance_max))
 
@@ -230,13 +231,13 @@ fftrees_grow_fan <- function(x,
         level_stats_i$threshold[level_current] <- cue_threshold_new
         level_stats_i$direction[level_current] <- cue_direction_new
         level_stats_i$exit[level_current] <- exit_current
-      }
+      } # Step 1.
 
-      # Step 2: Determine how classifications would look if all remaining exemplars were classified: ----
+      # Step 2: Determine how classifications would look if all remaining exemplars were classified: ------
       {
 
         # Get decisions for current cue:
-        cue.decisions <- apply.break(
+        cue.decisions <- apply_break(
           direction = cue_direction_new,
           threshold.val = cue_threshold_new,
           cue.v = x$data$train[[cues_name_new]],
@@ -257,7 +258,8 @@ fftrees_grow_fan <- function(x,
         # Calculate asif_cm:
         asif_results <- classtable(
           prediction_v = asif.decision_v,
-          criterion_v = criterion_v
+          criterion_v  = criterion_v,
+          sens.w = x$params$sens.w
         )
 
 
@@ -268,10 +270,14 @@ fftrees_grow_fan <- function(x,
         # If ASIF classification is perfect, then stop:
         if (x$params$goal.chase != "cost") {
           if (dplyr::near(asif.stats[[x$params$goal.chase]][level_current], 1)) {
+
             grow.tree <- FALSE
           }
+
         } else {
+
           if (dplyr::near(asif.stats[[x$params$goal.chase]][level_current], 0)) {
+
             grow.tree <- FALSE
           }
         }
@@ -287,9 +293,9 @@ fftrees_grow_fan <- function(x,
             asif.stats$goal.change[level_current] <- goal.change
           }
         }
-      }
+      } # Step 2.
 
-      # Step 3: Classify exemplars in current level: ----
+      # Step 3: Classify exemplars in current level: ------
       {
         if (dplyr::near(exit_current, 1) | dplyr::near(exit_current, .5)) {
           decide.1.index <- cases_remaining & cue.decisions == TRUE
@@ -315,9 +321,9 @@ fftrees_grow_fan <- function(x,
         outcomecost_v[mi_v == TRUE] <- x$params$cost.outcomes$mi
         outcomecost_v[fa_v == TRUE] <- x$params$cost.outcomes$fa
         outcomecost_v[cr_v == TRUE] <- x$params$cost.outcomes$cr
-      }
+      } # Step 3.
 
-      # Step 4: Update results: ----
+      # Step 4: Update results: ------
       {
         cases_remaining <- is.na(decision_v)
 
@@ -343,9 +349,9 @@ fftrees_grow_fan <- function(x,
         level_stats_i$exit[level_current] <- exit_current
 
         level_stats_i[level_current, c("hi", "fa", "mi", "cr", "sens", "spec", "bacc", "acc", "wacc", "cost_decisions", "cost")] <- results_cum[, c("hi", "fa", "mi", "cr", "sens", "spec", "bacc", "acc", "wacc", "cost_decisions", "cost")]
-      }
+      } # Step 4.
 
-      # Step 5: Continue growing tree? ----
+      # Step 5: Continue growing tree? ------
       {
         cases_remaining_n <- sum(cases_remaining)
 
@@ -378,11 +384,12 @@ fftrees_grow_fan <- function(x,
 
         # Set up next level stats
         level_stats_i[level_current + 1, ] <- NA
-      }
+      } # Step 5.
 
     } # STOP while(grow.tree) loop.
 
-    # Step 6: No more growth. Make sure last level is bidirectional: ----
+
+    # Step 6: No more growth. Make sure that last level is bidirectional: ----
     {
       last.level <- max(level_stats_i$level)
       last.cue <- level_stats_i$cue[last.level]
@@ -400,7 +407,7 @@ fftrees_grow_fan <- function(x,
 
         # Step 2) Determine accuracy of negative and positive classification: ----
 
-        current.decisions <- apply.break(
+        current.decisions <- apply_break(
           direction = last_cue_stats$direction,
           threshold.val = last_cue_stats$threshold,
           cue.v = x$data$train[[last.cue]],
@@ -431,7 +438,7 @@ fftrees_grow_fan <- function(x,
 
         level_stats_i[last.level, c("hi", "fa", "mi", "cr", "sens", "spec", "bacc", "acc", "wacc", "cost_decisions")] <- last.classtable[, c("hi", "fa", "mi", "cr", "sens", "spec", "bacc", "acc", "wacc", "cost_decisions")]
       }
-    }
+    } # Step 6.
 
     # Tree is finished! ----
 
@@ -446,8 +453,8 @@ fftrees_grow_fan <- function(x,
   }
 
 
-  # Summarize tree definitions and statistics: ----
-  #   tree.definitions:
+  # Summarize tree definitions and statistics: ------
+  # tree.definitions:
 
   {
 

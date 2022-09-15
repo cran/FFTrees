@@ -12,7 +12,7 @@ set.seed(12)  # reproducible randomness
 rcases <- sort(sample(1:nrow(titanic), 10))
 
 # Sample of data:
-knitr::kable(titanic[rcases, ], caption = "A sample of 10 observations in the `titanic` data.")
+knitr::kable(titanic[rcases, ], caption = "A sample of 10 observations from the `titanic` data.")
 
 ## ----titanic-fft, message = FALSE, results = 'hide'---------------------------
 # Create FFTs for the titanic data:
@@ -27,13 +27,18 @@ plot(titanic.fft, what = 'cues')
 ## ----titanic-plot, fig.width = 7, fig.height = 7, fig.align = 'center', out.width = "75%", fig.cap="**Figure 2**: Plotting the best FFT of an `FFTrees` object."----
 plot(titanic.fft, tree = 1)
 
-## ----titanic-stats, fig.align = 'center', fig.height = 6, fig.width = 9, out.width = "75%", fig.cap="**Figure 3**: A plain FFT plot (without statistics)."----
-# Show only the best training FFT:
-plot(titanic.fft, stats = FALSE)
+## ----titanic-what-tree, fig.align = 'center', fig.height = 7, fig.width = 10, out.width = "75%", fig.cap="**Figure 3**: An FFT diagram with icon arrays on exit nodes."----
+# Plot tree diagram with icon arrays:
+plot(titanic.fft, what = "icontree", 
+     n.per.icon = 50, show.iconguide = TRUE)
 
-## ----titanic-args, fig.align = 'center', fig.height = 7, fig.width = 8, out.width = "75%", fig.cap="**Figure 4**: Plotting selected elements."----
+## ----titanic-what-roc, fig.align = 'center', fig.height = 6, fig.width = 7, out.width = "75%", fig.cap="**Figure 4**: Performance comparison of FFTs in ROC space."----
+# Plot only the performance comparison in ROC space:
+plot(titanic.fft, what = "roc")
+
+## ----titanic-args, fig.align = 'center', fig.height = 7, fig.width = 9, out.width = "75%", fig.cap="**Figure 5**: Plotting selected elements."----
 # Hide some elements of the FFT plot: 
-plot(titanic.fft,
+plot(titanic.fft, 
      show.icons = FALSE,     # hide icons
      show.iconguide = FALSE, # hide icon guide
      show.header = FALSE     # hide header
@@ -54,12 +59,14 @@ titanic.pred.fft <- FFTrees(formula = survived ~.,
                             decision.labels = c("Died", "Survived")
                             )
 
-## ----titanic-train, fig.width = 7, fig.height = 7, fig.align='center', out.width = "75%", fig.cap="**Figure 5**: Plotting the best FFT on _training_ data."----
+## ----titanic-train, fig.width = 6, fig.height = 6, fig.align='center', out.width = "75%", fig.cap="**Figure 6**: Plotting the best FFT on _training_ data."----
+# print(titanic.pred.fft, tree = 1)
 plot(titanic.pred.fft, tree = 1)
 
-## ----titanic-test, fig.width = 7, fig.height = 7, fig.align='center', out.width = "75%", fig.cap="**Figure 6**: Plotting the best FFT on _test_ data."----
+## ----titanic-test, fig.width = 6, fig.height = 6, fig.align='center', out.width = "75%", fig.cap="**Figure 7**: Plotting the best FFT on _test_ data."----
+# print(titanic.pred.fft, data = "test", tree = 1)
 plot(titanic.pred.fft, data = "test", tree = 1)
 
-## ----titanic-viz-2, fig.width = 7, fig.height = 7, fig.align='center', out.width = "75%", fig.cap="**Figure 7**: Plotting Tree\ #2."----
+## ----titanic-viz-2, fig.width = 6, fig.height = 6, fig.align='center', out.width = "75%", fig.cap="**Figure 8**: Plotting Tree\ #2."----
 plot(titanic.pred.fft, data = "test", tree = 2)
 

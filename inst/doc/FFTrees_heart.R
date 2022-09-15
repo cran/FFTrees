@@ -1,5 +1,5 @@
 ## ----setup, echo = FALSE------------------------------------------------------
-knitr::opts_chunk$set(echo = TRUE, fig.width = 7.5, fig.height = 7.5, dpi = 100, out.width = "600px", fig.align='center', message = FALSE)
+knitr::opts_chunk$set(echo = TRUE, fig.width = 7, fig.height = 7, dpi = 100, out.width = "600px", fig.align = 'center', message = FALSE)
 
 ## ----load-pkg-1, echo = FALSE, message = FALSE, results = 'hide'--------------
 library(FFTrees)
@@ -33,20 +33,18 @@ heart.fft
 knitr::include_graphics("../inst/confusiontable.jpg")
 
 ## ----fft-plot, fig.width = 6.5, fig.height = 6--------------------------------
-# Plot the best FFT when applied to test data:
-plot(heart.fft,      # an FFTrees object
-     data = "test")  # data to plot ("train" or "test")?
+# Plot predictions of the best FFT when applied to test data:
+plot(heart.fft,      # An FFTrees object
+     data = "test")  # data to use (i.e., either "train" or "test")?
 
 ## ----fft-no-stats, fig.width = 8, fig.height = 5, fig.align='center'----------
 # Plot only the tree, without accuracy statistics:
-plot(heart.fft, 
-     stats = FALSE)
+plot(heart.fft, what = "tree")
+# plot(heart.fft, stats = FALSE)  #  The 'stats' argument has been deprecated.
 
-## ----fft-cues-----------------------------------------------------------------
-# Plot cue accuracies for training data (in ROC space):
-plot(heart.fft,
-     data = "train", 
-     what = "cues")
+## ----fft-cues, fig.width = 6, fig.height = 6----------------------------------
+# Plot cue accuracies (for training data) in ROC space:
+plot(heart.fft, what = "cues")
 
 ## ----fft-names----------------------------------------------------------------
 # Show the names of all of the outputs in heart.fft:
@@ -55,7 +53,7 @@ names(heart.fft)
 ## ----fft-predict, eval = FALSE------------------------------------------------
 #  # Predict classifications for a new dataset:
 #  predict(heart.fft,
-#          data = heartdisease)
+#          newdata = heartdisease)
 
 ## ----fft-my-tree--------------------------------------------------------------
 # Create an FFT manually (from description):

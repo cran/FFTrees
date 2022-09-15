@@ -1,6 +1,6 @@
 ## ----setup, echo = FALSE, message = FALSE, results = 'hide'-------------------
 library(FFTrees)
-knitr::opts_chunk$set(echo = TRUE, fig.width = 7, fig.height = 7, dpi = 100, out.width = "600px", fig.align='center', message = FALSE)
+knitr::opts_chunk$set(echo = TRUE, fig.width = 6, fig.height = 6, dpi = 100, out.width = "600px", fig.align = 'center', message = FALSE)
 
 ## ----image-mushrooms, fig.align = "center", out.width="225px", echo = FALSE----
 knitr::include_graphics("../inst/mushrooms.jpg")
@@ -22,7 +22,7 @@ mushrooms.fft <- FFTrees(formula = poisonous ~.,
                          decision.labels = c("Safe", "Poison"))   
 
 ## ----fft-mushrooms-1-print----------------------------------------------------
-# Print information about the best performing tree:
+# Print information about the best tree during training:
 mushrooms.fft
 
 ## ----fft-mushrooms-1-plot-cues------------------------------------------------
@@ -31,8 +31,7 @@ plot(mushrooms.fft, what = "cues")
 
 ## ----fft-mushrooms-1-plot-----------------------------------------------------
 # Plot the best FFT for the mushrooms test data: 
-plot(mushrooms.fft, 
-     data = "test")
+plot(mushrooms.fft, data = "test")
 
 ## ----fft-mushrooms-2-seed, include = FALSE------------------------------------
 set.seed(200)
@@ -47,10 +46,9 @@ mushrooms.ring.fft <- FFTrees(formula = poisonous ~ ringtype + ringnum,
 
 ## ----fft-mushrooms-2-plot-----------------------------------------------------
 # Plotting the best training FFT for test data: 
-plot(mushrooms.ring.fft,
-     data = "test")
+plot(mushrooms.ring.fft, data = "test")
 
-## ----iris-image, fig.align = "center", out.width="225px", echo = FALSE--------
+## ----iris-image, fig.align = "center", out.width = "225px", echo = FALSE------
 knitr::include_graphics("../inst/virginica.jpg")
 
 ## ----iris-fft, message = FALSE, results = 'hide'------------------------------
@@ -68,7 +66,7 @@ iris.fft <- FFTrees(formula = virginica ~.,
 plot(iris.fft, what = "cues")
 
 ## ----iris-plot-fft------------------------------------------------------------
-# Plot best FFT: 
+# Plot best FFT (in training): 
 plot(iris.fft)
 
 ## ----iris-plot-fft-2----------------------------------------------------------

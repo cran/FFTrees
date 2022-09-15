@@ -12,13 +12,18 @@
 #' To print the best training or best test tree with respect to the \code{goal} specified during FFT construction,
 #' use \code{"best.train"} or \code{"best.test"}, respectively.
 #'
-#' @param data The data in \code{x} to be printed (as a string);
-#' must be either \code{'train'} (for fitting performance) or \code{'test'} (for prediction performance).
+#' @param data The type of data in \code{x} to be printed (as a string) or a test dataset (as a data frame).
+#' \itemize{
+#'   \item{A valid data string must be either \code{'train'} (for fitting performance) or \code{'test'} (for prediction performance).}
+#'   \item{For a valid data frame, the specified tree is evaluated and printed for this data (as 'test' data),
+#'   but the global \code{FFTrees} object \code{x} remains unchanged unless it is re-assigned.}
+#'  }
 #' By default, \code{data = 'train'} (as \code{x} may not contain test data).
 #'
 #' @param ... additional arguments passed to \code{print}.
 #'
-#' @return Prints summary information about an FFT to the console.
+#' @return An invisible \code{FFTrees} object \code{x}
+#' and summary information on an FFT printed to the console (as side effect).
 #'
 #' @seealso
 #' \code{\link{plot.FFTrees}} for plotting FFTs;
@@ -50,16 +55,36 @@ print.FFTrees <- function(x = NULL,
 
   # data: ----
 
-  data <- tolower(data)  # for robustness
+  # Note: data can be either a string "train"/"test"
+  #       OR an entire data frame (of new test data):
 
-  # testthat::expect_true(data %in% c("train", "test"))
-  if (!data %in% c("test", "train")){
-    stop("The data to print must be 'test' or 'train'.")
+  if (inherits(data, "character")) {
+
+    data <- tolower(data)  # increase robustness
+
+    # testthat::expect_true(data %in% c("train", "test"))
+    if (!data %in% c("test", "train")){
+      stop("The data to print must be 'test' or 'train'.")
+    }
   }
+
+
+  if (inherits(data, "data.frame")) {
+
+    message("Applying FFTrees object x to new test data...")
+
+    x <- fftrees_apply(x, mydata = "test", newdata = data)
+
+    message("Success, but re-assign output to x or use fftrees_apply() to globally change x")
+
+    data <- "test" # in rest of this function
+
+  }
+
 
   if (data == "test" & is.null(x$trees$stats$test)){ # use "train" data:
 
-    warning("You asked to print 'test' data, but there were no test data. I'll print the best training tree instead...")
+    warning("You asked to print 'test' data, but there were no test data. Printed 'train' data instead...")
 
     data <- "train"
   }
@@ -72,7 +97,7 @@ print.FFTrees <- function(x = NULL,
   }
 
   if (tree == "best.test" & is.null(x$tree$stats$test)) {
-    warning("You asked to print the best test tree, but there were no test data. I'll print the best training tree instead...")
+    warning("You asked to print the 'best.test' tree, but there were no test data. Printed the best tree for 'train' data instead...")
 
     tree <- "best.train"
   }
@@ -83,7 +108,7 @@ print.FFTrees <- function(x = NULL,
   if (tree == "best.train") {
 
     if (data == "test"){
-      warning("You asked to print the best training tree, but data was set to 'test'. I'll use 'train' data instead...")
+      warning("You asked to print the 'best.train' tree, but data was set to 'test'. Printed the best tree for 'train' data instead...")
       data <- "train"
       main <- "Data (Training)"
     }
@@ -176,9 +201,13 @@ print.FFTrees <- function(x = NULL,
   cat(crayon::blue("FFT #", tree, ": Definition", sep = ""), sep = "")
   cat("\n")
 
-  for (i in 1:length(x$trees$inwords[[tree]])) { # for each sentence:
+  # FFT in words:
 
-    cat(paste0("[", i, "] ", x$trees$inwords[[tree]][i], "\n"))
+  tree_in_words <- inwords(x, data = data, tree = tree)
+
+  for (i in 1:length(tree_in_words)) { # for each sentence:
+
+    cat(paste0("[", i, "] ", tree_in_words[i], "\n"))
 
   }
 
@@ -216,7 +245,6 @@ print.FFTrees <- function(x = NULL,
     cost <- x$trees$stats$test$cost[tree]
 
   }
-
 
 
   # Accuracy information: ------
@@ -271,7 +299,10 @@ print.FFTrees <- function(x = NULL,
   cat("\n\n")
 
 
-  # Output: none. ------
+  # Output: ------
+
+  # Output x may differ from input x when applying new 'test' data (as df):
+  return(invisible(x))
 
 } # print.FFTrees().
 

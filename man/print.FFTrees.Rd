@@ -14,14 +14,19 @@ Default: \code{tree = 1}.
 To print the best training or best test tree with respect to the \code{goal} specified during FFT construction,
 use \code{"best.train"} or \code{"best.test"}, respectively.}
 
-\item{data}{The data in \code{x} to be printed (as a string);
-must be either \code{'train'} (for fitting performance) or \code{'test'} (for prediction performance).
+\item{data}{The type of data in \code{x} to be printed (as a string) or a test dataset (as a data frame).
+\itemize{
+  \item{A valid data string must be either \code{'train'} (for fitting performance) or \code{'test'} (for prediction performance).}
+  \item{For a valid data frame, the specified tree is evaluated and printed for this data (as 'test' data),
+  but the global \code{FFTrees} object \code{x} remains unchanged unless it is re-assigned.}
+ }
 By default, \code{data = 'train'} (as \code{x} may not contain test data).}
 
 \item{...}{additional arguments passed to \code{print}.}
 }
 \value{
-Prints summary information about an FFT to the console.
+An invisible \code{FFTrees} object \code{x}
+and summary information on an FFT printed to the console (as side effect).
 }
 \description{
 \code{print.FFTrees} prints basic information on FFTs for an \code{FFTrees} object \code{x}.

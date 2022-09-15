@@ -2,7 +2,7 @@
 <!-- README.md is generated from README.Rmd. Please only edit the .Rmd file! -->
 <!-- Title, version and logo: -->
 
-# FFTrees 1.7.0 <img src = "./inst/FFTrees_Logo.jpg" align = "right" alt = "FFTrees" width = "225" />
+# FFTrees 1.7.5 <img src = "./inst/FFTrees_Logo.jpg" align = "right" alt = "FFTrees" width = "225" />
 
 <!-- Status badges: -->
 
@@ -74,44 +74,34 @@ first rows and columns of both subsets of the `heartdisease` data:
 
 <!-- -->
 
-    heart.train
-    #> # A tibble: 150 × 14
-    #>    diagnosis   age   sex cp    trestbps  chol   fbs restecg     thalach exang
-    #>    <lgl>     <dbl> <dbl> <chr>    <dbl> <dbl> <dbl> <chr>         <dbl> <dbl>
-    #>  1 FALSE        44     0 np         108   141     0 normal          175     0
-    #>  2 FALSE        51     0 np         140   308     0 hypertrophy     142     0
-    #>  3 FALSE        52     1 np         138   223     0 normal          169     0
-    #>  4 TRUE         48     1 aa         110   229     0 normal          168     0
-    #>  5 FALSE        59     1 aa         140   221     0 normal          164     1
-    #>  6 FALSE        58     1 np         105   240     0 hypertrophy     154     1
-    #>  7 FALSE        41     0 aa         126   306     0 normal          163     0
-    #>  8 TRUE         39     1 a          118   219     0 normal          140     0
-    #>  9 TRUE         77     1 a          125   304     0 hypertrophy     162     1
-    #> 10 FALSE        41     0 aa         105   198     0 normal          168     0
-    #> # … with 140 more rows, and 4 more variables: oldpeak <dbl>, slope <chr>,
-    #> #   ca <dbl>, thal <chr>
+    head(heart.train)
+    #> # A tibble: 6 × 14
+    #>   diagnosis   age   sex cp    trestbps  chol   fbs restecg thalach exang oldpeak
+    #>   <lgl>     <dbl> <dbl> <chr>    <dbl> <dbl> <dbl> <chr>     <dbl> <dbl>   <dbl>
+    #> 1 FALSE        44     0 np         108   141     0 normal      175     0     0.6
+    #> 2 FALSE        51     0 np         140   308     0 hypert…     142     0     1.5
+    #> 3 FALSE        52     1 np         138   223     0 normal      169     0     0  
+    #> 4 TRUE         48     1 aa         110   229     0 normal      168     0     1  
+    #> 5 FALSE        59     1 aa         140   221     0 normal      164     1     0  
+    #> 6 FALSE        58     1 np         105   240     0 hypert…     154     1     0.6
+    #> # … with 3 more variables: slope <chr>, ca <dbl>, thal <chr>
 
 -   `heart.test` (the testing / prediction dataset) contains data from a
     new set of 153 patients:
 
 <!-- -->
 
-    heart.test
-    #> # A tibble: 153 × 14
-    #>    diagnosis   age   sex cp    trestbps  chol   fbs restecg     thalach exang
-    #>    <lgl>     <dbl> <dbl> <chr>    <dbl> <dbl> <dbl> <chr>         <dbl> <dbl>
-    #>  1 FALSE        51     0 np         120   295     0 hypertrophy     157     0
-    #>  2 TRUE         45     1 ta         110   264     0 normal          132     0
-    #>  3 TRUE         53     1 a          123   282     0 normal           95     1
-    #>  4 TRUE         45     1 a          142   309     0 hypertrophy     147     1
-    #>  5 FALSE        66     1 a          120   302     0 hypertrophy     151     0
-    #>  6 TRUE         48     1 a          130   256     1 hypertrophy     150     1
-    #>  7 TRUE         55     1 a          140   217     0 normal          111     1
-    #>  8 FALSE        56     1 aa         130   221     0 hypertrophy     163     0
-    #>  9 TRUE         42     1 a          136   315     0 normal          125     1
-    #> 10 FALSE        45     1 a          115   260     0 hypertrophy     185     0
-    #> # … with 143 more rows, and 4 more variables: oldpeak <dbl>, slope <chr>,
-    #> #   ca <dbl>, thal <chr>
+    head(heart.test)
+    #> # A tibble: 6 × 14
+    #>   diagnosis   age   sex cp    trestbps  chol   fbs restecg thalach exang oldpeak
+    #>   <lgl>     <dbl> <dbl> <chr>    <dbl> <dbl> <dbl> <chr>     <dbl> <dbl>   <dbl>
+    #> 1 FALSE        51     0 np         120   295     0 hypert…     157     0     0.6
+    #> 2 TRUE         45     1 ta         110   264     0 normal      132     0     1.2
+    #> 3 TRUE         53     1 a          123   282     0 normal       95     1     2  
+    #> 4 TRUE         45     1 a          142   309     0 hypert…     147     1     0  
+    #> 5 FALSE        66     1 a          120   302     0 hypert…     151     0     0.4
+    #> 6 TRUE         48     1 a          130   256     1 hypert…     150     1     0  
+    #> # … with 3 more variables: slope <chr>, ca <dbl>, thal <chr>
 
 Most of the variables in our data are potential predictors. The
 criterion variable is `diagnosis` — a logical column indicating the true
@@ -182,9 +172,8 @@ evaluate their predictive performance on the `heart.test` data:
          data = "test",
          main = "Heart Disease")
 
-![A fast-and-frugal tree (FFT) predicting heart diseases for `test` data
-and its performance
-characteristics.](man/figures/README-example-heart-plot-1.png)
+![An FFT predicting heart disease for `test`
+data.](man/figures/README-example-heart-plot-1.png)
 
 **Figure 1**: A fast-and-frugal tree (FFT) predicting heart disease for
 `test` data and its performance characteristics.
@@ -196,7 +185,7 @@ characteristics.](man/figures/README-example-heart-plot-1.png)
 
     # Compare predictive performance across algorithms: 
     heart.fft$competition$test
-    #> # A tibble: 5 × 16
+    #> # A tibble: 5 × 17
     #>   algorithm     n    hi    fa    mi    cr  sens  spec    far   ppv   npv   acc
     #>   <chr>     <int> <int> <int> <int> <int> <dbl> <dbl>  <dbl> <dbl> <dbl> <dbl>
     #> 1 fftrees     153    64    19     9    61 0.877 0.762 0.238  0.771 0.871 0.817
@@ -204,8 +193,8 @@ characteristics.](man/figures/README-example-heart-plot-1.png)
     #> 3 cart        153    50    19    23    61 0.685 0.762 0.238  0.725 0.726 0.725
     #> 4 rf          153    59     8    14    72 0.808 0.9   0.1    0.881 0.837 0.856
     #> 5 svm         153    55     7    18    73 0.753 0.912 0.0875 0.887 0.802 0.837
-    #> # … with 4 more variables: bacc <dbl>, cost <dbl>, cost_decisions <dbl>,
-    #> #   cost_cues <dbl>
+    #> # … with 5 more variables: bacc <dbl>, wacc <dbl>, cost <dbl>,
+    #> #   cost_decisions <dbl>, cost_cues <dbl>
 
 <!-- FFTs by verbal description: -->
 
@@ -242,7 +231,7 @@ These conditions can directly be supplied to the `my.tree` argument of
          data = "test",
          main = "My custom FFT")
 
-![An FFT predicting heart disease created from a verbal
+![An FFT created from a verbal
 description.](man/figures/README-example-heart-verbal-1.png)
 
 **Figure 2**: An FFT predicting heart disease created from a verbal
@@ -276,7 +265,7 @@ decision trees* (available in
 
 We encourage you to read the article to learn more about the history of
 FFTs and how the **FFTrees** package creates, visualizes, and evaluates
-them. If you use **FFTrees** in your own work, please cite us and share
+them. When using **FFTrees** in your own work, please cite us and share
 your experiences (e.g., [on
 GitHub](https://github.com/ndphillips/FFTrees/issues)) so we can
 continue developing the package.
@@ -323,6 +312,6 @@ for the full list):
 
 ------------------------------------------------------------------------
 
-\[File `README.Rmd` last updated on 2022-08-31.\]
+\[File `README.Rmd` last updated on 2022-09-15.\]
 
 <!-- eof. -->
