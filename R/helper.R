@@ -11,14 +11,16 @@
 #
 # Currently, it is only verified that both DFs have some cases and
 # contain the SAME names (but the content or order of variables is not checked or altered).
-# Future versions may want to verify that 'test' data is valid, given current 'train' data
-# (e.g., "test" contains all required variables of "train" to create the current FFTs).
+# Future versions may want to verify that 'test' data is valid, given current FFTs:
+# data fits to FFTs in FFTrees object (i.e., object$trees$definitions) or tree.definitions
+# (e.g., data contains all required variables to create the current FFTs).
 #
 # Output: Boolean.
 
 valid_train_test_data <- function(train_data, test_data){
 
-  # Initialize:
+  # Initialize: ----
+
   valid <- FALSE
 
   train_names <- names(train_data)
@@ -27,7 +29,9 @@ valid_train_test_data <- function(train_data, test_data){
   train_names_not_in_test <- setdiff(train_names, test_names)
   test_names_not_in_train <- setdiff(test_names,  train_names)
 
-  # Conditions:
+
+  # Conditions: ----
+
   if (nrow(train_data) < 1){
 
     msg <- paste("The 'train' data contains no cases (rows).")
@@ -58,7 +62,9 @@ valid_train_test_data <- function(train_data, test_data){
 
   }
 
-  # Output:
+
+  # Output: ----
+
   return(valid)
 
 } # valid_train_test_data().
@@ -78,6 +84,52 @@ valid_train_test_data <- function(train_data, test_data){
 # valid_train_test_data(df1, df2)
 # valid_train_test_data(df1, df2[ , 3:1])
 
+
+
+# verify_all_cues_in_data: ------
+
+# Check: Are all current cues (as vector) in current data (as df)?
+
+verify_all_cues_in_data <- function(cues, data){
+
+  # Verify inputs: ----
+
+  testthat::expect_true(length(cues) > 0)
+  testthat::expect_true(is.character(cues), info = "Provided 'cues' are not names (of type 'character')")
+  testthat::expect_true(is.data.frame(data), info = "Provided 'data' are not a data.frame")
+
+  # Initialize: ----
+
+  valid <- FALSE
+  data_names <- names(data)
+
+
+  # Main: ----
+
+  cues_not_in_data <- setdiff(cues, data_names)
+
+  if (length(cues_not_in_data) > 0) {
+
+    msg <- paste("Some cues do not appear in 'data':",
+                 paste(cues_not_in_data, collapse = ", "))
+    warning(msg)
+
+  } else { # all tests passed:
+
+    valid <- TRUE
+
+  }
+
+  # Output: ----
+
+  return(valid)
+
+} # verify_all_cues_in_data().
+
+# Check:
+# verify_all_cues_in_data(NA, titanic)
+# verify_all_cues_in_data(c("age", "chol", "ca", "fbs", "slope"), heart.train)
+# verify_all_cues_in_data(c("fbs", "AGE", " chol ", "XY", "fbs"), heart.train)
 
 
 # select_best_tree: ------
@@ -100,7 +152,7 @@ valid_train_test_data <- function(train_data, test_data){
 #'
 #' @param x An \code{FFTrees} object.
 #'
-#' @param data character. Must be either "train" or "test".
+#' @param data The type of data to consider (as character: either 'train' or 'test').
 #'
 #' @param goal character. A goal to maximize or minimize when selecting a tree from an existing \code{x}
 #' (for which values exist in \code{x$trees$stats}).
@@ -146,7 +198,7 @@ select_best_tree <- function(x, data, goal){
 
   # Goals to minimize (less is better):
   min_goals <- c("mi", "fa",
-                 "cost", "cost_decisions", "cost_cues",
+                 "cost", "cost_dec", "cost_cue",
                  "mcu")
 
   goal_valid <- c(max_goals, min_goals)
@@ -170,17 +222,29 @@ select_best_tree <- function(x, data, goal){
     cur_ranks <- rank(+cur_goal_vals, ties.method = "first")  # low rank indicate lower/better values
   }
 
-  tree <- cur_stats$tree[cur_ranks == min(cur_ranks)]  # tree with minimum rank
+  tree <- cur_stats$tree[cur_ranks == min(cur_ranks)]  # get tree with minimum rank
 
 
   # Output: -----
 
-  testthat::expect_true(is.integer(tree))  # verify output
+  # print(paste0("Select best tree = ", tree))  # 4debugging
 
-  return(tree) # as number
+  tree <- as.integer(tree)  # aim to convert to integer
+  testthat::expect_true(is.integer(tree))  # verify integer
+
+  return(tree) # as integer
 
 } # select_best_tree().
 
+
+
+# add_quotes: ------
+
+add_quotes <- function(x) {
+
+  toString(sQuote(x))
+
+} # add_quotes().
 
 
 # apply_break: ------
@@ -240,11 +304,14 @@ apply_break <- function(direction,
 
 # cost_cues_append: ------
 
-# Create cost.cues:
+# Goal: Get cost.cues for ALL cues in data.
+# ToDo: Distinguish function input from output.
 
 cost_cues_append <- function(formula,
                              data,
                              cost.cues = NULL) {
+
+  # Prepare: ------
 
   criterion_name <- paste(formula)[2]
 
@@ -257,25 +324,35 @@ cost_cues_append <- function(formula,
   cue_name_v <- names(cue_df)
 
 
-  if (is.null(cost.cues) == FALSE) {
+  # Main: ------
+
+  if (is.null(cost.cues)) { # Case 1: No cost.cues provided: ----
+
+    cost.cues <- lapply(1:ncol(cue_df), FUN = function(x) {
+      0
+    })
+    names(cost.cues) <- names(cue_df)
+
+
+  } else { # if (is.null(cost.cues) == FALSE) { # Case 2: cost.cues provided: ----
 
     # Make sure all named cues in cost.cues are in data:
     {
-      cue.not.in.data <- sapply(names(cost.cues), FUN = function(x) {
+      cue_not_in_data <- sapply(names(cost.cues), FUN = function(x) {
         x %in% cue_name_v == FALSE
       })
 
-      if (any(cue.not.in.data)) {
+      if (any(cue_not_in_data)) {
 
-        missing.cues <- paste(cost.cues[cue.not.in.data, 1], collapse = ",")
+        missing_cues <- paste(cost.cues[cue_not_in_data, 1], collapse = ",")
 
-        warning(paste0("The cue(s) {", missing.cues, "} specified in cost.cues are not present in the data."))
+        warning(paste0("The cue(s) {", missing_cues, "} specified in cost.cues are not present in the data."))
       }
     }
 
     # Add any missing cue costs as 0:
     {
-      cost.cues.o <- cost.cues
+      cost_cues_org <- cost.cues
 
       cost.cues <- lapply(1:ncol(cue_df), FUN = function(x) {
         0
@@ -283,25 +360,23 @@ cost_cues_append <- function(formula,
       names(cost.cues) <- names(cue_df)
 
       for (i in 1:length(cost.cues)) {
+
         cue_name_i <- names(cost.cues)[i]
 
-        if (names(cost.cues)[i] %in% names(cost.cues.o)) {
-          cost.cues[[i]] <- cost.cues.o[[cue_name_i]]
+        if (names(cost.cues)[i] %in% names(cost_cues_org)) {
+          cost.cues[[i]] <- cost_cues_org[[cue_name_i]]
         }
       }
     }
-  }
+  } # if (is.null(cost.cues) == FALSE).
 
-  if (is.null(cost.cues)) {
-    cost.cues <- lapply(1:ncol(cue_df), FUN = function(x) {
-      0
-    })
-    names(cost.cues) <- names(cue_df)
-  }
+
+  # Output: ------
 
   return(cost.cues)
 
 } # cost_cues_append().
+
 
 
 
@@ -872,7 +947,7 @@ fact_clean <- function(data.train,
 #' allows computing cost information for the counts of corresponding classification decisions.
 #'
 #' @param data A data frame with (integer) values named \code{"hi"}, \code{"fa"}, \code{"mi"}, and \code{"cr"}.
-#' @param sens.w numeric. Sensitivity weight (for computing weighted accuracy, \code{wacc}).
+#' @param sens.w numeric. Sensitivity weight (for computing weighted accuracy, \code{wacc}). Default: \code{sens.w = .50}.
 #' @param cost.each numeric. An optional fixed cost added to all outputs (e.g.; the cost of the cue).
 #' @param cost.outcomes list. A list of length 4 named \code{"hi"}, \code{"fa"}, \code{"mi"}, \code{"cr"}, and
 #' specifying the costs of a hit, false alarm, miss, and correct rejection, respectively.
@@ -925,18 +1000,18 @@ add_stats <- function(data,
 
 
   # Outcome cost:
-  data$cost_decisions <- with(data, -1 * ((hi * cost.outcomes$hi) + (fa * cost.outcomes$fa)
-                                          + (mi * cost.outcomes$mi) + (cr * cost.outcomes$cr))) / data$n
+  data$cost_dec <- with(data, -1 * ((hi * cost.outcomes$hi) + (fa * cost.outcomes$fa)
+                                    + (mi * cost.outcomes$mi) + (cr * cost.outcomes$cr))) / data$n
 
   # Total cost:
-  data$cost <- data$cost_decisions - cost.each
+  data$cost <- data$cost_dec - cost.each
 
 
   # Output: ----
 
   # Drop inputs and order columns (of df):
   data <- data[, c("sens", "spec",  "far",  "ppv", "npv",
-                   "acc", "bacc", "wacc",   "cost_decisions", "cost")]
+                   "acc", "bacc", "wacc",   "cost_dec", "cost")]
 
   return(data)
 
@@ -1080,7 +1155,7 @@ classtable <- function(prediction_v = NULL,
       #                             predictor = as.numeric(prediction_v))$auc)
 
       # Cost per case:
-      cost_decisions <- (as.numeric(c(hi, fa, mi, cr) %*% c(cost.outcomes$hi, cost.outcomes$fa, cost.outcomes$mi, cost.outcomes$cr))) / N
+      cost_dec <- (as.numeric(c(hi, fa, mi, cr) %*% c(cost.outcomes$hi, cost.outcomes$fa, cost.outcomes$mi, cost.outcomes$cr))) / N
       cost <- (as.numeric(c(hi, fa, mi, cr) %*% c(cost.outcomes$hi, cost.outcomes$fa, cost.outcomes$mi, cost.outcomes$cr)) + sum(cost.v)) / N
 
 
@@ -1122,7 +1197,7 @@ classtable <- function(prediction_v = NULL,
       #                             predictor = as.numeric(prediction_v))$auc)
 
       # Cost per case:
-      cost_decisions <- (as.numeric(c(hi, fa, mi, cr) %*% c(cost.outcomes$hi, cost.outcomes$fa, cost.outcomes$mi, cost.outcomes$cr))) / N
+      cost_dec <- (as.numeric(c(hi, fa, mi, cr) %*% c(cost.outcomes$hi, cost.outcomes$fa, cost.outcomes$mi, cost.outcomes$cr))) / N
       cost <- (as.numeric(c(hi, fa, mi, cr) %*% c(cost.outcomes$hi, cost.outcomes$fa, cost.outcomes$mi, cost.outcomes$cr)) + sum(cost.v)) / N
 
     } # else if ((var(prediction_v) > 0) & (var(criterion_v) > 0)).
@@ -1152,7 +1227,7 @@ classtable <- function(prediction_v = NULL,
     dprime <- NA
     # auc <- NA
 
-    cost_decisions <- NA
+    cost_dec <- NA
     cost <- NA
 
   }
@@ -1184,7 +1259,7 @@ classtable <- function(prediction_v = NULL,
     dprime = dprime,
     # auc = auc,
 
-    cost_decisions = cost_decisions,
+    cost_dec = cost_dec,
     cost = cost
 
   )
@@ -1258,15 +1333,78 @@ exit_word <- function(data){
 
 
 
-# add_quotes: ------
+# verify_tree: ------
 
-add_quotes <- function(x) {
+# Verify tree argument [to be used in print(x) and plot(x)].
+# Returns a tree number (as numeric) or "best.train"/"best.test" (as character).
 
-  toString(sQuote(x))
+verify_tree <- function(x, data, tree){
 
-} # add_quotes().
+  # Verify inputs: ----
+
+  if (!inherits(x, "FFTrees")) {
+    stop("You did not include a valid 'FFTrees' object or specify the tree directly with 'my.tree' or 'tree.definitions'.\nCreate a valid FFTrees object with FFTrees() or by manually specifying an FFT.")
+  }
+
+  # testthat::expect_true(data %in% c("train", "test"))
+  if (!data %in% c("test", "train")){
+    stop("The data must be 'test' or 'train'.")
+  }
+
+  if (inherits(tree, "character")) {
+    tree <- tolower(tree)  # 4robustness
+  }
+
+  if (tree == "best.test" & is.null(x$tree$stats$test)) {
+    warning("You asked for the 'best.test' tree, but there are no 'test' data. Used the best tree for 'train' data instead...")
+
+    tree <- "best.train"
+  }
+
+  if (is.numeric(tree) & (tree %in% 1:x$trees$n) == FALSE) {
+    stop(paste0("You asked for a tree that does not exist. This object has ", x$trees$n, " trees."))
+  }
+
+  if (inherits(data, "character")) {
+
+    if (data == "test" & is.null(x$trees$stats$test)) {
+      stop("You asked for 'test' data, but there are no 'test' data. Consider using data = 'train' instead...")
+    }
+
+    if (tree == "best"){ # handle abbreviation:
+
+      if (data == "train") {
+
+        if (!x$params$quiet) { # user feedback:
+          msg <- paste0("Assuming you want the 'best.train' tree for 'train' data...\n")
+          cat(u_f_hig(msg))
+        }
+
+        tree <- "best.train"
+
+      } else if (data == "test") {
+
+        if (!x$params$quiet) { # user feedback:
+          msg <- paste0("Assuming you want the 'best.test' tree for 'test' data...\n")
+          cat(u_f_hig(msg))
+        }
+
+        tree <- "best.test"
+
+      } else {
+
+        stop("You asked for a 'best' tree, but have not specified 'train' or 'test' data...")
+      }
+    }
+
+  } # if (inherits(data, "character")).
 
 
+  # Output: ----
+
+  return(tree) # (character or numeric)
+
+} # verify_tree().
 
 
 

@@ -1,8 +1,22 @@
-## ----setup, echo = FALSE, message = FALSE, results = 'hide'-------------------
-library(FFTrees)
-knitr::opts_chunk$set(echo = TRUE, fig.width = 6, fig.height = 6, dpi = 100, out.width = "600px", fig.align = 'center', message = FALSE)
+## ----setup, echo = FALSE------------------------------------------------------
+knitr::opts_chunk$set(collapse = FALSE, 
+                      comment = "#>", 
+                      prompt = FALSE,
+                      tidy = FALSE,
+                      echo = TRUE, 
+                      message = FALSE,
+                      warning = FALSE,
+                      # Default figure options: 
+                      dpi = 100, 
+                      fig.align = 'center',
+                      fig.height = 6.0,
+                      fig.width  = 6.5, 
+                      out.width = "600px")
 
-## ----image-mushrooms, fig.align = "center", out.width="225px", echo = FALSE----
+## ----load-pkg-0, echo = FALSE, message = FALSE, results = 'hide'--------------
+library(FFTrees)
+
+## ----image-mushrooms, fig.align = "center", out.width = "225px", echo = FALSE----
 knitr::include_graphics("../inst/mushrooms.jpg")
 
 ## ----data-mushrooms, echo = FALSE---------------------------------------------
@@ -25,7 +39,7 @@ mushrooms.fft <- FFTrees(formula = poisonous ~.,
 # Print information about the best tree during training:
 mushrooms.fft
 
-## ----fft-mushrooms-1-plot-cues------------------------------------------------
+## ----fft-mushrooms-1-plot-cues, out.width = "450px"---------------------------
 # Plot the cue accuracies of an FFTrees object:
 plot(mushrooms.fft, what = "cues")
 
@@ -61,7 +75,7 @@ iris.fft <- FFTrees(formula = virginica ~.,
 ## ----iris-fft-print, eval = FALSE, results = 'hide'---------------------------
 #  iris.fft
 
-## ----iris-plot-cues-----------------------------------------------------------
+## ----iris-plot-cues, out.width = "450px"--------------------------------------
 # Plot cue values: 
 plot(iris.fft, what = "cues")
 

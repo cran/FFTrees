@@ -1,6 +1,22 @@
-## ----setup, echo = FALSE, message = FALSE, results = 'hide'-------------------
+## ----setup, echo = FALSE------------------------------------------------------
+knitr::opts_chunk$set(collapse = FALSE, 
+                      comment = "#>", 
+                      prompt = FALSE,
+                      tidy = FALSE,
+                      echo = TRUE, 
+                      message = FALSE,
+                      warning = FALSE,
+                      # Default figure options:
+                      dpi = 100, 
+                      fig.align = 'center',
+                      fig.height = 6.0,
+                      fig.width  = 6.5, 
+                      out.width = "600px")
+
+## ----pkgs, echo = FALSE, message = FALSE, results = 'hide'--------------------
 library(FFTrees)
 
+## ----urls, echo = FALSE, message = FALSE, results = 'hide'--------------------
 # URLs:
 url_pkg_CRAN   <- "https://CRAN.R-project.org/package=FFTrees"
 url_pkg_GitHub <- "https://github.com/ndphillips/FFTrees"
@@ -21,7 +37,7 @@ heart.fft <- FFTrees(formula = diagnosis ~.,
                      main = "Heart Disease",
                      decision.labels = c("Healthy", "Diseased"))
 
-## ----fig-1, fig.width = 7, fig.height = 6.5, fig.align = 'center', fig.cap = "A fast-and-frugal tree (FFT) to predict heart disease status."----
+## ----fig-1, fig.width = 6.5, fig.height = 6.0, out.width = "600px", fig.align = 'center', fig.cap = "A fast-and-frugal tree (FFT) to predict heart disease status."----
 # Visualize predictive performance:
 plot(heart.fft, data = "test")
 

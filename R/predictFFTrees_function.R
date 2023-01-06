@@ -57,14 +57,28 @@ predict.FFTrees <- function(object = NULL,
                             ...) {
 
   # Prepare: ------
-  testthat::expect_true(is.null(data), info = "data is deprecated. Please use newdata instead")
+
+  # Verify inputs: ----
+
+  testthat::expect_true(is.null(data), info = "data is deprecated in predict.FFTrees(). Use newdata instead")
   testthat::expect_true(!is.null(newdata))
 
   if (is.null(sens.w) == FALSE) {
-    stop("sens.w is deprecated and will be ignored.")
+    stop("sens.w is deprecated in predict.FFTrees() and ignored.")
   }
 
   testthat::expect_true(type %in% c("both", "class", "prob"))
+
+
+  # Provide user feedback: ----
+
+  if (!object$params$quiet) {
+    msg <- paste0("Aiming to generate predictions for tree ", tree, ":\n")
+    cat(u_f_ini(msg))
+  }
+
+
+  # Key objects: ----
 
   goal <- object$params$goal
 
@@ -155,7 +169,16 @@ predict.FFTrees <- function(object = NULL,
   }
 
 
+  # Provide user feedback: ----
+
+  if (!object$params$quiet) {
+    msg <- paste0("Successfully generated predictions for tree ", tree, ".\n")
+    cat(u_f_fin(msg))
+  }
+
+
   # Output: ------
+
   return(output)
 
 } # predict.FFTrees().

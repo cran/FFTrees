@@ -1,7 +1,19 @@
 ## ----setup, echo = FALSE------------------------------------------------------
-knitr::opts_chunk$set(echo = TRUE, fig.width = 7, fig.height = 7, dpi = 100, out.width = "600px", fig.align = 'center', message = FALSE)
+knitr::opts_chunk$set(collapse = FALSE, 
+                      comment = "#>", 
+                      prompt = FALSE,
+                      tidy = FALSE,
+                      echo = TRUE, 
+                      message = FALSE,
+                      warning = FALSE,
+                      # Default figure options:
+                      dpi = 100, 
+                      fig.align = 'center', 
+                      fig.height = 6.0, 
+                      fig.width  = 6.5, 
+                      out.width = "600px")
 
-## ----load-pkg-1, echo = FALSE, message = FALSE, results = 'hide'--------------
+## ----pkgs, echo = FALSE, message = FALSE, results = 'hide'--------------------
 library(FFTrees)
 
 ## ----install-pkg, eval = FALSE------------------------------------------------
@@ -16,7 +28,7 @@ library(FFTrees)
 #  # Open the main package guide:
 #  FFTrees.guide()
 
-## ----fft-make, message = FALSE------------------------------------------------
+## ----fft-create, message = FALSE----------------------------------------------
 # Create an FFTrees object:
 heart.fft <- FFTrees(formula = diagnosis ~ .,           # Criterion and (all) predictors
                      data = heart.train,                # Training data
@@ -37,12 +49,12 @@ knitr::include_graphics("../inst/confusiontable.jpg")
 plot(heart.fft,      # An FFTrees object
      data = "test")  # data to use (i.e., either "train" or "test")?
 
-## ----fft-no-stats, fig.width = 8, fig.height = 5, fig.align='center'----------
+## ----fft-no-stats, fig.width = 8, fig.height = 4, out.width = "500px"---------
 # Plot only the tree, without accuracy statistics:
 plot(heart.fft, what = "tree")
 # plot(heart.fft, stats = FALSE)  #  The 'stats' argument has been deprecated.
 
-## ----fft-cues, fig.width = 6, fig.height = 6----------------------------------
+## ----fft-cues, fig.width = 6, fig.height = 6, out.width = "500px"-------------
 # Plot cue accuracies (for training data) in ROC space:
 plot(heart.fft, what = "cues")
 
@@ -60,7 +72,7 @@ names(heart.fft)
 my.heart.fft <- FFTrees(formula = diagnosis ~.,
                         data = heart.train,
                         data.test = heart.test,
-                        main = "Custom Heart FFT",
+                        main = "My Heart FFT",
                         my.tree = "If chol > 350, predict True. 
                                    If cp != {a}, predict False. 
                                    If age <= 35, predict False, otherwise, predict True.")

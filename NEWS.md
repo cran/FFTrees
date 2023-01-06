@@ -1,5 +1,61 @@
 
-# FFTrees 1.7
+# FFTrees 1.8
+
+## 1.8.0
+
+**FFTrees** version 1.8.0 was released [on CRAN](https://CRAN.R-project.org/package=FFTrees) [on 2023-01-06]. 
+This version mostly extends and improves existing functionality. 
+
+<!-- Log of changes: --> 
+
+Changes since last release: 
+
+
+### Major changes
+
+- Enabled manually defining FFTs with `tree.definitions` or using FFTs of `object` in `FFTrees()`. 
+
+- Enabled setting `goal = 'dprime'` to select FFTs in `FFTrees()`. 
+
+- Added and improved user feedback (when `quiet = FALSE`). 
+
+
+<!-- Blank line. --> 
+
+
+### Minor changes 
+
+- Plotting FFTs with `plot.FFTrees()`:
+    - Show `n.per.icon` legend when `what = 'icontree'`. 
+    - Bug fix: Removed clipping of titles and labels.
+    - Tweaked spacing parameters.
+
+- Trimmed white space from elements in tree definitions (in `fftrees_apply.R`). 
+
+- Added check that cues occur in current data (in `verify_all_cues_in_data()`). 
+
+
+<!-- Blank line. --> 
+
+
+### Details 
+
+- Removed `anova` from **stats** imports.  
+- Replaced `expect_is()` by more precise **testthat** inheritance functions. 
+- Replaced **crayon** package by **cli** package. 
+- Revised documentation and vignettes. 
+- Fixed bugs and revised code to increase robustness. 
+
+<!-- Development version: --> 
+
+The current development version of **FFTrees** is available at  <https://github.com/ndphillips/FFTrees>. 
+
+
+<!-- Released versions: --> 
+
+------ 
+
+# FFTrees 1.7  
 
 ## 1.7.5
 
@@ -33,18 +89,15 @@ Changes since last release:
     - Deprecated `stats` argument. 
     - Moved utility functions to `helper_plot.R`. 
 
+<!-- Blank line. --> 
+
 ### Details 
 
 - Revised documentation and vignettes.
 - Renamed internal functions and variables.
 
-<!-- Development version: --> 
 
-The current development version of **FFTrees** is available at <https://github.com/ndphillips/FFTrees>. 
-
-
-<!-- Released versions: --> 
-
+<!-- Previous versions: --> 
 
 ## 1.7.0 
 
@@ -306,6 +359,6 @@ Thus, the main tree building function is now `FFTrees()` and the new tree object
 
 ------ 
 
-[File `NEWS.md` last updated on 2022-09-15.] 
+[File `NEWS.md` last updated on 2023-01-06.]
 
 <!-- eof. -->

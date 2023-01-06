@@ -27,13 +27,13 @@ inwords <- function(x, data = NULL, tree = 1) {
 
   # Verify inputs: ----
 
-  testthat::expect_is(x, class = "FFTrees")
+  testthat::expect_s3_class(x, class = "FFTrees")
 
   testthat::expect_true(dplyr::near(tree %% 1, 0))  # tree is an integer
 
   if (is.null(data) == FALSE) {
 
-    data <- tolower(data)  # increase robustness
+    data <- tolower(data)  # 4robustness
 
     testthat::expect_true(data %in% c("train", "test"))
     # if (!data %in% c("test", "train")){
@@ -62,5 +62,6 @@ inwords <- function(x, data = NULL, tree = 1) {
   return(tree_in_words)
 
 } # inwords().
+
 
 # eof.

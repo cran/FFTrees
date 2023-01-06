@@ -1,5 +1,17 @@
 ## ----setup, echo = FALSE------------------------------------------------------
-knitr::opts_chunk$set(echo = TRUE, fig.width = 7.5, fig.height = 7.5, dpi = 100, out.width = "600px", fig.align='center', message = FALSE)
+knitr::opts_chunk$set(collapse = FALSE, 
+                      comment = "#>", 
+                      prompt = FALSE,
+                      tidy = FALSE,
+                      echo = TRUE, 
+                      message = FALSE,
+                      warning = FALSE,
+                      # Default figure options:
+                      dpi = 100,
+                      fig.align = 'center',
+                      fig.height = 6.0,
+                      fig.width  = 6.5, 
+                      out.width = "600px")
 
 ## ----load-pkg, echo = FALSE, message = FALSE, results = 'hide'----------------
 library(FFTrees)
@@ -40,11 +52,10 @@ heart.fft  # same as: print(heart.fft, data = "train")
 # Decision thresholds and marginal classification training accuracies for each cue: 
 heart.fft$cues$stats$train
 
-## ----fft-plot-cues, fig.width = 6.5, fig.height = 6.5, dpi = 400, out.width = "600px", fig.align='center'----
+## ----fft-plot-cues, fig.width = 6, fig.height = 6, out.width = "500px", fig.align = 'center'----
 # Visualize individual cue accuracies: 
-plot(heart.fft,
-     main = "Cue accuracy for heartdisease",
-     what = "cues")
+plot(heart.fft, what = "cues", 
+     main = "Cue accuracy for heartdisease")
 
 ## ----fft-definitions----------------------------------------------------------
 # See the definitions of all trees:

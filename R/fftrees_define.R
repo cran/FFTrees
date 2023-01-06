@@ -1,15 +1,32 @@
 #' Create FFT definitions
 #'
-#' @description \code{fftrees_define} creates definitions of fast-and-frugal trees
-#' (FFTs, as an \code{FFTrees} object).
+#' @description \code{fftrees_define} defines fast-and-frugal trees (FFTs)
+#' either from the definitions provided or by applying algorithms (when no definitions are provided),
+#' and returns a modified \code{FFTrees} object that contains those definitions.
 #'
-#' \code{fftrees_define} usually passes passes \code{x} either
+#' In most use cases, \code{fftrees_define} passes a new \code{FFTrees} object \code{x} either
 #' to \code{\link{fftrees_grow_fan}} (to create new FFTs by applying algorithms to data) or
 #' to \code{\link{fftrees_wordstofftrees}} (if \code{my.tree} is specified).
-#' If \code{object} is provided, \code{fftrees_define} uses the trees from this \code{FFTrees} object.
 #'
-#' @param x An \code{FFTrees} object.
-#' @param object An \code{FFTrees} object.
+#' If an existing \code{FFTrees} object \code{object} or \code{tree.definitions} are provided as inputs,
+#' no new FFTs are created.
+#' When both arguments are provided, \code{tree.definitions} take priority over the FFTs in an existing \code{object}.
+#' Specifically,
+#'
+#' \itemize{
+#'
+#'   \item{If \code{tree.definitions} are provided, these are assigned to the FFTs of \code{x}.}
+#'
+#'   \item{If no \code{tree.definitions} are provided, but an existing \code{FFTrees} object \code{object} is provided,
+#'   the trees from \code{object} are assigned to the FFTs of \code{x}.}
+#'
+#' }
+#'
+#' @param x The current \code{FFTrees} object (to be changed and returned).
+#' @param object An existing \code{FFTrees} object (with tree definitions).
+#' @param tree.definitions A \code{data.frame}. An optional hard-coded definition of FFTs (in the same format as in an \code{FFTrees} object).
+#' If specified, no new FFTs are created, but the tree definitions in \code{object} or \code{x} are replaced by the tree definitions provided
+#' and the current object is re-evaluated.
 #'
 #' @return An \code{FFTrees} object with tree definitions.
 #'
@@ -25,32 +42,88 @@
 #'
 #' @export
 
-fftrees_define <- function(x, object = NULL) {
+fftrees_define <- function(x,
+                           object = NULL,
+                           tree.definitions = NULL
+) {
 
-  if (is.null(object) == FALSE) {
+  # Provide user feedback: ----
 
-    testthat::expect_is(object, "FFTrees", info = "You specified an object, but it is not of class 'FFTrees'.")
+  if (!x$params$quiet) {
+    msg <- paste0("Aiming to define FFTs:\n")
+    cat(u_f_ini(msg))
+  }
+
+
+  # Verify inputs: ------
+
+  testthat::expect_s3_class(x, class = "FFTrees")
+
+
+  # Main: Distinguish between 4 use cases ------
+
+  if (!is.null(tree.definitions)) { # 1. Use FFTs from tree.definitions: ----
+
+    # Change x by using the tree.definitions:
+    x$trees$definitions <- tree.definitions
+    x$trees$n <- as.integer(nrow(tree.definitions))
+
+    if (!x$params$quiet) {
+      msg <- paste0("Using ", x$trees$n, " FFTs from 'tree.definitions' as current trees.\n")
+      cat(u_f_hig(msg))
+    }
+
+
+  } else if (!is.null(object)) { # 2. Use FFTs from object: ----
+
+    # Verify object$trees$definitions:
     testthat::expect_true(!is.null(object$trees$definitions))
 
-    # 0. Use trees in object:
+    # Change x by using the tree definitions of object:
     x$trees$definitions <- object$trees$definitions
-    x$trees$n <- nrow(object$trees$definitions)
+    x$trees$n <- as.integer(nrow(object$trees$definitions))
 
-  } else if (!is.null(x$params$my.tree)) {
+    if (!x$params$quiet) {
+      msg <- paste0("Using ", x$trees$n, " FFTs from 'object' as current trees.\n")
+      cat(u_f_hig(msg))
+    }
 
-    # 1. Create FFT from verbal description:
+
+  } else if (!is.null(x$params$my.tree)) { # 3. Create 1 new FFT from verbal description: ----
+
     x <- fftrees_wordstofftrees(x, my.tree = x$params$my.tree)
 
-  } else if (x$params$algorithm %in% c("ifan", "dfan")) {
 
-    # 2. Create FFT by applying algorithm to data:
+  } else if (x$params$algorithm %in% c("ifan", "dfan")) { # 4. Create new FFTs by applying algorithm to data: ----
+
     x <- fftrees_grow_fan(x)
+
 
   } else {
 
     stop("I don't know how to define your trees...")
 
   }
+
+  # Provide user feedback: ----
+
+  if (!x$params$quiet) {
+
+    n_trees <- x$trees$n
+
+    if (n_trees == 1){
+      msg <- paste0("Successfully defined ", n_trees, " FFT.\n")
+    } else if (n_trees > 1){
+      msg <- paste0("Successfully defined ", n_trees, " FFTs.\n")
+    } else {
+      msg <- "No FFTs were defined."
+    }
+
+    cat(u_f_fin(msg))
+  }
+
+
+  # Output: ----
 
   return(x)
 

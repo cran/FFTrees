@@ -11,10 +11,27 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r setup, echo = FALSE, message = FALSE, results = 'hide'}
-library(FFTrees)
-knitr::opts_chunk$set(echo = TRUE, fig.width = 6, fig.height = 6, dpi = 100, out.width = "600px", fig.align = 'center', message = FALSE)
+```{r setup, echo = FALSE}
+knitr::opts_chunk$set(collapse = FALSE, 
+                      comment = "#>", 
+                      prompt = FALSE,
+                      tidy = FALSE,
+                      echo = TRUE, 
+                      message = FALSE,
+                      warning = FALSE,
+                      # Default figure options: 
+                      dpi = 100, 
+                      fig.align = 'center',
+                      fig.height = 6.0,
+                      fig.width  = 6.5, 
+                      out.width = "600px")
 ```
+
+
+```{r load-pkg-0, echo = FALSE, message = FALSE, results = 'hide'}
+library(FFTrees)
+```
+
 
 
 ## Examples of FFTs with **FFTrees** 
@@ -22,9 +39,10 @@ knitr::opts_chunk$set(echo = TRUE, fig.width = 6, fig.height = 6, dpi = 100, out
 This vignette illustrates how to construct fast-and-frugal trees (FFTs) for additional datasets included in the **FFTrees** package. 
 [See @phillips2017FFTrees for a comparison across 10\ real-world datasets.] 
 
+
 ### Mushrooms data
 
-```{r image-mushrooms, fig.align = "center", out.width="225px", echo = FALSE}
+```{r image-mushrooms, fig.align = "center", out.width = "225px", echo = FALSE}
 knitr::include_graphics("../inst/mushrooms.jpg")
 ```
 
@@ -41,6 +59,7 @@ knitr::kable(head(mushrooms_sub))
 ```
 
 Table: **Table 1**: Binary criterion variable\ `poisonous` and 10\ potential predictors in the `mushrooms` data.
+
 
 #### Creating FFTs 
 
@@ -65,13 +84,14 @@ Here's basic information about the best performing FFT (Tree\ #1):
 mushrooms.fft
 ```
 
-[Cool beans.](https://goo.gl/B7YDuC)
+[Cool beans](https://goo.gl/B7YDuC). 
+
 
 #### Visualizing cue accuracies
 
 Let's look at the individual cue training accuracies with `plot(fft, what = "cues")`: 
 
-```{r fft-mushrooms-1-plot-cues}
+```{r fft-mushrooms-1-plot-cues, out.width = "450px"}
 # Plot the cue accuracies of an FFTrees object:
 plot(mushrooms.fft, what = "cues")
 ```
@@ -80,9 +100,10 @@ It looks like the cues `oder` and `sporepc` are the best predictors.
 In fact, the single cue `odor` has a hit rate of\ $97$% and a false alarm rate of nearly\ $0$%! 
 Based on this, we should expect the final trees to use just these cues. 
 
+
 #### Visualizing FFT performance 
 
-Now let's plot the performance of the best training tree when applied to the test dataset: 
+Now let's plot the performance of the best training tree when applied to the test data: 
 
 ```{r fft-mushrooms-1-plot}
 # Plot the best FFT for the mushrooms test data: 
@@ -90,12 +111,15 @@ plot(mushrooms.fft, data = "test")
 ```
 
 Indeed, it looks like the best tree only uses the\ `odor` and\ `sporepc` cues. 
-In our test dataset, the tree had a _false alarm rate_ of\ $0$% ($1 -$\ specificity), and a _sensitivity_ (aka. hit rate) of\ $85$%.
+In our test dataset, the tree had a _false alarm rate_ of\ $0$% ($1 -$\ specificity), and a _sensitivity_ (aka. hit rate) of\ $85$%. 
+When considering the implications of our decisions, the fact that our FFT incurs many misses, but no false alarms, is problematic (as failing to detect poisonous mushrooms typically has more serious consequences than falsely classifying some as poisonous). 
+To change this balance, we could increase the sensitivity weight parameter (e.g., setting `sens.w = .67`) and optimize the tree's weighted accuracy\ `wacc`. 
+
 
 #### An alternative FFT 
 
-Now, let's say that we talk to a mushroom expert who says that we are using the wrong cues. 
-According to her, the best predictors for poisonous mushrooms are `ringtype` and `ringnum`. 
+But let's assume that a mushroom expert insists that we are using the wrong cues. 
+According to her, the best predictors for poisonous mushrooms are\ `ringtype` and\ `ringnum`. 
 Let's build a set of trees with these cues and see how they perform relative to our initial tree: 
 
 ```{r fft-mushrooms-2-seed, include = FALSE}
@@ -125,6 +149,7 @@ As we can see, this tree (in `mushrooms.ring.fft`) has both a sensitivity and a 
 This suggests that we should discard the expert's advice and primarily rely on the\ `odor` and\ `sporepc` cues. 
 
 
+
 ### Iris.v data 
 
 ```{r iris-image, fig.align = "center", out.width = "225px", echo = FALSE}
@@ -151,17 +176,19 @@ iris.fft
 
 However, let's take a look at the individual training cue accuracies instead... 
 
+
 #### Visualizing cue accuracies
 
 We can plot the training cue accuracies during training by specifying `what = "cues"`:
 
-```{r iris-plot-cues}
+```{r iris-plot-cues, out.width = "450px"}
 # Plot cue values: 
 plot(iris.fft, what = "cues")
 ```
 
 It looks like the two cues\ `pet.wid` and\ `pet.len` are the best predictors for this dataset. 
 Based on this, we should expect the final trees will likely use one or both of these cues.
+
 
 #### Visualizing FFT performance 
 
@@ -173,7 +200,8 @@ plot(iris.fft)
 ```
 
 Indeed, it turns out that the best tree only uses the\ `pet.wid` and\ `pet.len` cues. 
-In our test dataset, the tree had a sensitivity of\ 100% and a specificity of\ 94%.
+In our test data, the tree had a sensitivity of\ 100% and a specificity of\ 94%.
+
 
 #### Alternative FFTs
 
@@ -206,11 +234,11 @@ Here is a complete list of the vignettes available in the **FFTrees** package:
 
 |   | Vignette | Description |
 |--:|:------------------------------|:-------------------------------------------------|
-|   | [Main guide](guide.html) | An overview of the **FFTrees** package |
+|   | [Main guide: FFTrees overview](guide.html) | An overview of the **FFTrees** package |
 | 1 | [Tutorial: FFTs for heart disease](FFTrees_heart.html)   | An example of using `FFTrees()` to model heart disease diagnosis |
 | 2 | [Accuracy statistics](FFTrees_accuracy_statistics.html) | Definitions of accuracy statistics used throughout the package |
 | 3 | [Creating FFTs with FFTrees()](FFTrees_function.html) | Details on the main function `FFTrees()` |
-| 4 | [Specifying FFTs directly](FFTrees_mytree.html)   | How to directly create FFTs with `my.tree` without using the built-in algorithms |
+| 4 | [Manually specifying FFTs](FFTrees_mytree.html)   | How to directly create FFTs with `my.tree` without using the built-in algorithms |
 | 5 | [Visualizing FFTs with plot()](FFTrees_plot.html) | Plotting `FFTrees` objects, from full trees to icon arrays |
 | 6 | [Examples of FFTs](FFTrees_examples.html) | Examples of FFTs from different datasets contained in the package |
 

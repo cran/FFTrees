@@ -1,15 +1,28 @@
 ## ----setup, echo = FALSE------------------------------------------------------
-knitr::opts_chunk$set(echo = TRUE, fig.width = 7.5, fig.height = 7.5, dpi = 100, out.width = "600px", fig.align='center', message = FALSE)
+knitr::opts_chunk$set(collapse = FALSE, 
+                      comment = "#>", 
+                      prompt = FALSE,
+                      tidy = FALSE,
+                      echo = TRUE, 
+                      message = FALSE,
+                      warning = FALSE,
+                      # Default figure options: 
+                      dpi = 100, 
+                      fig.align = 'center', 
+                      fig.width = 7, 
+                      fig.height = 7, 
+                      out.width = "600px")
 
-## ----load-pkg, echo = FALSE, message = FALSE, results = 'hide'----------------
+## ----pkgs, echo = FALSE, message = FALSE, results = 'hide'--------------------
 library(FFTrees)
 
-## ----fft-example, out.width="80%", fig.align = "center", echo = FALSE, fig.cap = "**Figure 1**: Example FFT for the `heartdisease` data."----
-# Create an FFTrees object predicting heart disease
+## ----fft-example, results = "hide"--------------------------------------------
+# Create an FFTrees object predicting heart disease: 
 heart.fft <- FFTrees(formula = diagnosis ~.,
                      data = heartdisease)
 
-plot(heart.fft)
+## ----fft-plot-1, fig.cap = "**Figure 1**: Example FFT for the `heartdisease` data."----
+plot(heart.fft, tree = "best.train")
 
 ## ----confusion-table, fig.align = "center", out.width="50%", echo = FALSE, fig.cap = "**Figure 2**: A 2x2 matrix illustrating the frequency counts of 4 possible outcomes."----
 knitr::include_graphics("../inst/confusiontable.jpg")

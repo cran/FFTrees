@@ -27,16 +27,16 @@ FFTrees(
   rounding = NULL,
   repeat.cues = TRUE,
   my.tree = NULL,
+  object = NULL,
   tree.definitions = NULL,
   do.comp = TRUE,
   do.cart = TRUE,
   do.lr = TRUE,
   do.rf = TRUE,
   do.svm = TRUE,
-  object = NULL,
-  force = FALSE,
   quiet = FALSE,
   comp = NULL,
+  force = NULL,
   rank.method = NULL,
   store.data = NULL,
   verbose = NULL
@@ -53,14 +53,16 @@ FFTrees(
 
 \item{max.levels}{integer. The maximum number of levels considered for the trees. Because all permutations of exit structures are considered, the larger \code{max.levels} is, the more trees will be created.}
 
-\item{sens.w}{numeric. A number from 0 to 1 indicating how to weight sensitivity relative to specificity. Only relevant when \code{goal = 'wacc'}.}
+\item{sens.w}{numeric. A number from 0 to 1 indicating how to weight sensitivity relative to specificity when \code{goal = 'wacc'}. Default: \code{sens.w = .50}.}
 
-\item{cost.outcomes}{A list of length 4 with names \code{'hi'}, \code{'fa'}, \code{'mi'}, and \code{'cr'} specifying the costs of a hit, false alarm, miss, and correct rejection, respectively.
+\item{cost.outcomes}{A list of length 4 specifying the cost value for one of the 4 possible classification outcomes.
+The list elements must have names \code{'hi'}, \code{'fa'}, \code{'mi'}, and \code{'cr'}
+(for specifying the costs of a hit, false alarm, miss, and correct rejection, respectively) and provide a numeric cost value.
 E.g.; \code{cost.outcomes = listc("hi" = 0, "fa" = 10, "mi" = 20, "cr" = 0)} means that a false alarm and miss cost 10 and 20, respectively, while correct decisions have no costs.}
 
-\item{cost.cues}{A list containing costs for each cue.
-Each element should have a name corresponding to a column in \code{data}, and each entry should be a single (positive) number.
-Cues not present in \code{cost.cues} are assumed to have no costs (i.e., a value of 0).}
+\item{cost.cues}{A list containing the cost of each cue (in some unit).
+Each list element must have a name corresponding to a cue (i.e., a column in \code{data}), and should be a single (positive) number.
+Cues not present in \code{cost.cues} are assumed to have no costs (i.e., a cost value of 0).}
 
 \item{stopping.rule}{character. A string indicating the method to stop growing trees.
 \code{"levels"} means the tree grows until a certain level;
@@ -86,31 +88,38 @@ Default: \code{goal.threshold = "bacc"}.}
 
 \item{main}{string. An optional label for the dataset. Passed on to other functions, like \code{\link{plot.FFTrees}}, and \code{\link{print.FFTrees}}.}
 
-\item{train.p}{numeric. What percentage of the data to use for training when \code{data.test} is not specified? For example, \code{train.p = .5} will randomly split \code{data} into a 50\% training set and a 50\% test set. \code{train.p = 1}, the default, uses all data for training.}
+\item{train.p}{numeric. What percentage of the data to use for training when \code{data.test} is not specified?
+For example, \code{train.p = .50} will randomly split \code{data} into a 50\% training set and a 50\% test set.
+The default of \code{train.p = 1} uses all data for training.}
 
-\item{rounding}{integer. An integer indicating digit rounding for non-integer numeric cue thresholds. The default is NULL which means no rounding. A value of 0 rounds all possible thresholds to the nearest integer, 1 rounds to the nearest .1 (etc.).}
+\item{rounding}{integer. An integer indicating digit rounding for non-integer numeric cue thresholds.
+The default of \code{rounding = NULL} implies no rounding.
+A value of \code{0} rounds all possible thresholds to the nearest integer, \code{1} rounds to the nearest decade (.10), etc.}
 
-\item{repeat.cues}{logical. Can cues occur multiple times within a tree?}
+\item{repeat.cues}{logical. May cues occur multiple times within a tree? Default: \code{repeat.cues = TRUE}.}
 
-\item{my.tree}{string. A string representing a verbal description of an FFT, i.e., an FFT in words.
+\item{my.tree}{An optional character string. A a verbal description of an FFT, i.e., an FFT in words.
 For example, \code{my.tree = "If age > 20, predict TRUE. If sex = {m}, predict FALSE. Otherwise, predict TRUE."}}
 
-\item{tree.definitions}{dataframe. An optional hard-coded definition of trees (see details below). If specified, no new trees are created.}
+\item{object}{An optional existing \code{FFTrees} object.
+When specified, no new FFTs are fitted, but existing trees are applied to \code{data} and \code{data.test}.
+When \code{formula}, \code{data} or \code{data.test} are not specified, the current values of \code{object} are used.}
 
-\item{do.comp, do.cart, do.lr, do.rf, do.svm}{logical. Should alternative algorithms be created for comparison? All TRUE by default. Options are:
+\item{tree.definitions}{An optional \code{data.frame} of hard-coded FFT definitions (in the format of \code{x$trees$definitions} of an \code{FFTrees} object \code{x}).
+If specified, no new FFTs are fitted, but the tree definitions provided are used to re-evaluate the current \code{FFTrees} object.}
+
+\item{do.comp, do.cart, do.lr, do.rf, do.svm}{logical. Should alternative algorithms be used for comparison?
+All options set to \code{TRUE} by default. Available options are:
 \code{cart} = regular (non-frugal) trees with \strong{rpart};
 \code{lr} = logistic regression with \strong{glm};
 \code{rf} = random forests with \strong{randomForest};
 \code{svm} = support vector machines with \strong{e1071}.
-Specifying \code{comp = FALSE} sets all these arguments to \code{FALSE}.}
+Specifying \code{do.comp = FALSE} sets all available options to \code{FALSE}.}
 
-\item{object}{FFTrees. An optional existing \code{FFTrees} object. When specified, no new trees are fitted and the existing trees are applied to \code{data} and \code{data.test}.}
+\item{quiet}{logical. Should progress reports be suppressed? Setting \code{quiet = FALSE} is helpful for diagnosing errors.
+Default: \code{quiet = FALSE} (i.e., show progress).}
 
-\item{force}{logical. Setting \code{force = TRUE} forces some parameters (like goal) to be as specified by the user even when the algorithm thinks those specifications don't make sense. Default is \code{force = FALSE}.}
-
-\item{quiet}{logical. Should progress reports be printed? Can be helpful for diagnosis when the function is running slowly. Default is \code{quiet = FALSE} (i.e., show progress).}
-
-\item{comp, rank.method, store.data, verbose}{Deprecated arguments (unused or replaced, to be retired in future releases).}
+\item{comp, force, rank.method, store.data, verbose}{Deprecated arguments (unused or replaced, to be retired in future releases).}
 }
 \value{
 An \code{FFTrees} object with the following elements:
@@ -120,8 +129,8 @@ An \code{FFTrees} object with the following elements:
   \item{formula}{The \code{\link{formula}} specified when creating the FFTs.}
   \item{trees}{A list of FFTs created, with further details contained in \code{n}, \code{best}, \code{definitions}, \code{inwords}, \code{stats}, \code{level_stats}, and \code{decisions}.}
   \item{data}{The original training and test data (if available).}
-  \item{params}{A list of defined control parameters (e.g.; \code{algorithm}, \code{goal}).}
-  \item{competition}{Models and classification statistics for competitive classification algorithms: Regularized logistic regression, CART, and random forest.}
+  \item{params}{A list of defined control parameters (e.g.; \code{algorithm}, \code{goal}, \code{sens.w}, as well as various thresholds, stopping rule, and cost parameters).}
+  \item{competition}{Models and classification statistics for competitive classification algorithms: Logistic regression, CART, random forests RF, and SVM.}
   \item{cues}{A list of cue information, with further details contained in \code{thresholds} and \code{stats}.}
 }
 }
@@ -135,6 +144,20 @@ that can then be printed, plotted, and examined further.
 
 The criterion and predictor variables are specified in \code{\link{formula}} notation.
 Based on the settings of \code{data} and \code{data.test}, FFTs are trained on a (required) training dataset and tested on an (optional) test dataset.
+
+If an existing \code{FFTrees} object \code{object} or \code{tree.definitions} are provided as inputs,
+no new FFTs are created.
+When both arguments are provided, \code{tree.definitions} take priority over the FFTs in an existing \code{object}.
+Specifically,
+
+\itemize{
+
+  \item{If \code{tree.definitions} are provided, these are assigned to the FFTs of \code{x}.}
+
+  \item{If no \code{tree.definitions} are provided, but an existing \code{FFTrees} object \code{object} is provided,
+  the trees from \code{object} are assigned to the FFTs of \code{x}.}
+
+}
 
 Create and evaluate fast-and-frugal trees (FFTs).
 }
@@ -157,23 +180,23 @@ plot(heart.fft)  # same as:
 # plot(heart.fft, what = "all", data = "train", tree = "best.train")
 
 # 4. Apply FFT to (new) testing data:
-plot(heart.fft, data = "test")            # predictions for Tree 1
-plot(heart.fft, data = "test", tree = 2)  # predictions for Tree 2
+plot(heart.fft, data = "test")            # predict for Tree 1
+plot(heart.fft, data = "test", tree = 2)  # predict for Tree 2
 
 # 5. Predict classes and probabilities for new data:
 predict(heart.fft, newdata = heartdisease)
 predict(heart.fft, newdata = heartdisease, type = "prob")
 
-# 6. Create custom trees (from verbal description) with my.tree:
+# 6. Create a custom tree (from verbal description) with my.tree:
 custom.fft <- FFTrees(
   formula = diagnosis ~ .,
   data = heartdisease,
-  my.tree = "If chol > 300, predict True.
-             If sex = {m}, predict False,
-             If age > 70, predict True, otherwise predict False."
-             )
+  my.tree = "If age < 50, predict False.
+             If sex = 1, predict True.
+             If chol > 300, predict True, otherwise predict False.",
+  main = "My custom FFT")
 
-# Plot the (pretty terrible) custom tree:
+# Plot the (pretty bad) custom tree:
 plot(custom.fft)
 
 }
