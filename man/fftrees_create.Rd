@@ -5,71 +5,86 @@
 \title{Create an object of class \code{FFTrees}}
 \usage{
 fftrees_create(
-  data = NULL,
   formula = NULL,
+  data = NULL,
+  data.test = NULL,
   algorithm = NULL,
   goal = NULL,
   goal.chase = NULL,
   goal.threshold = NULL,
+  max.levels = NULL,
   numthresh.method = NULL,
   numthresh.n = NULL,
-  sens.w = NULL,
-  max.levels = NULL,
-  cost.outcomes = NULL,
-  cost.cues = NULL,
+  repeat.cues = NULL,
   stopping.rule = NULL,
   stopping.par = NULL,
-  decision.labels = NULL,
+  sens.w = NULL,
+  cost.outcomes = NULL,
+  cost.cues = NULL,
   main = NULL,
+  decision.labels = NULL,
+  my.goal = NULL,
+  my.goal.fun = NULL,
   my.tree = NULL,
-  data.test = NULL,
-  repeat.cues = NULL,
+  do.comp = TRUE,
   do.lr = TRUE,
   do.svm = TRUE,
   do.cart = TRUE,
   do.rf = TRUE,
-  do.comp = TRUE,
   quiet = NULL
 )
 }
 \arguments{
-\item{data}{Training data (as data frame).}
-
 \item{formula}{A formula (with a binary criterion variable).}
 
-\item{algorithm}{string.}
+\item{data}{Training data (as data frame).}
 
-\item{goal}{string.}
+\item{data.test}{Data for testing models/prediction (as data frame).}
 
-\item{goal.chase}{string.}
+\item{algorithm}{Algorithm for growing FFTs (\code{"ifan"} or \code{"dfan"}) (as character string).}
 
-\item{goal.threshold}{string.}
+\item{goal}{Measure used to select FFTs (as character string).}
+
+\item{goal.chase}{Measure used to optimize FFT creation (as character string).}
+
+\item{goal.threshold}{Measure used to optimize cue thresholds (as character string).}
+
+\item{max.levels}{integer.}
 
 \item{numthresh.method}{string.}
 
 \item{numthresh.n}{integer.}
 
-\item{sens.w}{numeric.}
-
-\item{max.levels}{integer.}
-
-\item{cost.outcomes}{list.}
-
-\item{cost.cues}{list.}
+\item{repeat.cues}{logical.}
 
 \item{stopping.rule}{string.}
 
 \item{stopping.par}{numeric.}
 
-\item{decision.labels}{string.}
+\item{sens.w}{numeric.}
+
+\item{cost.outcomes}{list.}
+
+\item{cost.cues}{list.}
 
 \item{main}{string.}
 
-\item{my.tree}{string.}
+\item{decision.labels}{string.}
 
-\item{data.test}{dataframe.}
+\item{my.goal}{The name of an optimization measure defined by \code{my.goal.fun} (as a character string).
+Example: \code{my.goal = "my_acc"} (see \code{my.goal.fun} for corresponding function).
+Default: \code{my.goal = NULL}.}
 
-\item{repeat.cues}{logical.}
+\item{my.goal.fun}{The definition of an outcome measure to optimize, defined as a function
+of the frequency counts of the 4 basic classification outcomes \code{hi, fa, mi, cr}
+(i.e., an R function with 4 arguments \code{hi, fa, mi, cr}).
+Example: \code{my.goal.fun = function(hi, fa, mi, cr){(hi + cr)/(hi + fa + mi + cr)}} (i.e., accuracy).
+Default: \code{my.goal.fun = NULL}.}
+
+\item{my.tree}{A verbal description of an FFT, i.e., an "FFT in words" (as character string).
+For example, \code{my.tree = "If age > 20, predict TRUE. If sex = {m}, predict FALSE. Otherwise, predict TRUE."}.}
+
+\item{do.comp}{logical.}
 
 \item{do.lr}{logical.}
 
@@ -78,8 +93,6 @@ fftrees_create(
 \item{do.cart}{logical.}
 
 \item{do.rf}{logical.}
-
-\item{do.comp}{logical.}
 
 \item{quiet}{logical}
 }

@@ -31,7 +31,12 @@
 #' \code{\link{inwords}} for obtaining a verbal description of FFTs;
 #' \code{\link{FFTrees}} for creating FFTs from and applying them to data.
 #'
+#' @importFrom scales comma
+#' @importFrom scales percent
+#' @importFrom cli style_underline
+#'
 #' @export
+
 
 print.FFTrees <- function(x = NULL,
                           tree = 1,
@@ -42,13 +47,13 @@ print.FFTrees <- function(x = NULL,
 
   # - Get cue info: ----
 
-  train.cues   <- paste(unique(unlist(strsplit(x$trees$definitions$cues[tree], ";"))), collapse = ",")
-  train.cues.n <- length(unique(unlist(strsplit(train.cues, ","))))
+  train_cues   <- paste(unique(unlist(strsplit(x$trees$definitions$cues[tree], ";"))), collapse = ",")
+  train_cues_n <- length(unique(unlist(strsplit(train_cues, ","))))
 
-  all.cues   <- paste(unique(unlist(strsplit(x$trees$definitions$cues, ";"))), collapse = ",")
-  all.cues.n <- length(unique(unlist(strsplit(x$trees$definitions$cues, ";"))))
+  # all_cues   <- paste(unique(unlist(strsplit(x$trees$definitions$cues, ";"))), collapse = ",")  # is NOT used anywhere?
+  # all_cues_n <- length(unique(unlist(strsplit(x$trees$definitions$cues, ";"))))  # is NOT used anywhere?
 
-  n.cues <- x$trees$definitions$nodes[tree]
+  n_cues <- x$trees$definitions$nodes[tree]
 
 
   # - Validate arguments: ----
@@ -94,7 +99,7 @@ print.FFTrees <- function(x = NULL,
 
   # Verify tree input: ----
 
-  tree <- verify_tree(x = x, data = data, tree = tree)  # use helper (for plotting AND printing)
+  tree <- verify_tree_arg(x = x, data = data, tree = tree)  # use helper (for plotting AND printing)
 
 
   # Get "best" tree: ----
@@ -108,7 +113,7 @@ print.FFTrees <- function(x = NULL,
     }
 
     # tree <- x$trees$best$train  # using current x
-    tree <- select_best_tree(x, data = "train", goal = x$params$goal)  # using helper
+    tree <- get_best_tree(x, data = "train", goal = x$params$goal)  # using helper
   }
 
   if (tree == "best.test") {
@@ -120,14 +125,14 @@ print.FFTrees <- function(x = NULL,
     }
 
     # tree <- x$trees$best$test  # using current x
-    tree <- select_best_tree(x, data = "test", goal = x$params$goal)  # using helper
+    tree <- get_best_tree(x, data = "test", goal = x$params$goal)  # using helper
   }
 
 
   # Introductory text: ------
 
   if ((abs(x$trees$n) - 1) < .001) { # n = (approx.) 1:
-    # summary_text_1 <- paste(x$trees$n, " FFT predicting ", x$criterion_name, " with up to ", n.cues, " nodes", sep = "")
+    # summary_text_1 <- paste(x$trees$n, " FFT predicting ", x$criterion_name, " with up to ", n_cues, " nodes", sep = "")
     tree_s <- "tree"
   }
 
@@ -163,15 +168,15 @@ print.FFTrees <- function(x = NULL,
 
   # Outcome costs: ----
 
-  cat("- Outcome costs: [hi = ", x$params$cost.outcomes$hi, ", mi = ", x$params$cost.outcomes$mi,
-      ", fa = ", x$params$cost.outcomes$fa, ", cr = ", x$params$cost.outcomes$cr, "]\n",
+  cat("- Outcome costs: [hi = ", x$params$cost.outcomes$hi, ", fa = ", x$params$cost.outcomes$fa,
+      ", mi = ", x$params$cost.outcomes$mi, ", cr = ", x$params$cost.outcomes$cr, "]\n",
       sep = ""
   )
 
 
   # Cue costs: ----
   #
-  # out <- x$params$cost.cues[unlist(strsplit(train.cues, ","))]
+  # out <- x$params$cost.cues[unlist(strsplit(train_cues, ","))]
   # cat("- Cue costs: [", paste(names(out), "=", out, collapse = ", "), ", ...]\n", sep = "")
 
 
@@ -179,8 +184,8 @@ print.FFTrees <- function(x = NULL,
   #
   # if(tree == x$trees$best$train) {
   #
-  #   cat(paste("- FFT ", cli::style_underline("#", x$trees$best$train, sep = ""), " optimises ", cli::style_underline(x$params$goal), " using ", train.cues.n, " cues: {",
-  #             cli::style_underline(paste(unlist(strsplit(train.cues, ",")), collapse = ", ")), "}", sep = ""))
+  #   cat(paste("- FFT ", cli::style_underline("#", x$trees$best$train, sep = ""), " optimises ", cli::style_underline(x$params$goal), " using ", train_cues_n, " cues: {",
+  #             cli::style_underline(paste(unlist(strsplit(train_cues, ",")), collapse = ", ")), "}", sep = ""))
   #
   #   cat("\n")
   #
@@ -197,7 +202,8 @@ print.FFTrees <- function(x = NULL,
 
   # FFT in words:
 
-  tree_in_words <- inwords(x, data = data, tree = tree)
+  # tree_in_words <- inwords(x, data = data, tree = tree)  # generate FFT description
+  tree_in_words <- x$trees$inwords[[tree]]  # lookup FFT description (in x)
 
   for (i in 1:length(tree_in_words)) { # for each sentence:
 

@@ -26,7 +26,7 @@ head(heart.train)
 # Testing data:
 head(heart.test)
 
-## ----heart-fft, message = FALSE-----------------------------------------------
+## ----heart-fft, message = FALSE, results = 'hide'-----------------------------
 # Create an FFTrees object called heart.fft predicting diagnosis: 
 heart.fft <- FFTrees(formula = diagnosis ~.,
                      data = heart.train,
@@ -99,7 +99,7 @@ plot(heart.fft,
      main = "Heart Disease",
      decision.labels = c("Healthy", "Disease"))
 
-## ----fft-my-tree-def----------------------------------------------------------
+## ----fft-my-tree-def, results = 'hide'----------------------------------------
 # Manually define a tree using the my.tree argument:
 myheart.fft <- FFTrees(diagnosis ~., 
                        data = heartdisease, 

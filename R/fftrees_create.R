@@ -7,31 +7,47 @@
 #' (e.g., to denote algorithms, goals, thresholds) to be used in maximization processes
 #' and for evaluation purposes (e.g., \code{sens.w} and cost values).
 #'
-#' @param data Training data (as data frame).
 #' @param formula A formula (with a binary criterion variable).
-#' @param algorithm string.
-#' @param goal string.
-#' @param goal.chase string.
-#' @param goal.threshold string.
+#' @param data Training data (as data frame).
+#' @param data.test Data for testing models/prediction (as data frame).
+#' @param algorithm Algorithm for growing FFTs (\code{"ifan"} or \code{"dfan"}) (as character string).
+#'
+#' @param goal Measure used to select FFTs (as character string).
+#' @param goal.chase Measure used to optimize FFT creation (as character string).
+#' @param goal.threshold Measure used to optimize cue thresholds (as character string).
+#'
+#' @param max.levels integer.
 #' @param numthresh.method string.
 #' @param numthresh.n integer.
-#' @param sens.w numeric.
-#' @param max.levels integer.
-#' @param cost.outcomes list.
-#' @param cost.cues list.
+#' @param repeat.cues logical.
 #' @param stopping.rule string.
 #' @param stopping.par numeric.
-#' @param decision.labels string.
-#' @param main string.
-#' @param my.tree string.
-#' @param data.test dataframe.
-#' @param repeat.cues logical.
 #'
+#' @param sens.w numeric.
+#'
+#' @param cost.outcomes list.
+#' @param cost.cues list.
+#'
+#' @param main string.
+#' @param decision.labels string.
+#'
+#' @param my.goal The name of an optimization measure defined by \code{my.goal.fun} (as a character string).
+#' Example: \code{my.goal = "my_acc"} (see \code{my.goal.fun} for corresponding function).
+#' Default: \code{my.goal = NULL}.
+#' @param my.goal.fun The definition of an outcome measure to optimize, defined as a function
+#' of the frequency counts of the 4 basic classification outcomes \code{hi, fa, mi, cr}
+#' (i.e., an R function with 4 arguments \code{hi, fa, mi, cr}).
+#' Example: \code{my.goal.fun = function(hi, fa, mi, cr){(hi + cr)/(hi + fa + mi + cr)}} (i.e., accuracy).
+#' Default: \code{my.goal.fun = NULL}.
+#'
+#' @param my.tree A verbal description of an FFT, i.e., an "FFT in words" (as character string).
+#' For example, \code{my.tree = "If age > 20, predict TRUE. If sex = {m}, predict FALSE. Otherwise, predict TRUE."}.
+#'
+#' @param do.comp logical.
 #' @param do.lr logical.
 #' @param do.cart logical.
 #' @param do.svm logical.
 #' @param do.rf logical.
-#' @param do.comp logical.
 #'
 #' @param quiet logical
 #'
@@ -50,30 +66,40 @@
 #'
 #' @export
 
-fftrees_create <- function(data = NULL,
-                           formula = NULL,
+fftrees_create <- function(formula = NULL,
+                           data = NULL,
+                           data.test = NULL,
                            algorithm = NULL,
+                           #
                            goal = NULL,
                            goal.chase = NULL,
                            goal.threshold = NULL,
+                           #
+                           max.levels = NULL,
                            numthresh.method = NULL,
                            numthresh.n = NULL,
-                           sens.w = NULL,
-                           max.levels = NULL,
-                           cost.outcomes = NULL,
-                           cost.cues = NULL,
+                           repeat.cues = NULL,
                            stopping.rule = NULL,
                            stopping.par = NULL,
-                           decision.labels = NULL,
+                           #
+                           sens.w = NULL,
+                           #
+                           cost.outcomes = NULL,
+                           cost.cues = NULL,
+                           #
                            main = NULL,
+                           decision.labels = NULL,
+                           #
+                           my.goal = NULL,      # e.g., "my_acc",  # name of my.goal (as character)
+                           my.goal.fun = NULL,  # e.g., function(hi, fa, mi, cr){(hi + cr)/(hi + fa + mi + cr)},  # a function of (hi, fa, mi, cr)
                            my.tree = NULL,
-                           data.test = NULL,
-                           repeat.cues = NULL,
+                           #
+                           do.comp = TRUE,
                            do.lr = TRUE,
                            do.svm = TRUE,
                            do.cart = TRUE,
                            do.rf = TRUE,
-                           do.comp = TRUE,
+                           #
                            quiet = NULL) {
 
   # Provide user feedback: ----
@@ -87,61 +113,51 @@ fftrees_create <- function(data = NULL,
 
   # data: ----
 
-  testthat::expect_true(!is.null(data),
-                        info = "data is NULL"
-  )
-
-  testthat::expect_true(is.data.frame(data),
-                        info = "data is not a dataframe"
-  )
+  testthat::expect_true(!is.null(data), info = "data is NULL")
+  testthat::expect_true(is.data.frame(data), info = "data is not a dataframe")
 
 
   # formula: ----
 
-  testthat::expect_true(!is.null(formula),
-                        info = "formula is NULL"
-  )
+  # Get criterion (from formula):
+  criterion_name <- get_lhs_formula(formula)
 
-  testthat::expect_type(formula,
-                        type = "language"
-  )
-
-  criterion_name <- paste(formula)[2]
+  if (!criterion_name %in% names(data)){
+    stop(paste0("Criterion variable '", criterion_name, "' was not found in data"))
+  }
 
 
   # algorithm: ----
 
-  algorithm_valid <- c("ifan", "dfan")
-
-  testthat::expect_true(!is.null(algorithm),
-                        info = "algorithm is NULL"
-  )
-
-  testthat::expect_true(algorithm %in% algorithm_valid)
+  # algorithm_options <- c("ifan", "dfan")  # as (local) constant
+  testthat::expect_true(!is.null(algorithm), info = "algorithm is NULL")
+  testthat::expect_true(algorithm %in% algorithm_options)
 
 
   # sens.w: ----
 
-  testthat::expect_true(!is.null(sens.w),
-                        info = "sens.w is NULL"
-  )
-
+  testthat::expect_true(!is.null(sens.w), info = "sens.w is NULL")
   testthat::expect_lte(sens.w, expected = 1)
   testthat::expect_gte(sens.w, expected = 0)
 
 
   # goal: ----
 
-  goal_valid <- c("acc", "bacc", "wacc", "dprime", "cost")  # ToDo: Setting "dprime" does not seem to work!
+  # Current set of valid goals (for FFT selection):
+  if (!is.null(my.goal)){
+    valid_goal <- c(goal_options, my.goal)  # add my.goal (name) to default
+  } else { # default:
+    valid_goal <- goal_options  # use (global) constant
+  }
 
   if (is.null(goal)) { # goal NOT set by user:
 
-    if (!is.null(cost.outcomes) | !is.null(cost.cues)) { # use cost goal:
+    if (!is.null(cost.outcomes) | !is.null(cost.cues)) { # use 'cost' goal per default:
 
       goal <- "cost"
       if (!quiet) { cat(u_f_msg("\u2014 Setting 'goal = cost'\n")) }
 
-    } else { # use accuracy goal:
+    } else { # use accuracy defaults (bacc/wacc):
 
       if (enable_wacc(sens.w)){ # use wacc:
 
@@ -162,21 +178,18 @@ fftrees_create <- function(data = NULL,
     if (!quiet) {
       msg <- paste0("\u2014 User set 'goal = ", goal, "'\n")
       cat(u_f_msg(msg))
-      }
+    }
 
   } # if (is.null(goal)) else.
 
   # Verify goal:
-  testthat::expect_true(!is.null(goal),
-                        info = "goal is NULL"
-  )
+  testthat::expect_true(!is.null(goal), info = "goal is NULL")
+  testthat::expect_true(goal %in% valid_goal)
 
-  testthat::expect_true(goal %in% goal_valid)
-
-  if ((goal == "wacc") & (enable_wacc(sens.w) == FALSE)){ # correct to bacc:
+  if ((goal == "wacc") & (!enable_wacc(sens.w))){ # correct to "bacc":
 
     if (!quiet) {
-      cat(u_f_msg("\u2014 The goal was set to 'wacc', but 'sens.w = 0.50': Setting 'goal = bacc'\n"))
+      cat(u_f_hig("\u2014 User set 'goal = wacc', but 'sens.w = 0.50': Setting 'goal = bacc'\n"))
     }
     goal <- "bacc"
 
@@ -185,20 +198,20 @@ fftrees_create <- function(data = NULL,
 
   # goal.chase: ----
 
-  if (goal == "cost" & is.null(goal.chase)) { # use cost:
+  if (goal == "cost" & is.null(goal.chase)) { # set to 'cost' as well:
 
     goal.chase <- "cost"
 
     if (!quiet) { cat(u_f_msg("\u2014 Setting 'goal.chase = cost'\n")) }
 
-  } else if (is.null(goal.chase)) { # use accuracy:
+  } else if (is.null(goal.chase)) { # use accuracy defaults (bacc/wacc):
 
-    if (enable_wacc(sens.w)){ # use wacc:
+    if (enable_wacc(sens.w)){ # set to 'wacc':
 
       goal.chase <- "wacc"
       if (!quiet) { cat(u_f_msg("\u2014 Setting 'goal.chase = wacc'\n")) }
 
-    } else { # use bacc (as bacc == wacc):
+    } else { # set to 'bacc' (as bacc == wacc):
 
       goal.chase <- "bacc"
       if (!quiet) { cat(u_f_msg("\u2014 Setting 'goal.chase = bacc'\n")) }
@@ -210,21 +223,19 @@ fftrees_create <- function(data = NULL,
     if (!quiet) {
       msg <- paste0("\u2014 User set 'goal.chase = ", goal.chase, "'\n")
       cat(u_f_msg(msg))
-      }
+    }
 
   }
 
   # Verify goal.chase:
-  testthat::expect_true(!is.null(goal.chase),
-                        info = "goal.chase is NULL"
-  )
 
-  testthat::expect_true(goal.chase %in% goal_valid)
+  testthat::expect_true(!is.null(goal.chase), info = "goal.chase is NULL")
+  testthat::expect_true(goal.chase %in% valid_goal)
 
-  if ((goal.chase == "wacc") & (enable_wacc(sens.w) == FALSE)){ # correct to bacc:
+  if ((goal.chase == "wacc") & (!enable_wacc(sens.w))){ # correct to "bacc":
 
     if (!quiet) {
-      cat(u_f_msg("\u2014 The goal.chase was set to 'wacc', but 'sens.w = 0.50': Setting 'goal.chase = bacc'\n"))
+      cat(u_f_hig("\u2014 User set 'goal.chase = wacc', but 'sens.w = 0.50': Setting 'goal.chase = bacc'\n"))
     }
     goal.chase <- "bacc"
 
@@ -233,53 +244,121 @@ fftrees_create <- function(data = NULL,
 
   # goal.threshold: ----
 
-  # Note: Default is set to goal.threshold = "bacc" (in FFTrees.R).
+  if (is.null(goal.threshold)) { # use accuracy defaults (bacc/wacc):
 
-  # Use argument value from FFTrees(), but provide feedback:
-  if (!quiet) {
+    if (enable_wacc(sens.w)){ # set to 'wacc':
 
-    if (goal.threshold == "bacc"){ # report using bacc (i.e., the default):
+      goal.threshold <- "wacc"
+      if (!quiet) { cat(u_f_msg("\u2014 Setting 'goal.threshold = wacc'\n")) }
 
-      msg <- paste0("\u2014 Setting 'goal.threshold = ", goal.threshold, "'\n")
-      cat(u_f_msg(msg))
+    } else { # set to 'bacc' (as bacc == wacc):
 
-    } else { # report user setting:
-
-      msg <- paste0("\u2014 User set 'goal.threshold = ", goal.threshold, "'\n")
-      cat(u_f_msg(msg))
+      goal.threshold <- "bacc"
+      if (!quiet) { cat(u_f_msg("\u2014 Setting 'goal.threshold = bacc'\n")) }
 
     }
 
-  } # if (!quiet).
-
-
-  # Verify goal.threshold:
-  testthat::expect_true(!is.null(goal.threshold),
-                        info = "goal.threshold is NULL"
-  )
-
-  testthat::expect_true(goal.threshold %in% goal_valid)
-
-  if ((goal.threshold == "wacc") & (enable_wacc(sens.w) == FALSE)){ # correct to bacc:
+  } else { # feedback user setting:
 
     if (!quiet) {
-      cat(u_f_msg("\u2014 The goal.threshold was set to 'wacc', but 'sens.w = 0.50': Setting 'goal.threshold = bacc'\n"))
+      msg <- paste0("\u2014 User set 'goal.threshold = ", goal.threshold, "'\n")
+      cat(u_f_msg(msg))
     }
-    goal.threshold <- "bacc"
 
   }
 
 
-  # Verify consistency of sens.w and bacc_wacc choices: ----
+  # # OLD code start: ----
+  #
+  # # Note: Default was set to goal.threshold = "bacc" (in FFTrees.R).
+  #
+  # # Use argument value from FFTrees(), but provide feedback:
+  # if (!quiet) {
+  #
+  #   if (goal.threshold == "bacc"){ # report using bacc (i.e., the default):
+  #
+  #     msg <- paste0("\u2014 Setting 'goal.threshold = ", goal.threshold, "'\n")
+  #     cat(u_f_msg(msg))
+  #
+  #   } else { # report user setting:
+  #
+  #     msg <- paste0("\u2014 User set 'goal.threshold = ", goal.threshold, "'\n")
+  #     cat(u_f_msg(msg))
+  #
+  #   }
+  #
+  # } # if (!quiet).
+  #
+  #
+  # # OLD code end. ----
 
-  # If a non-default sens.w has been set, but 'wacc' is neither used in 'goal' nor in 'goal.chase':
-  if ((enable_wacc(sens.w)) & (goal != "wacc") & (goal.chase != "wacc")){ # provide feedback:
+
+  # Verify goal.threshold:
+
+  testthat::expect_true(!is.null(goal.threshold), info = "goal.threshold is NULL")
+  testthat::expect_true(goal.threshold %in% valid_goal)
+
+  if ((goal.threshold == "wacc") & (!enable_wacc(sens.w))){ # correct to "bacc":
 
     if (!quiet) {
-      msg <- paste0("You set sens.w = ", sens.w, ": Did you mean to set 'goal' or 'goal.chase' to 'wacc'?\n")
-      cat(u_f_msg(msg))
+      cat(u_f_hig("\u2014 User set 'goal.threshold = wacc', but 'sens.w = 0.50': Setting 'goal.threshold = bacc'\n"))
+    }
+    goal.threshold <- "bacc"
+  }
+
+  if (goal.threshold == "cost") { # note that this only makes sense for outcome costs:
+
+    if (!quiet) {
+      cat(u_f_hig("Optimizing cue thresholds for 'cost' only uses 'cost.outcomes', as 'cost.cues' are constant per cue.\n"))
+    }
+  }
+
+
+  # my.goal and my.goal.fun: ----
+
+  if (!is.null(my.goal)){
+
+    testthat::expect_true(is.character(my.goal), info = "Provided 'my.goal' is not of type 'character'")
+    testthat::expect_true(length(my.goal) == 1,  info = "Provided 'my.goal' is not of length 1")
+    testthat::expect_true(is.function(my.goal.fun),  info = "Provided 'my.goal.fun' is not of type 'function'")
+
+    # my.goal.fun must only use 4 freq arguments:
+    my_goal_arg_valid <- c("hi", "fa", "mi", "cr")
+    fn_arg_names <- names(formals(my.goal.fun))
+    # print(fn_arg_names)  # 4debugging
+
+    if (any(fn_arg_names %in% my_goal_arg_valid == FALSE)){
+
+      invalid_args <- setdiff(fn_arg_names, my_goal_arg_valid)
+      invalid_avec <- paste(invalid_args, collapse = ", ")
+
+      stop("my.goal.fun must contain 4 arguments (hi, fa, mi, cr), but not ", invalid_avec)
     }
 
+    if (any(my_goal_arg_valid %in% fn_arg_names == FALSE)){
+
+      missing_args <- setdiff(my_goal_arg_valid, fn_arg_names)
+      missing_avec <- paste(missing_args, collapse = ", ")
+      if (length(missing_args) < 2) {be <- "is"} else { be <- "are"}
+
+      message("my.goal.fun usually contains 4 arguments (hi, fa, mi, cr), but (", missing_avec, ") ", be, " missing")
+    }
+
+  } # if (my.goal).
+
+
+  cur_goals <- c(goal, goal.chase, goal.threshold)  # IFF all goals are set.
+
+
+  # Verify consistency of sens.w and bacc_wacc choices: ----
+
+  # If a non-default sens.w has been set, but 'wacc' is not a goal:
+  if ((enable_wacc(sens.w)) & (!"wacc" %in% cur_goals)) { # provide feedback:
+
+    if (!quiet) {
+      msg <- paste0("You set 'sens.w = ", sens.w, "': Did you mean to set a goal to 'wacc'?\n")
+      cat(u_f_hig(msg))
+    }
   }
 
 
@@ -327,74 +406,91 @@ fftrees_create <- function(data = NULL,
 
   }
 
-  testthat::expect_true(!is.null(max.levels),
-                        info = "max.levels is NULL"
-  )
-
-  testthat::expect_true(max.levels %in% 1:6,
-                        info = "max.levels must be an integer between 1 and 6"
-  )
+  testthat::expect_true(!is.null(max.levels), info = "max.levels is NULL")
+  testthat::expect_true(max.levels %in% 1:6, info = "max.levels must be an integer between 1 and 6")
 
 
   # cost.outcomes: ----
 
-  if (!is.null(cost.outcomes) & goal != "cost") {
-    message("You specified cost.outcomes, but goal = '", goal, "' (not 'cost')\nFFT creation will ignore cost.outcomes, but report them in tree statistics.")
-  }
-
-  if (is.null(cost.outcomes)) { # use defaults:
-
-    cost.outcomes <- list(hi = 0, mi = 1, fa = 1, cr = 0)
+  if (!is.null(cost.outcomes)) { # A: user set cost.outcomes:
 
     if (!quiet) {
-      cat(u_f_msg("\u2014 Setting 'cost.outcomes = list(hi = 0, mi = 1, fa = 1, cr = 0)'\n"))
+
+      cos <- paste(unlist(cost.outcomes), collapse = " ")
+      msg <- paste0("\u2014 User set 'cost.outcomes' = (", cos, ")\n")
+      cat(u_f_msg(msg))
+
+      if (!"cost" %in% cur_goals){
+        msg_2 <- paste0("Specified 'cost.outcomes', but no goal = 'cost':\nFFT creation will ignore costs, but report cost statistics.\n")
+        cat(u_f_hig(msg_2))
+      }
+
     }
+
+  } else { # B: use default cost.outcomes:
+
+    # cost.outcomes <- list(hi = 0, fa = 1, mi = 1, cr = 0)  # default values (analogous to accuracy: r = -1)
+    cost.outcomes <- cost_outcomes_default  # use global default
+
+    if (!quiet) {
+      cos <- paste(unlist(cost.outcomes), collapse = " ")
+      msg <- paste0("\u2014 Using default 'cost.outcomes' = (", cos, ")\n")
+      cat(u_f_msg(msg))
+    }
+
   }
 
-  testthat::expect_true(!is.null(cost.outcomes),
-                        info = "cost.outcomes is NULL"
-  )
-
-  testthat::expect_type(cost.outcomes,
-                        type = "list"
-                        # info = "cost.outcomes must be a list in the form list(hi = x, mi = x, fa = x, cr = x)"
-  )
-
-  testthat::expect_true(all(names(cost.outcomes) %in% c("hi", "mi", "fa", "cr")),
-                        info = "cost.outcomes must be a list in the form list(hi = x, mi = x, fa = x, cr = x)"
-  )
+  # Verify cost.outcomes:
+  testthat::expect_true(!is.null(cost.outcomes), info = "cost.outcomes is NULL")
+  testthat::expect_type(cost.outcomes, type = "list")
+  testthat::expect_true(all(names(cost.outcomes) %in% c("hi", "fa", "mi", "cr")),
+                        info = "cost.outcomes must be a list in the form list(hi = a, fa = b, mi = c, cr = d)")
 
 
   # cost.cues: ----
 
-  if (!is.null(cost.cues) & goal != "cost") {
-    message("You specified cost.cues, but goal = '", goal, "' (not 'cost'):\nFFT creation will ignore cost.cues, but report them in tree statistics.")
+  if (!is.null(cost.cues)) { # A: user set cost.cues:
+
+    if (!quiet) {
+
+      ccs <- paste(unlist(cost.cues), collapse = " ")
+      msg <- paste0("\u2014 User set 'cost.cues' = (", ccs, ")\n")
+      cat(u_f_msg(msg))
+
+      if (!"cost" %in% cur_goals){
+        msg_2 <- paste0("Specified 'cost.cues', but no goal = 'cost':\nFFT creation will ignore costs, but report cost statistics.\n")
+        cat(u_f_hig(msg_2))
+      }
+
+    }
+
+  } else { # B: use default cost.cues:
+
+    if (!quiet) {
+      msg <- paste0("\u2014 Using default 'cost.cues' = (", cost_cues_default, " per cue)\n")
+      cat(u_f_msg(msg))
+    }
+
   }
 
-  if ((!quiet) & (!is.null(cost.cues))) {
-    cat(u_f_msg("\u2014 Setting list of 'cost.cues'\n"))
-  }
-
-  # Append cost.cues (for all cues in data):
+  # Append cost.cues (to all cues in data):
   cost.cues <- cost_cues_append(formula,
                                 data,
-                                cost.cues = cost.cues
-                                )
+                                cost.cues = cost.cues)
   # str(cost.cues)  # 4debugging
 
+  # Verify cost.cues:
   testthat::expect_true(!is.null(cost.cues), info = "cost.cues is NULL")
-
   testthat::expect_type(cost.cues, type = "list")
-
   testthat::expect_true(all(names(cost.cues) %in% names(data)),
                         info = "At least one of the values specified in cost.cues is not in data")
 
 
   # stopping.rule: ----
 
-  valid_stopping_rules <- c("exemplars", "levels")
+  stopping_rule_valid <- c("exemplars", "levels")
 
-  testthat::expect_true(stopping.rule %in% valid_stopping_rules)
+  testthat::expect_true(stopping.rule %in% stopping_rule_valid)
 
 
   # stopping.par: ----
@@ -405,10 +501,7 @@ fftrees_create <- function(data = NULL,
 
   # decision.labels: ----
 
-  testthat::expect_true(!is.null(decision.labels),
-                        info = "decision.labels is NULL"
-  )
-
+  testthat::expect_true(!is.null(decision.labels), info = "decision.labels is NULL")
   testthat::expect_equal(length(decision.labels), 2)
 
 
@@ -418,7 +511,7 @@ fftrees_create <- function(data = NULL,
 
 
 
-  # 2. Data quality checks: ------
+  # 2. Verify criterion and data: ------
 
   # Criterion is in data: ----
 
@@ -543,30 +636,40 @@ fftrees_create <- function(data = NULL,
       test = data.test
     ),
 
-    # Parameters:
+    # Store parameters (as list):
     params = list(
       algorithm = algorithm,
+      #
       goal = goal,
       goal.chase = goal.chase,
       goal.threshold = goal.threshold,
+      #
+      max.levels = max.levels,
       numthresh.method = numthresh.method,
       numthresh.n = numthresh.n,
+      repeat.cues = repeat.cues,
       stopping.rule = stopping.rule,
       stopping.par = stopping.par,
+      #
       sens.w = sens.w,
-      max.levels = max.levels,
+      #
       cost.outcomes = cost.outcomes,
       cost.cues = cost.cues,
-      decision.labels = decision.labels,
+      #
       main = main,
-      repeat.cues = repeat.cues,
-      quiet = quiet,
+      decision.labels = decision.labels,
+      #
+      my.goal = my.goal,
+      my.goal.fun = my.goal.fun,
       my.tree = my.tree,
+      #
+      do.comp = do.comp,
       do.lr = do.lr,
       do.cart = do.cart,
       do.svm = do.svm,
       do.rf = do.rf,
-      do.comp = do.comp
+      #
+      quiet = quiet
     ),
 
 
@@ -576,33 +679,21 @@ fftrees_create <- function(data = NULL,
       train = data.frame(
         algorithm = NA,
         n = NA,
-        hi = NA,
-        fa = NA,
-        mi = NA,
-        cr = NA,
-        sens = NA,
-        spec = NA,
-        far = NA,
-        ppv = NA,
-        npv = NA,
-        acc = NA,
-        bacc = NA, cost = NA, cost_dec = NA, cost_cue = NA
+        hi = NA, fa = NA, mi = NA, cr = NA,
+        sens = NA, spec = NA, far = NA,
+        ppv = NA, npv = NA,
+        acc = NA, bacc = NA,
+        cost = NA, cost_dec = NA, cost_cue = NA
       ),
 
       test = data.frame(
         algorithm = NA,
         n = NA,
-        hi = NA,
-        fa = NA,
-        mi = NA,
-        cr = NA,
-        sens = NA,
-        spec = NA,
-        far = NA,
-        ppv = NA,
-        npv = NA,
-        acc = NA,
-        bacc = NA, cost = NA, cost_dec = NA, cost_cue = NA
+        hi = NA, fa = NA, mi = NA, cr = NA,
+        sens = NA, spec = NA, far = NA,
+        ppv = NA, npv = NA,
+        acc = NA, bacc = NA,
+        cost = NA, cost_dec = NA, cost_cue = NA
       ),
 
       models = list(lr = NULL, cart = NULL, rf = NULL, svm = NULL)

@@ -9,10 +9,12 @@ fftrees_threshold_factor_grid(
   cue_v = NULL,
   criterion_v = NULL,
   directions = "=",
-  sens.w = 0.5,
-  cost.outcomes = list(hi = 0, fa = 1, mi = 1, cr = 0),
-  cost.each = 0,
-  goal.threshold = "bacc"
+  goal.threshold = NULL,
+  sens.w = NULL,
+  my.goal = NULL,
+  my.goal.fun = NULL,
+  cost.each = NULL,
+  cost.outcomes = NULL
 )
 }
 \arguments{
@@ -24,20 +26,27 @@ fftrees_threshold_factor_grid(
 
 \item{directions}{character. Character vector of threshold directions to consider.}
 
-\item{sens.w}{numeric. Sensitivity weight parameter (from 0 to 1, for computing \code{wacc}).
+\item{goal.threshold}{A character string indicating the criterion to maximize when \emph{optimizing cue thresholds}:
+\code{"acc"} = overall accuracy, \code{"bacc"} = balanced accuracy, \code{"wacc"} = weighted accuracy,
+\code{"dprime"} = discriminability, \code{"cost"} = costs (based only on \code{cost.outcomes}, as \code{cost.cues} are constant per cue).
+Default: \code{goal.threshold = "bacc"}.}
+
+\item{sens.w}{numeric. Sensitivity weight parameter (from \code{0} to \code{1}, for computing \code{wacc}).
 Default: \code{sens.w = .50}.}
 
+\item{my.goal}{Name of an optional, user-defined goal (as character string). Default: \code{my.goal = NULL}.}
+
+\item{my.goal.fun}{User-defined goal function (with 4 arguments \code{hi fa mi cr}). Default: \code{my.goal.fun = NULL}.}
+
+\item{cost.each}{numeric. A constant cost value to add to each value (e.g., the cost of the cue).}
+
 \item{cost.outcomes}{list. A list of length 4 with names 'hi', 'fa', 'mi', and 'cr' specifying
-the costs of a hit, false alarm, miss, and correct rejection, respectively.
+the costs of a hit, false alarm, miss, and correct rejection, respectively, in some common currency.
 For instance, \code{cost.outcomes = listc("hi" = 0, "fa" = 10, "mi" = 20, "cr" = 0)} means that
-a false alarm and miss cost 10 and 20, respectively, while correct decisions have no cost.}
-
-\item{cost.each}{numeric.}
-
-\item{goal.threshold}{character.}
+a false alarm and miss cost \code{10} and \code{20} units, respectively, while correct decisions have no cost.}
 }
 \value{
-A data frame containing accuracy statistics for several factor thresholds
+A data frame containing accuracy statistics for factor thresholds.
 }
 \description{
 Perform a grid search over factor and return accuracy statistics for a given factor cue

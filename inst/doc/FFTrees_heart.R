@@ -67,7 +67,7 @@ names(heart.fft)
 #  predict(heart.fft,
 #          newdata = heartdisease)
 
-## ----fft-my-tree--------------------------------------------------------------
+## ----fft-my-tree, results = 'hide'--------------------------------------------
 # Create an FFT manually (from description):
 my.heart.fft <- FFTrees(formula = diagnosis ~.,
                         data = heart.train,
@@ -78,5 +78,5 @@ my.heart.fft <- FFTrees(formula = diagnosis ~.,
                                    If age <= 35, predict False, otherwise, predict True.")
 
 ## ----plot-my-fft, fig.width = 6.5, fig.height = 6-----------------------------
-plot(my.heart.fft)
+plot(my.heart.fft, data = "train")
 

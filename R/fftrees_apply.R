@@ -1,16 +1,19 @@
 #' Apply an FFT to data and generate accuracy statistics
 #'
 #' @description \code{fftrees_apply} applies a fast-and-frugal tree (FFT, as an \code{FFTrees} object)
-#' to a dataset and generates corresponding accuracy statistics.
+#' to a dataset (of type \code{mydata}) and generates corresponding accuracy statistics
+#' (on cue levels and for trees).
 #'
 #' \code{fftrees_apply} is called internally by the main \code{\link{FFTrees}} function
-#' (with \code{mydata = "train"} and --- if test data exists --- \code{mydata = "test"})
-#' and when predicting outcomes for new data by \code{\link{predict.FFTrees}}.
+#' (with \code{mydata = "train"} and --- if test data exists --- \code{mydata = "test"}).
+#' Alternatively, \code{fftrees_apply} is called when predicting outcomes for new data
+#' by \code{\link{predict.FFTrees}}.
 #'
-#' @param x An FFT to apply (as an \code{FFTrees} object).
+#' @param x An object with FFT definitions which are to be applied to current data (as an \code{FFTrees} object).
 #' @param mydata The type of data to which the FFT should be applied (as character, either \code{"train"} or \code{"test"}).
 #' @param newdata New data to which an FFT should be applied (as a data frame).
-#' @param allNA.pred What should be predicted if all cue values in tree are NA (as logical)?
+#'
+#' @param allNA.pred What should be predicted if all cue values in tree are \code{NA} (as logical)?
 #' Default: \code{allNA.pred = FALSE}.
 #'
 #' @return A modified \code{FFTrees} object (with lists in \code{x$trees} containing information on FFT decisions and statistics).
@@ -34,7 +37,9 @@ fftrees_apply <- function(x,
 
   # Verify inputs: ----
 
+  testthat::expect_s3_class(x, class = "FFTrees")
   testthat::expect_true(mydata %in% c("train", "test"))
+
 
   # Provide user feedback: ----
 
@@ -64,7 +69,7 @@ fftrees_apply <- function(x,
 
     }
 
-    valid_train_test_data(train_data = x$data$train, test_data = x$data$test)  # verify (without consequences)
+    verify_train_test_data(train_data = x$data$train, test_data = x$data$test)  # verify (without consequences)
 
     data <- x$data$test
 
@@ -78,13 +83,15 @@ fftrees_apply <- function(x,
 
   # Extract key parts from FFTrees object x:
   n_trees <- x$trees$n
-  tree_df <- x$trees$definition  # (as df)
-  # print(tree_df)  # 4debugging
+  # tree_defs <- x$trees$definition  # df (from object x)
+  tree_defs <- get_fft_definitions(x = x)  # df (using helper fn)
+  # print(tree_defs)  # 4debugging
+
 
   # Setup outputs: ------
 
   #  1. [decisions_ls]: ----
-  #     A list containing tibbles, with 1 column per tree and 1 row per case:
+  #     A list containing tibbles, with 1 element per tree and 1 row per case:
 
   decisions_ls <- lapply(1:n_trees, FUN = function(i) {
 
@@ -108,6 +115,44 @@ fftrees_apply <- function(x,
   level_stats_ls <- vector("list", length = n_trees)
 
 
+  # 3. Critical stats [critical_stats_v]: ----
+  #    Define the set of critical stats (as vector):
+
+  if (!is.null(x$params$my.goal)){ # include my.goal:
+
+    critical_stats_v <- c(
+      # freq:
+      "n",  "hi", "fa", "mi", "cr",
+      # cond prob:
+      "sens", "spec",  "far",  "ppv", "npv",
+      # from prob:
+      "dprime",
+      # accuracy:
+      "acc", "bacc", "wacc",
+      # my.goal:
+      x$params$my.goal,       # include my.goal (name and value)
+      # costs:
+      "cost_dec"  # Note: "cost_cue" and "cost" are added below.
+    )
+
+  } else { # set critical stats default:
+
+    critical_stats_v <- c(
+      # freq:
+      "n",  "hi", "fa", "mi", "cr",
+      # cond prob:
+      "sens", "spec",  "far",  "ppv", "npv",
+      # from prob:
+      "dprime",
+      # accuracy:
+      "acc", "bacc", "wacc",
+      # my.goal:                    (NO my.goal here)
+      # costs:
+      "cost_dec"  # Note: "cost_cue" and "cost" are added below.
+    )
+
+  }
+
   # LOOPs: ------
 
   #  Loop 1 (over trees): ----
@@ -116,17 +161,52 @@ fftrees_apply <- function(x,
 
     # print(paste0("tree ", tree_i, ":"))  # 4debugging
 
-    # Extract definition of current tree:
-    cue_v   <- trimws(unlist(strsplit(tree_df$cues[tree_i], ";")))
-    class_v <- trimws(unlist(strsplit(tree_df$classes[tree_i], ";")))
-    exit_v  <- trimws(unlist(strsplit(tree_df$exits[tree_i], ";")))
-    threshold_v <- trimws(unlist(strsplit(tree_df$thresholds[tree_i], ";")))
-    direction_v <- trimws(unlist(strsplit(tree_df$directions[tree_i], ";")))
+    # NEW code start: ----
 
-    # Verify current tree definition: +++ here now +++
+    # Get ID of tree_defs$tree for tree_i value (to consider all trees in turn):
+    tree_i_id <- tree_defs$tree[tree_i]
+    # print(paste0("\u2014 Current tree_i = ", tree_i, " corresponds to tree_i_id = ", tree_i_id)) # 4debugging
+
+    # print(tree_defs)  # 4debugging
+
+    # Read FFT definition (with 1 row per tree) into df (with 1 row per node):
+    cur_fft_df <- read_fft_df(ffts_df = tree_defs, tree = tree_i_id)
+    # print(cur_fft_df)  # 4debugging
+
+    # Get variables of cur_fft_df (as vectors):
+    class_v     <- cur_fft_df$class
+    cue_v       <- cur_fft_df$cue
+    direction_v <- cur_fft_df$direction
+    threshold_v <- cur_fft_df$threshold
+    exit_v      <- cur_fft_df$exit
+
+    # NEW code end. ----
+
+    # +++ here now +++
+
+    # # OLD code start: ----
+    #
+    # # Extract definition of current tree:
+    # class_o     <- trimws(unlist(strsplit(tree_defs$classes[tree_i], ";")))
+    # cue_o       <- trimws(unlist(strsplit(tree_defs$cues[tree_i], ";")))
+    # direction_o <- trimws(unlist(strsplit(tree_defs$directions[tree_i], ";")))
+    # threshold_o <- trimws(unlist(strsplit(tree_defs$thresholds[tree_i], ";")))
+    # exit_o      <- trimws(unlist(strsplit(tree_defs$exits[tree_i], ";")))
+    #
+    # # Check: Verify equality of OLD and NEW code results:
+    # if (!all.equal(class_o, class_v)) { stop("OLD vs. NEW: class diff") }
+    # if (!all.equal(cue_o, cue_v)) { stop("OLD vs. NEW: cue diff") }
+    # if (!all.equal(direction_o, direction_v)) { stop("OLD vs. NEW: direction diff") }
+    # if (!all.equal(threshold_o, threshold_v)) { stop("OLD vs. NEW: threshold diff") }
+    # if (!all.equal(exit_o, exit_v)) { stop("OLD vs. NEW: exit diff") }
+    #
+    # # OLD code end. ----
+
+
+    # Verify current tree definition:
     verify_all_cues_in_data(cue_v, data)  # Do all cues occur (as names) in current data?
 
-    level_n <- as.integer(tree_df$nodes[tree_i])
+    level_n <- as.integer(tree_defs$nodes[tree_i])
     # print(paste0("- level_n = ", level_n))  # 4debugging
 
     decisions_df <- decisions_ls[[tree_i]]
@@ -154,11 +234,12 @@ fftrees_apply <- function(x,
     )
 
 
-    # Prepare data structures:
+    # Prepare data structures: ------
 
-    # level_stats_i contains cumulative level statistics:
+    # level_stats_i collect cumulative level statistics: ----
     level_stats_i <- data.frame(
-      tree = tree_i,
+      tree = tree_i,     # NOTE: Assumes that current tree ID tree_i_id == counter variable tree_i.
+      # tree = tree_i_id,  # NOTE: The current tree ID is tree_i_id, NOT the counter variable tree_i.
       level = 1:level_n,
       cue = cue_v,
       class = class_v,
@@ -168,20 +249,7 @@ fftrees_apply <- function(x,
       stringsAsFactors = FALSE
     )
 
-    # Define critical stats:
-    critical_stats_v <- c(
-      # frequencies:
-      "n", "hi", "fa", "mi", "cr",
-      # conditional probabilities:
-      "sens", "spec", "far",  "ppv", "npv",
-      # derived from probabilities:
-      "dprime",  # enable goal = "dprime" by including in tree stats
-      # accuracy:
-      "acc", "bacc", "wacc",
-      # costs:
-      "cost_dec")
-
-    # Add stat names to level_stats_i:
+    # Add stats names to level_stats_i: ----
     level_stats_i[critical_stats_v] <- NA
     level_stats_i$cost_cue <- NA
 
@@ -285,8 +353,8 @@ fftrees_apply <- function(x,
       decisions_df$cost_cue[classify_now] <- cost_cue_level_cum[level_i]
 
       decisions_df$cost_decision[decisions_df$criterion == TRUE  & decisions_df$decision == TRUE]  <- x$params$cost.outcomes$hi
-      decisions_df$cost_decision[decisions_df$criterion == TRUE  & decisions_df$decision == FALSE] <- x$params$cost.outcomes$mi
       decisions_df$cost_decision[decisions_df$criterion == FALSE & decisions_df$decision == TRUE]  <- x$params$cost.outcomes$fa
+      decisions_df$cost_decision[decisions_df$criterion == TRUE  & decisions_df$decision == FALSE] <- x$params$cost.outcomes$mi
       decisions_df$cost_decision[decisions_df$criterion == FALSE & decisions_df$decision == FALSE] <- x$params$cost.outcomes$cr
 
       decisions_df$cost <- decisions_df$cost_cue + decisions_df$cost_decision
@@ -294,24 +362,32 @@ fftrees_apply <- function(x,
 
       # Get cumulative level stats: ----
 
+      non_na_decision_ix <- !is.na(decisions_df$decision)
+
       my_level_stats_i <- classtable(
-        prediction_v = decisions_df$decision[!is.na(decisions_df$decision)],
-        criterion_v = decisions_df$criterion[!is.na(decisions_df$decision)],
+        prediction_v = decisions_df$decision[non_na_decision_ix],
+        criterion_v = decisions_df$criterion[non_na_decision_ix],
+        #
         sens.w = x$params$sens.w,
-        cost.v = decisions_df$cost_cue[!is.na(decisions_df$decision)],
-        cost.outcomes = x$params$cost.outcomes
+        #
+        cost.outcomes = x$params$cost.outcomes,              # outcome cost (per outcome type)
+        cost_v = decisions_df$cost_cue[non_na_decision_ix],  # cue cost (per decision at level)
+        #
+        my.goal = x$params$my.goal,
+        my.goal.fun = x$params$my.goal.fun
       )
 
       # level_stats_i$costc <- sum(cost_cue[,tree_i], na.rm = TRUE)
-      level_stats_i[level_i, critical_stats_v] <- my_level_stats_i[, critical_stats_v]
+      level_stats_i[level_i, critical_stats_v] <- my_level_stats_i[ , critical_stats_v]
 
 
       # Add cue cost and total cost: ----
 
-      level_stats_i$cost_cue[level_i] <- mean(decisions_df$cost_cue[!is.na(decisions_df$decision)])
+      level_stats_i$cost_cue[level_i] <- mean(decisions_df$cost_cue[non_na_decision_ix])
       level_stats_i$cost[level_i]     <- level_stats_i$cost_cue[level_i] + level_stats_i$cost_dec[level_i]
 
-    }
+    } # Loop 2: level_i.
+
 
     # Add final tree results to level_stats_ls and decisions_ls: ----
 
@@ -319,20 +395,20 @@ fftrees_apply <- function(x,
 
     decisions_ls[[tree_i]] <- decisions_df[, names(decisions_df) %in% c("current_decision", "current_cue_values") == FALSE]
 
-  }
+  } # Loop 1: tree_i.
+
 
   # Aggregate results: ----
 
-  # Combine all levelstats into one dataframe:
+  # Combine all level_stats into one data.frame:
   level_stats <- do.call("rbind", args = level_stats_ls)
 
-  # 3. [tree_stats]: ----
+  #  3. Cumulative tree stats [tree_stats]: ----
   #  One row per tree definitions and statistics:
-  # CUMULATIVE TREE STATS:
 
-  helper <- paste(level_stats$tree, level_stats$level, sep = ".")
+  helper  <- paste(level_stats$tree, level_stats$level, sep = ".")
   maxlevs <- paste(rownames(tapply(level_stats$level, level_stats$tree, FUN = which.max)), tapply(level_stats$level, level_stats$tree, FUN = which.max), sep = ".")
-  tree_stats <- cbind(tree_df[, c("tree")], level_stats[helper %in% maxlevs, c(critical_stats_v, "cost_cue", "cost")])
+  tree_stats <- cbind(tree_defs[ , c("tree")], level_stats[helper %in% maxlevs, c(critical_stats_v, "cost_cue", "cost")])
   names(tree_stats)[1] <- "tree"
   rownames(tree_stats) <- 1:nrow(tree_stats)
 
@@ -344,25 +420,25 @@ fftrees_apply <- function(x,
     max_lookups <- nrow(data) * length(x$cue_names)
     n_lookups   <- sum(decisions_ls[[tree_i]]$levelout)
 
-    tree_stats$pci[tree_i] <- 1 - n_lookups / max_lookups
+    tree_stats$pci[tree_i] <- 1 - (n_lookups / max_lookups)
     tree_stats$mcu[tree_i] <- mean(decisions_ls[[tree_i]]$levelout)
 
   }
 
 
-  # Add results to trees in x: ----
+  # Add results to x$trees (given mydata type): ----
 
   x$trees$stats[[mydata]]       <- tibble::as_tibble(tree_stats)
   x$trees$level_stats[[mydata]] <- tibble::as_tibble(level_stats)
   x$trees$decisions[[mydata]]   <- decisions_ls
 
 
-  # Update best tree values: ----
+  # Update best tree IDs: ----
 
   if (mydata == "train"){
-    x$trees$best$train <- select_best_tree(x, data = mydata, goal = x$params$goal)
+    x$trees$best$train <- get_best_tree(x, data = mydata, goal = x$params$goal)
   } else if (mydata == "test"){
-    x$trees$best$test <- select_best_tree(x, data = mydata, goal = x$params$goal)
+    x$trees$best$test <- get_best_tree(x, data = mydata, goal = x$params$goal)
   }
 
 

@@ -20,37 +20,61 @@ library(FFTrees)
 knitr::kable(head(heartdisease[c("sex", "age", "thal", "cp", "ca", 
                                  "diagnosis")]))
 
-## ----fft-description----------------------------------------------------------
+## ----my-tree-describe-fft-1---------------------------------------------------
 in_words <- "If sex = 1, predict True.
              If age < 45, predict False. 
              If thal = {fd, normal}, predict True. 
              Otherwise, predict False."
 
-## ----create-my-tree, message = FALSE------------------------------------------
+## ----my-tree-create-1, message = FALSE, results = 'hide'----------------------
 # Create FFTrees from a verbal FFT description (as my.tree): 
-my_fft <- FFTrees(diagnosis ~.,
+my_fft <- FFTrees(formula = diagnosis ~.,
                   data = heartdisease,
                   main = "My 1st FFT", 
                   my.tree = in_words)
 
-## ----plot-my-tree, fig.cap = "**Figure 1**: An FFT manually constructed using the `my.tree` argument of `FFTrees()`.", fig.show = 'hold'----
+## ----my-tree-plot-1, fig.cap = "**Figure 1**: An FFT manually constructed using the `my.tree` argument of `FFTrees()`.", fig.show = 'hold'----
 # Inspect FFTrees object:
-plot(my_fft)
+plot(my_fft, data = "train")
 
-## ----verbal-spec-fft, fig.cap = "**Figure 2**: Another FFT manually constructed using the `my.tree` argument of `FFTrees()`.", fig.show = 'hold'----
-# Create 2nd FFTrees from an alternative FFT description (as my.tree): 
-my_fft_2 <- FFTrees(diagnosis ~.,
+## ----my-tree-def-1------------------------------------------------------------
+# Get FFT definition(s):
+my_fft$trees$definitions
+
+## ----my-tree-fft-2-create, eval = FALSE, message = FALSE, results = 'hide'----
+#  # Create a 2nd FFT from an alternative FFT description (as my.tree):
+#  my_fft_2 <- FFTrees(formula = diagnosis ~.,
+#                      data = heartdisease,
+#                      main = "My 2nd FFT",
+#                      my.tree = "If thal = {rd,fd}, predict True.
+#                                 If cp != {a}, predict False.
+#                                 If ca > 1, predict True.
+#                                 Otherwise, predict False.")
+
+## ----my-tree-fft-2-create-2, eval = TRUE, message = FALSE, results = 'hide'----
+# Create a 2nd FFT from an alternative FFT description (as my.tree): 
+my_fft_2 <- FFTrees(formula = diagnosis ~.,
                     data = heartdisease, 
                     main = "My 2nd FFT", 
-                    my.tree = "If thal = {rd,fd}, predict True.
-                               If cp != {a}, predict False. 
-                               If ca > 1, predict True. 
-                               Otherwise, predict False.")
+                    my.tree = "If thal equals {rd,fd}, we shall say True.  
+                               If Cp differs from {a}, let's predict False.   
+                               If CA happens to exceed 1, we insist on True.  
+                               Else, give up and go away.") 
 
-# Inspect FFTrees object:
+## ----my-tree-fft-2-inwords----------------------------------------------------
+inwords(my_fft_2)
+
+## ----my-tree-plot-fft-2, fig.cap = "**Figure 2**: Another FFT manually constructed using the `my.tree` argument of `FFTrees()`.", fig.show = 'hold', collapse = TRUE----
+# Visualize FFT:
 plot(my_fft_2)
 
-## ----checking-my-tree, echo = FALSE, eval = FALSE-----------------------------
+# FFT definition:
+my_fft_2$trees$definitions
+# Note the flipped direction value for 2nd cue (exit = '0'):
+# 'if (cp  = a), predict 1' in the tree definition corresponds to 
+# 'if (cp != a), predict 0' in the my.tree description and plot.  
+
+## ----my-tree-checks-1, echo = FALSE, eval = FALSE-----------------------------
 #  # 1. FFT with 2 cues (final cue is categorical): ------
 #  
 #  fft_1 <- FFTrees(diagnosis ~.,
@@ -62,7 +86,7 @@ plot(my_fft_2)
 #  
 #  # inspect:
 #  fft_1$trees$definitions
-#  plot(fft_1)
+#  plot(fft_1)  # Note flipped direction for cue 1: exit = 0.
 #  fft_1
 #  inwords(fft_1)
 #  
@@ -121,7 +145,7 @@ plot(my_fft_2)
 #                   my.tree = "If sex = {female} true.",  # ignore otherwise/else part
 #                   main = "My test 4")
 #  
-#  plot(fft_4)
+#  plot(fft_4, n.per.icon = 50, what = "all", show.iconguide = TRUE)
 #  
 #  # Note:
 #  # - Warning that 'False' does not occur in specification, but FFT is valid and constructed.
@@ -164,7 +188,7 @@ tree_df$thresholds[5:8] <- "a; rd,fd; 0"  # modify order of thresholds according
 tree_df$tree <- 1:nrow(tree_df)           # adjust tree numbers
 # tree_df
 
-## ----fft-treedef-05, message = TRUE-------------------------------------------
+## ----fft-treedef-05, message = TRUE, results = 'hide'-------------------------
 # Create a modified FFTrees object y:
 y <- FFTrees(object = x,                  # use previous FFTrees object x
              tree.definitions = tree_df,  # but with new tree definitions
