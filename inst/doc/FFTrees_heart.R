@@ -11,7 +11,7 @@ knitr::opts_chunk$set(collapse = FALSE,
                       fig.align = 'center', 
                       fig.height = 6.0, 
                       fig.width  = 6.5, 
-                      out.width = "600px")
+                      out.width = "580px")
 
 ## ----pkgs, echo = FALSE, message = FALSE, results = 'hide'--------------------
 library(FFTrees)
@@ -59,24 +59,11 @@ plot(heart.fft, what = "tree")
 plot(heart.fft, what = "cues")
 
 ## ----fft-names----------------------------------------------------------------
-# Show the names of all of the outputs in heart.fft:
+# Show the names of all outputs in heart.fft:
 names(heart.fft)
 
 ## ----fft-predict, eval = FALSE------------------------------------------------
 #  # Predict classifications for a new dataset:
 #  predict(heart.fft,
 #          newdata = heartdisease)
-
-## ----fft-my-tree, results = 'hide'--------------------------------------------
-# Create an FFT manually (from description):
-my.heart.fft <- FFTrees(formula = diagnosis ~.,
-                        data = heart.train,
-                        data.test = heart.test,
-                        main = "My Heart FFT",
-                        my.tree = "If chol > 350, predict True. 
-                                   If cp != {a}, predict False. 
-                                   If age <= 35, predict False, otherwise, predict True.")
-
-## ----plot-my-fft, fig.width = 6.5, fig.height = 6-----------------------------
-plot(my.heart.fft, data = "train")
 

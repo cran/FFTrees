@@ -1,10 +1,17 @@
-test_that("train summary statistics are correct", {
+context("Verify level summary statistics")
+
+
+test_that("Train summary statistics are correct", {
+
+  # Create an FFTrees object:
   x <- FFTrees(diagnosis ~ .,
     data = heart.train,
-    data.test = heart.test
+    data.test = heart.test,
+    quiet = TRUE
   )
 
-  # mcu
+
+  # mcu:
 
   levelstats_mcu <- as.numeric(sapply(x$trees$decisions$train, FUN = function(x) {
     mean(x$levelout)
@@ -15,7 +22,7 @@ test_that("train summary statistics are correct", {
   testthat::expect_equal(levelstats_mcu, results_mcu)
 
 
-  # cost
+  # cost:
 
   levelstats_cost <- as.numeric(sapply(x$trees$decisions$train, FUN = function(x) {
     mean(x$cost)
@@ -24,4 +31,8 @@ test_that("train summary statistics are correct", {
   results_cost <- as.numeric(x$trees$stats$train$cost)
 
   testthat::expect_equal(levelstats_cost, results_cost)
+
 })
+
+
+# eof.

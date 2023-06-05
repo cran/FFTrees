@@ -47,20 +47,32 @@
 #'
 #' @param max.levels integer. The maximum number of nodes (or levels) considered for an FFT.
 #' As all combinations of possible exit structures are considered, larger values of \code{max.levels} will create larger sets of FFTs.
-#' @param numthresh.method character. How should thresholds for numeric cues be determined?
-#' \code{"o"} will optimize thresholds, while \code{"m"} will always use the median.
-#' @param numthresh.n integer. The number of numeric thresholds to try.
-#' @param repeat.cues logical. May cues occur multiple times within a tree?
+#'
+#' @param numthresh.method How should thresholds for numeric cues be determined (as character)?
+#' \code{"o"} will optimize thresholds (for \code{goal.threshold}), while \code{"m"} will use the median.
+#' Default: \code{numthresh.method = "o"}.
+#' @param numthresh.n The number of numeric thresholds to try (as integer).
+#' Default: \code{numthresh.n = 10}.
+#'
+#' @param repeat.cues May cues occur multiple times within a tree (as logical)?
 #' Default: \code{repeat.cues = TRUE}.
-#' A value of \code{0} rounds all possible thresholds to the nearest integer, \code{1} rounds to the nearest decade (.10), etc.
-#' @param stopping.par numeric. A numeric value indicating the parameter for the stopping rule.
-#' For stopping.rule \code{"levels"}, this is the number of levels.
-#' For stopping rule \code{"exemplars"}, this is the smallest percentage of exemplars allowed in the last level.
+#'
+#' @param stopping.rule A character string indicating the method to stop growing trees.
+#' Available options are:
+#' \itemize{
+#'   \item{\code{"exemplars"}: A tree grows until only a small proportion of unclassified exemplars remain;}
+#'   \item{\code{"levels"}: A tree grows until a certain level is reached;}
+#'   \item{\code{"statdelta"}: A tree grows until the change in the criterion statistic \code{goal.chase} exceeds some threshold level.
+#'   (This setting is currently experimental and includes the first level beyond threshold.
+#'   As tree statistics can be non-monotonic, this option may yield inconsistent results.)}
+#'   }
+#' All stopping methods use \code{stopping.par} to set a numeric threshold value.
+#' Default: \code{stopping.rule = "exemplars"}.
+#' @param stopping.par numeric. A numeric parameter indicating the criterion value for the current \code{stopping.rule}.
+#' For stopping.rule \code{"levels"}, this is the number of desired levels (as an integer).
+#' For stopping rule \code{"exemplars"}, this is the smallest proportion of exemplars allowed in the last level.
+#' For stopping.rule \code{"statdelta"}, this is the minimum required change (in the \code{goal.chase} value) to include a level.
 #' Default: \code{stopping.par = .10}.
-#' @param stopping.rule character. A character string indicating the method to stop growing trees. Available options are:
-#' \code{"levels"} means the tree grows until a certain level;
-#' \code{"exemplars"} means the tree grows until a certain number of unclassified exemplars remain;
-#' \code{"statdelta"} means the tree grows until the change in the criterion statistic is less than a specified level.
 #'
 #' @param sens.w A numeric value from \code{0} to \code{1} indicating how to weight
 #' sensitivity relative to specificity when optimizing \emph{weighted} accuracy (e.g., \code{goal = 'wacc'}).
@@ -75,7 +87,9 @@
 #' Cues in \code{data} that are not present in \code{cost.cues} are assumed to have no costs (i.e., a cost value of \code{0}).
 #'
 #' @param main string. An optional label for the dataset. Passed on to other functions, like \code{\link{plot.FFTrees}}, and \code{\link{print.FFTrees}}.
-#' @param decision.labels string. A vector of strings of length 2 indicating labels for negative and positive cases. E.g.; \code{decision.labels = c("Healthy", "Diseased")}.
+#' @param decision.labels A vector of strings of length 2 for the text labels for negative and positive decision/prediction outcomes
+#' (i.e., left vs. right, noise vs. signal, 0 vs. 1, respectively, as character).
+#' E.g.; \code{decision.labels = c("Healthy", "Diseased")}.
 #'
 #' @param my.goal The name of an optimization measure defined by \code{my.goal.fun} (as a character string).
 #' Example: \code{my.goal = "my_acc"} (see \code{my.goal.fun} for corresponding function).
@@ -96,17 +110,21 @@
 #' If specified, no new FFTs are being fitted (i.e., \code{algorithm} and functions for evaluating cues and creating FFTs are skipped).
 #' Instead, the tree definitions provided are used to re-evaluate the current \code{FFTrees} object on current data.
 #'
-#' @param do.comp,do.cart,do.lr,do.rf,do.svm logical. Should alternative algorithms be used for comparison?
-#' All options set to \code{TRUE} by default. Available options are:
-#' \code{cart} = regular (non-frugal) trees with \strong{rpart};
-#' \code{lr} = logistic regression with \strong{glm};
-#' \code{rf} = random forests with \strong{randomForest};
-#' \code{svm} = support vector machines with \strong{e1071}.
+#' @param do.comp,do.lr,do.cart,do.svm,do.rf Should alternative algorithms be used for comparison (as logical)?
+#' All options are set to \code{TRUE} by default. Available options correspond to:
+#' \itemize{
+#'   \item{\code{do.lr}: Logistic regression (LR, using \code{\link{glm}} from \strong{stats} with \code{family = "binomial"});}
+#'   \item{\code{do.cart}: Classification and regression trees (CART, using \code{rpart} from \strong{rpart});}
+#'   \item{\code{do.svm}: Support vector machines (SVM, using \code{svm} from \strong{e1071});}
+#'   \item{\code{do.rf}: Random forests (RF, using \code{randomForest} from \strong{randomForest}.}
+#' }
 #' Specifying \code{do.comp = FALSE} sets all available options to \code{FALSE}.
 #'
-#' @param quiet logical. Should progress reports be suppressed?
-#' Setting \code{quiet = FALSE} is helpful for diagnosing errors.
-#' Default: \code{quiet = FALSE} (i.e., show progress).
+#' @param quiet A list of 4 logical arguments: Should detailed progress reports be suppressed?
+#' Setting list elements to \code{FALSE} is helpful when diagnosing errors.
+#' Default: \code{quiet = list(ini = TRUE, fin = FALSE, mis = FALSE, set = TRUE)},
+#' for initial vs. final steps, missing cases, and parameter settings, respectively.
+#' Providing a single logical value sets all elements to \code{TRUE} or \code{FALSE}.
 #'
 #' @param comp,force,rank.method,rounding,store.data,verbose Deprecated arguments (unused or replaced, to be retired in future releases).
 #'
@@ -118,7 +136,8 @@
 #'   \item{trees}{A list of FFTs created, with further details contained in \code{n}, \code{best}, \code{definitions}, \code{inwords}, \code{stats}, \code{level_stats}, and \code{decisions}.}
 #'   \item{data}{The original training and test data (if available).}
 #'   \item{params}{A list of defined control parameters (e.g.; \code{algorithm}, \code{goal}, \code{sens.w}, as well as various thresholds, stopping rule, and cost parameters).}
-#'   \item{competition}{Models and classification statistics for competitive classification algorithms: Logistic regression, CART, random forests RF, and SVM.}
+#'   \item{competition}{Models and classification statistics for competitive classification algorithms:
+#'   Logistic regression (\code{lr}), classification and regression trees (\code{cart}), random forests (\code{rf}), and support vector machines (\code{svm}).}
 #'   \item{cues}{A list of cue information, with further details contained in \code{thresholds} and \code{stats}.}
 #' }
 #'
@@ -185,8 +204,8 @@ FFTrees <- function(formula = NULL,
                     numthresh.method = "o",
                     numthresh.n = 10,
                     repeat.cues = TRUE,
-                    stopping.par = .10,
                     stopping.rule = "exemplars",
+                    stopping.par = .10,
                     #
                     sens.w = .50,
                     #
@@ -210,7 +229,8 @@ FFTrees <- function(formula = NULL,
                     do.rf = TRUE,
                     do.svm = TRUE,
                     #
-                    quiet = FALSE,
+                    quiet = list(ini = TRUE, fin = FALSE, mis = FALSE, set = TRUE),  # a list of 4 Boolean args
+                    # ufeed = 2L,        # ToDo: user feedback level (from feed_types 0:3)
                     #
                     # Deprecated args:   Use instead:
                     comp = NULL,         # do.comp
@@ -259,8 +279,26 @@ FFTrees <- function(formula = NULL,
     stop("The 'max' and 'zigzag' algorithms are no longer supported.")
   }
 
+  if (is.logical(quiet)) {
+
+    quiet <- list(ini = quiet, fin = quiet, mis = quiet, set = quiet)
+
+    if (any(sapply(quiet, isFALSE))) {
+
+      cli::cli_alert_success("Set 'quiet' elements to '{quiet}'.")
+
+    }
+
+  }
+
 
   # B. Verify inputs: ------
+
+
+  # Provide user feedback: ----
+
+  # if (!quiet$ini) { cli::cli_h2("Get FFTrees:") }
+
 
   # object: ----
 
@@ -292,9 +330,14 @@ FFTrees <- function(formula = NULL,
 
     # Provide user feedback: ----
 
-    if (!quiet) {
-      msg <- paste0("Using the FFTrees object provided (and some of its key parameters).\n")
-      cat(u_f_hig(msg))
+    if (any(sapply(quiet, isFALSE))) {
+
+      msg <- paste0("Using the FFTrees object provided (and some of its key parameters).")
+
+      # cat(u_f_hig(msg, "\n"))
+
+      cli::cli_alert_info(msg)
+
     }
 
   }
@@ -308,7 +351,7 @@ FFTrees <- function(formula = NULL,
 
     # ToDo: Verify integrity of tree definitions:
     # 1. tree.definitions contains valid tree definitions (in appropriate format):
-    testthat::expect_true(verify_fft_definition(tree.definitions))
+    testthat::expect_true(verify_ffts_df(tree.definitions))
 
     # 2. tree.definitions fit to provided data (see verify_all_cues_in_data() in helper.R)
 
@@ -321,18 +364,11 @@ FFTrees <- function(formula = NULL,
   criterion_name <- get_lhs_formula(formula)
 
   if (!criterion_name %in% names(data)){
-    stop(paste0("Criterion variable '", criterion_name, "' was not found in data"))
+    stop(paste0("A criterion variable '", criterion_name, "' was not found in data"))
   }
 
 
   # C. Handle data: ------
-
-  # # Convert factor NA to new missing factor level:
-  #
-  # data <- data %>%
-  #   dplyr::mutate_if(is.factor, addNA)   %>%
-  #   dplyr::mutate_if(is.character, addNA)
-
 
   # Split training / test data: ----
 
@@ -349,10 +385,15 @@ FFTrees <- function(formula = NULL,
 
     # Provide user feedback: ----
 
-    if (!quiet) {
-      msg <- paste0("Successfully split data into a ", scales::percent(train.p), " (N = ", scales::comma(nrow(data)), ") training and ",
-                    scales::percent(1 - train.p), " (N = ", scales::comma(nrow(data.test)), ") test set.\n")
-      cat(u_f_fin(msg))
+    if (any(sapply(quiet, isFALSE))) {
+
+      msg <- paste0("Split data into a ", scales::percent(train.p), " (N = ", scales::comma(nrow(data)), ") training and ",
+                    scales::percent(1 - train.p), " (N = ", scales::comma(nrow(data.test)), ") test set.")
+
+      # cat(u_f_fin(msg), "\n")
+
+      cli::cli_alert_success(msg)
+
     }
 
   }
@@ -396,7 +437,7 @@ FFTrees <- function(formula = NULL,
                       do.rf   = do.rf,
                       do.comp = do.comp,
                       #
-                      quiet = quiet # stored in x$params$quiet
+                      quiet = quiet # as list, stored in x$params$quiet
   )
 
 
@@ -434,6 +475,11 @@ FFTrees <- function(formula = NULL,
   # 7. Fit competitive algorithms: ----
 
   x <- fftrees_fitcomp(x)
+
+
+  # Provide user feedback: ----
+
+  # if (!quiet$fin) { cli::cli_h2("Got FFTrees.") }
 
 
   # Output: ------

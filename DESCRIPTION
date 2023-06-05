@@ -1,8 +1,8 @@
 Package: FFTrees
 Type: Package
 Title: Generate, Visualise, and Evaluate Fast-and-Frugal Decision Trees
-Version: 1.9.0
-Date: 2023-02-08
+Version: 2.0.0
+Date: 2023-06-06
 Authors@R: c(person("Nathaniel", "Phillips", role = c("aut"), email = "Nathaniel.D.Phillips.is@gmail.com", comment = c(ORCID = "0000-0002-8969-7013")),
              person("Hansjoerg", "Neth", role = c("aut", "cre"), email = "h.neth@uni.kn", comment = c(ORCID = "0000-0001-5427-3141")),
              person("Jan", "Woike", role = "aut", comment = c(ORCID = "0000-0002-6816-121X")),
@@ -14,9 +14,8 @@ Description: Create, visualize, and test fast-and-frugal decision trees (FFTs) u
 LazyData: true
 Encoding: UTF-8
 Depends: R(>= 3.5.0)
-Imports: caret, rpart, randomForest, e1071, cli, graphics, progress,
-        scales, dplyr, knitr, magrittr, stringr, testthat, tibble,
-        tidyselect
+Imports: caret, rpart, randomForest, e1071, cli, dplyr, knitr,
+        magrittr, scales, stringr, testthat, tibble, tidyselect
 Suggests: rmarkdown, spelling
 License: CC0
 URL: https://CRAN.R-project.org/package=FFTrees,
@@ -26,10 +25,10 @@ VignetteBuilder: knitr
 RoxygenNote: 7.2.3
 Language: en-US
 NeedsCompilation: no
-Packaged: 2023-02-08 08:45:33 UTC; hneth
+Packaged: 2023-06-05 22:02:01 UTC; hneth
 Author: Nathaniel Phillips [aut] (<https://orcid.org/0000-0002-8969-7013>),
   Hansjoerg Neth [aut, cre] (<https://orcid.org/0000-0001-5427-3141>),
   Jan Woike [aut] (<https://orcid.org/0000-0002-6816-121X>),
   Wolfgang Gaissmaier [aut] (<https://orcid.org/0000-0001-6273-178X>)
 Repository: CRAN
-Date/Publication: 2023-02-08 12:10:02 UTC
+Date/Publication: 2023-06-05 23:30:02 UTC

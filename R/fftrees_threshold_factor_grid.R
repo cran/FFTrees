@@ -47,16 +47,41 @@ fftrees_threshold_factor_grid <- function(thresholds = NULL,
                                           cost.outcomes = NULL # (was "list(hi = 0, fa = 1, mi = 1, cr = 0)", but NULL enforces consistency w calling function)
 ) {
 
-  # Assertions:
-  testthat::expect_true(!any(is.na(criterion_v)))
-  testthat::expect_true(!any(is.na(cue_v)))
+  # Prepare: ------
 
-  if (!is.null(thresholds)) {
+  # Assertions:
+
+  if (!allow_NA_crit){
+
+    testthat::expect_true(!any(is.na(criterion_v)))
+
+  }
+
+  # No NA values (any more):
+  testthat::expect_true(!any(is.na(cue_v)), info = "Cannot compute thresholds for cues with NA values")
+  # Note: Any NA values in categorical variables have been turned into an <NA> level (if allow_NA_pred).
+
+
+  # Feedback:
+
+  # if (debug){ # Provide debugging feedback:
+  #
+  #   # Report thresholds:
+  #   cur_thresholds <- paste(thresholds, collapse = ", ")
+  #   cli::cli_alert_info("\u2014 fftrees_threshold_factor_grid() with thresholds = {cur_thresholds}.")
+  #
+  # } # if (debug).
+
+
+  # Main: ------
+
+  if (!is.null(thresholds)) { # if thresholds exist:
 
     thresholds_n <- length(thresholds)
     case_n <- length(cue_v)
 
     results <- matrix(NA, nrow = thresholds_n, ncol = 5)
+
 
     # Loop 1 over all thresholds: ------
     # C++
@@ -68,7 +93,7 @@ fftrees_threshold_factor_grid <- function(thresholds = NULL,
       # Create vector of decisions
       decisions_i <- cue_v == threshold_i
 
-      # Calculate decisions
+      # Calculate frequency of decision outcomes:
       hi_i <- sum(decisions_i == TRUE  & criterion_v == TRUE)
       fa_i <- sum(decisions_i == TRUE  & criterion_v == FALSE)
       mi_i <- sum(decisions_i == FALSE & criterion_v == TRUE)

@@ -5,6 +5,154 @@
 # Functions for validating or verifying stuff: ------
 
 
+# verify_data_and_criterion: ------
+
+# Inputs:
+# - data (as df)
+# - criterion_name (character, a name in data)
+#
+# Auxiliary arguments:
+# - mydata (the data type of 'data': either "train" or "test")
+#
+# Output:
+# - modified data (as df)
+#
+# Side-effect: Report failed tests.
+
+
+verify_data_and_criterion <- function(data, criterion_name, mydata){
+
+  # Verify data types:
+  testthat::expect_true(is.data.frame(data),
+                        info = paste0("The ", mydata, " data is not a data.frame"))
+  testthat::expect_true(is.character(criterion_name),
+                        info = paste0("The criterion_name is not of type character"))
+
+  # Verify that criterion occurs in data:
+  testthat::expect_true(criterion_name %in% names(data),
+                        info = paste0("The criterion name '", criterion_name, "' does not occur in ", mydata, " data"))
+
+  # Verify the number of criterion values:
+  if (!allow_NA_crit){ # default:
+
+    # Verify that criterion does NOT contain NA values:
+    testthat::expect_true(all(!is.na(data[[criterion_name]])),
+                          info = "At least one of the criterion values are missing. Please remove NA values and try again")
+
+    # Verify that criterion is binary:
+    testthat::expect_equal(length(unique(data[[criterion_name]])),
+                           expected = 2,
+                           info = "The criterion variable is non-binary")
+
+  } else { # allow_NA_crit: the criterion must maximally contain 3 distinct values:
+
+    testthat::expect_lt(length(unique(data[[criterion_name]])),
+                        expected = 4)#,
+    # info = "The criterion variable must only contain binary values, plus optional NA values")
+
+  }
+
+  # NO output.
+
+} # verify_data_and_criterion().
+
+
+
+# verify_dir_sym: ------
+
+# Goal: Verify a vector x of direction symbols
+#       (given global constant directions_df)
+
+verify_dir_sym <- function(x){
+
+  valid <- FALSE
+
+  # Get first 6 direction symbols:
+  dir_sym <- directions_df$direction[1:6]  # from global constant.
+
+  if (all(x %in% dir_sym)){ # verify: valid direction symbol
+
+    valid <- TRUE  # set value
+
+  } else {
+
+    missing_sym <- setdiff(x, dir_sym)
+    msg <- paste0("verify_dir_sym: Some symbols (", paste0(missing_sym, collapse = ", "),
+                  ") are NOT in (", paste0(dir_sym, collapse = ", "), ")")
+    message(msg)
+
+  }
+
+
+  # Output: ----
+
+  return(valid)
+
+} # verify_dir_sym().
+
+# # Check:
+# verify_dir_sym(c("=", "!=", ">", ">=", "<", "<=", "=")) # is TRUE
+# verify_dir_sym(c("==")) # is FALSE
+# verify_dir_sym(c("=<", "+", "=>")) # are FALSE
+
+
+
+# verify_exit_type: ------
+
+# Goal: Ensure that a vector x contains valid exit types
+#       given the options of current exit_types (as global constant).
+
+verify_exit_type <- function(x){
+
+  valid <- FALSE
+
+  if ( all(x %in% exit_types) ) { # c1. only valid exit_types:
+
+    if ( x[length(x)] == exit_types[3] ){ # c2. final exit:
+
+      if ( all(x[-length(x)] %in% exit_types[1:2]) ){ # c3. non-final exits:
+
+        valid <- TRUE
+
+      } else {
+
+        stop("All non-final exit types must be in: ", paste(exit_types[1:2], collapse = ", "))
+
+      } # c3.
+
+    } else {
+
+      cur_fin_exit <- x[length(x)]
+
+      stop("The final node's exit type must be ", exit_types[3], ", but is ", cur_fin_exit)
+
+    } # c2.
+
+  } else {
+
+    invalid_exits <- setdiff(x, exit_types)
+
+    stop("Some exit types are invalid: ", paste(invalid_exits, collapse = ", "))
+
+  } # c1.
+
+  # Output: ----
+
+  return(valid)
+
+} # verify_exit_type().
+
+# # Check:
+# verify_exit_type(c(1, 0, 1, 0.5))
+# verify_exit_type(c(0.5))
+#
+# # Fails:
+# verify_exit_type(c(1, 0, 2, 0))
+# verify_exit_type(c(1, 0, 1, 0))
+# verify_exit_type(c(1, 0, 0.5, 0.5))
+
+
+
 # verify_train_test_data: ------
 
 # Goal: Ensure that train and test data are sufficiently similar (e.g., contain the same variables)
@@ -183,7 +331,7 @@ verify_tree_arg <- function(x, data, tree){
 
       if (data == "train") {
 
-        if (!x$params$quiet) { # user feedback:
+        if (any(sapply(x$params$quiet, isFALSE))) { # user feedback:
           msg <- paste0("Assuming you want the 'best.train' tree for 'train' data...\n")
           cat(u_f_hig(msg))
         }
@@ -192,7 +340,7 @@ verify_tree_arg <- function(x, data, tree){
 
       } else if (data == "test") {
 
-        if (!x$params$quiet) { # user feedback:
+        if (any(sapply(x$params$quiet, isFALSE))) { # user feedback:
           msg <- paste0("Assuming you want the 'best.test' tree for 'test' data...\n")
           cat(u_f_hig(msg))
         }
@@ -216,14 +364,13 @@ verify_tree_arg <- function(x, data, tree){
 
 
 
-# verify_fft_definition: ------
+# verify_ffts_df: ------
 
 # Goal: Verify a set of existing tree definitions (defs as df, from an FFTrees object).
-# Inputs: ffts_df FFT definitions (1-line per FFT, as df, usually from x$trees$definitions or get_fft_definitions(x)).
+# Inputs: ffts_df FFT definitions (1-line per FFT, as df, usually from x$trees$definitions or get_fft_df(x)).
 # Output: Boolean.
 
-
-verify_fft_definition <- function(ffts_df){
+verify_ffts_df <- function(ffts_df){
 
   # verify ffts_df:
   testthat::expect_true(is.data.frame(ffts_df), info = "Input 'ffts_df' are not a data.frame")
@@ -231,7 +378,7 @@ verify_fft_definition <- function(ffts_df){
   # verify nrow(ffts_df) > 0:
   if (nrow(ffts_df) < 1){
 
-    message("Input 'ffts_df' is empty: nrow(ffts_df) = ", nrow(ffts_df))
+    message("Input to verify_ffts_df is empty: nrow(ffts_df) = ", nrow(ffts_df))
 
     return(FALSE)
 
@@ -243,29 +390,70 @@ verify_fft_definition <- function(ffts_df){
 
   if (all(req_tdef_vars %in% provided_vars)){
 
-    # ToDo: Verify variables further (e.g., verify their contents).
+    # Verify variables further (e.g., verify their contents):
+
+    # ToDo: verify classes (requires data)
+    # ToDo: verify cues (requires data)
+
+    # Verify directions:
+
+    # (a) as list elements:
+    lapply(ffts_df$directions, FUN = function(x){
+
+      directions <- trimws(unlist(strsplit(x, split = fft_node_sep, fixed = TRUE)))
+      # print(directions)  # 4debugging
+      testthat::expect_true(verify_dir_sym(directions))
+
+    })
+
+    # (b) as 1 long vector:
+    # directions <- trimws(unlist(strsplit(ffts_df$directions, split = fft_node_sep, fixed = TRUE)))
+    # print(directions)  # 4debugging
+    # testthat::expect_true(verify_dir_sym(directions))
+
+    # ToDo: verify thresholds
+
+    # Verify exits:
+
+    # (a) as list elements:
+    lapply(ffts_df$exits, FUN = function(x){
+
+      exits <- trimws(unlist(strsplit(x, split = fft_node_sep, fixed = TRUE)))
+      # print(exits)  # 4debugging
+      testthat::expect_true(verify_exit_type(exits))
+
+    })
+
+
+    # Output 1:
 
     return(TRUE)
+
 
   } else {
 
     missing_vars <- setdiff(req_tdef_vars, provided_vars)
 
-    message("Input 'ffts_df' is not a valid (set of) FFT definition(s).\nMissing variables: ", paste(missing_vars, collapse = ", "))
+    message("Input to verify_ffts_df is not a valid (set of) FFT definition(s).\nMissing variables: ", paste(missing_vars, collapse = ", "))
+
+
+    # Output 2:
 
     return(FALSE)
 
   }
 
-} # verify_fft_definition().
+} # verify_ffts_df().
 
 
 
 # verify_fft_as_df: ------
 
 # Goal: Verify the components (as df) to-be-turned into a tree definition (for an FFTrees object).
-# Inputs: fft_df: Definition of 1 FFT (as df) with tree elements as separate vectors (e.g., from get_fft_definitions(x)).
-# Output: Boolean.
+# Inputs: fft_df: Definition of 1 FFT (as tidy df, 1 row per node)
+#         with tree elements (class, cue, direction, threshold, exit) as separate vectors
+#         (e.g., from get_fft_df(x)).
+# Output: Boolean/logical value.
 
 verify_fft_as_df <- function(fft_df){
 
@@ -275,7 +463,7 @@ verify_fft_as_df <- function(fft_df){
   # verify nrow(fft_df) > 0:
   if (nrow(fft_df) < 1){
 
-    message("Input 'fft_df' is empty: nrow(fft_df) = ", nrow(fft_df))
+    message("Input to verify_fft_as_df is empty: nrow(fft_df) = ", nrow(fft_df))
 
     return(FALSE)
 
@@ -288,7 +476,12 @@ verify_fft_as_df <- function(fft_df){
 
   if (all(req_tree_vars %in% provided_vars)){
 
-    # ToDo: Verify variables further (e.g., verify their contents).
+    # Verify variables further (e.g., verify their contents):
+    # ToDo: verify class (requires data)
+    # ToDo: verify cue (requires data)
+    testthat::expect_true(verify_dir_sym(fft_df$direction))
+    # ToDo: verify threshold
+    testthat::expect_true(verify_exit_type(fft_df$exit))
 
     return(TRUE)
 
@@ -296,7 +489,7 @@ verify_fft_as_df <- function(fft_df){
 
     missing_vars <- setdiff(req_tree_vars, provided_vars)
 
-    message("Input 'fft_df' is not a valid FFT (as df, with 1 row per cue). Missing variables: ", paste(missing_vars, collapse = ", "))
+    message("Input to verify_fft_as_df is not a valid FFT (as tidy df, 1 row per node). Missing variables: ", paste(missing_vars, collapse = ", "))
 
     return(FALSE)
 

@@ -1,7 +1,79 @@
 
-# FFTrees 1.9
+# FFTrees 2.0
 
-<!-- This is the current development version of **FFTrees**, available at <https://github.com/ndphillips/FFTrees>. -->
+## 2.0.0
+
+**FFTrees** version 2.0.0 was released [on CRAN](https://CRAN.R-project.org/package=FFTrees) [on 2023-06-06]. 
+
+<!-- Log of changes: --> 
+
+This version adds functionality, improves consistency, and increases robustness.
+
+Changes since last release: 
+
+<!-- Major: --> 
+
+### Major changes 
+
+<!-- gfft: Converting and manipulating FFTs --> 
+
+- Enabled conversions between tree definition formats and manipulating FFT definitions:
+    - tree definition and conversion functions: `get_fft_df`, `read_fft_df`, `write_fft_df`, `add_fft_df` 
+    - tree trimming functions: `add_nodes`, `drop_nodes`, `edit_nodes`, `flip_exits`, `reorder_nodes`, `select_nodes`
+
+
+<!-- Growing FFTs: Stopping rules: --> 
+
+- Growing FFTs: 
+   - enabled `stopping.rule = "statdelta"` 
+   - fixed a bug in `fftrees_grow_fan()` that prevented `ifan` algorithm from stopping 
+   when finding a perfect FFT (given the current `goal.chase` parameter)  
+
+
+<!-- NA handling: --> 
+
+- Handling missing inputs (`NA` values) in data:
+    - `NA` values in categorical (i.e., character/factor/logical) predictors are treated as `<NA>` factor levels  
+    - `NA` values in numeric predictors are either _ignored_ (by default) or 
+    _imputed_ (as the mean of the corresponding predictor) when creating and using FFTs to decide/predict (if possible) 
+    - `NA` values in the criterion variable are yet to be dealt with 
+    
+
+<!-- Minor: --> 
+
+### Minor changes 
+
+- Added utility functions (and corresponding verification functions): 
+    - `get_best_tree()` retrieves the ID of the best tree in an `FFTrees` object (given `goal`) 
+    - `get_exit_type()` converts a vector of exit descriptions into FFT exits (given `exit_types`) 
+    - `get_fft_df()` retrieves the tree definitions of an `FFTrees` object 
+    
+- Added cost information when printing FFTs (with `print.FFTrees()`). 
+- Improved user feedback (by making `quiet` a list with four options). 
+- Increased vocabulary for interpreting verbal FFT descriptions (using `my.tree`). 
+- Improved documentation of included data (e.g., in `FFTrees.guide()`). 
+
+
+<!-- Details: --> 
+
+### Details 
+
+- Added global constants and utility functions. 
+- Added progress bar of **cli** package (removing dependency on **progress**). 
+- Added `exit_types` as global constant. 
+- Improved data cleaning (consistent for training and test data). 
+- Revised documentation, vignettes, and tests. 
+
+
+<!-- Development version: --> 
+
+The current development version of **FFTrees** is available at <https://github.com/ndphillips/FFTrees>. 
+
+<!-- Older versions: --> 
+
+------ 
+
+# FFTrees 1.9
 
 ## 1.9.0
 
@@ -48,12 +120,7 @@ Changes since last release:
 - Fixed bugs and revised vignettes. 
 
 
-<!-- Development version: --> 
-
-The current development version of **FFTrees** is available at <https://github.com/ndphillips/FFTrees>. 
-
-
-<!-- Released versions: --> 
+<!-- Older versions: --> 
 
 ------ 
 
@@ -169,7 +236,7 @@ Changes since last release:
     - Enabled setting `tree` to `"best.train"` or `"best.test"` (as when plotting FFTs).  
     - Reporting `bacc` or `wacc` in _Accuracy_ section (and `sens.w`, if deviating from the default of 0.50). 
     - Improved readability of 2x2 confusion table (by right-justifying digits). 
-    - Moved expected cost information from _Accuracy_ to _Speed, Frugality, and Cost_ section. 
+    - Moved cost information from _Accuracy_ to _Speed, Frugality, and Cost_ section. 
 
 <!-- plot.FFTrees(): --> 
 
@@ -409,6 +476,6 @@ Thus, the main tree building function is now `FFTrees()` and the new tree object
 
 ------ 
 
-[File `NEWS.md` last updated on 2023-02-08.]
+[File `NEWS.md` last updated on 2023-06-06.]
 
 <!-- eof. -->

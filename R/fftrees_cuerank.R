@@ -27,9 +27,9 @@
 #' @return A modified \code{FFTrees} object (with cue rank information
 #' for the current \code{data} type in \code{x$cues$stats}).
 #'
-#' @importFrom stats median var
-#' @importFrom progress progress_bar
+#' @importFrom cli cli_progress_bar cli_progress_update cli_progress_done
 #' @importFrom dplyr pull
+#' @importFrom stats median var
 #'
 #' @export
 
@@ -57,33 +57,53 @@ fftrees_cuerank <- function(x = NULL,
   # Define criterion (vector) and cues (data.frame): ----
 
   cue_df <- newdata[names(newdata) != x$criterion_name]
-  criterion_v <- newdata %>% dplyr::pull(x$criterion_name)
+  criterion_v <- newdata[[x$criterion_name]]
   cases_n <- length(criterion_v)
   cue_n <- ncol(cue_df)
 
   # Verify: Make sure there is variance in the criterion!
   testthat::expect_true(length(unique(criterion_v)) > 1)
 
+  # Store safe copy:
+  criterion_v_org <- criterion_v
+
   # Determine current goal.threshold:
   goal.threshold <- x$params$goal.threshold  # (assign ONCE here and then use below)
 
   # Provide user feedback:
-  if (!x$params$quiet) {
-    msg <- paste0("Aiming to rank ", cue_n, " cues (optimizing '", goal.threshold, "'):\n")
-    cat(u_f_ini(msg))
-  }
+  if (!x$params$quiet$ini) {
 
-  # Define progress bar:
+    # msg <- paste0("Aiming to rank ", cue_n, " cues (optimizing '", goal.threshold, "'):\n")
+    # cat(u_f_ini(msg))
 
-  if (!x$params$quiet) {
-
-    pb <- progress::progress_bar$new(format = u_f_msg("[:bar] :percent"),
-                                     width = 70,
-                                     total = cue_n, clear = FALSE, show_after = .200)
-
-    # cli::cli_progress_bar("Ranking cues", total = cue_n)
+    cli::cli_alert("Rank {cue_n} cue{?s} (optimizing '{goal.threshold}'):",
+                   class = "alert-start")
 
   }
+
+
+  # Define progress bar: ----
+
+  if (any(sapply(x$params$quiet, isFALSE))) {
+
+    # # Using progress pkg:
+    # pb <- progress::progress_bar$new(format = u_f_msg("[:bar] :percent"),
+    #                                  width = 60,
+    #                                  total = cue_n, clear = FALSE, show_after = .200)
+
+    # Using cli pkg:
+    options(cli.progress_show_after = 1/5,  # delay of bar? (default = 2)
+            cli.progress_clear = FALSE,     # clear after finishing? (default = TRUE)
+            cli.spinner = "line")           # spinner for cli_progress_bar() of type = "tasks"?
+
+    n_1 <- paste0("  Ranking ", cue_n, " cues: ")
+    cli::cli_progress_bar(name = n_1, total = cue_n)  # linear bar
+
+    # n_2 <- paste0("Ranking cues.")
+    # cli::cli_progress_bar(name = n_2, total = cue_n, type = "tasks") # tasks
+
+  }
+
 
 
   # Main: Loop over cues: ------
@@ -91,23 +111,37 @@ fftrees_cuerank <- function(x = NULL,
   for (cue_i in 1:cue_n) {
 
     # Progress bar update:
-    if (!x$params$quiet) {
+    if (any(sapply(x$params$quiet, isFALSE))) {
 
-      pb$tick()
+      # pb$tick()
+      # Sys.sleep(1 / cue_n)
+
+      cli::cli_progress_update()
       Sys.sleep(1 / cue_n)
-
-      # Sys.sleep(10/100)
-      # cli::cli_progress_update()
 
     }
 
-    # Get key information of the current cue:
+    # Re-store from safe copy (to allow dropping NA cases for every cue_i):
+    criterion_v  <- criterion_v_org
 
+    # Get key information of the current cue:
     cue_i_name  <- names(cue_df)[cue_i]
-    cue_i_class <- class(cue_df %>% dplyr::pull(cue_i))
-    cue_i_v     <- unlist(cue_df[, cue_i])
+    cue_i_class <- class(as.vector(cue_df %>% dplyr::pull(cue_i))) # dplyr/tidyverse
+    # cue_i_class <- class(as.vector(cue_df[[cue_i_name]]))  # base R
+    cue_i_v     <- unlist(cue_df[ , cue_i])
     cue_i_cost  <- x$params$cost.cues[[cue_i_name]]
 
+    # Problem: cue_i_class can be c("matrix", "array")
+    # print(cue_i_class)   # 4debugging: 1. before
+    #
+    # if ("matrix" %in% cue_i_class){
+    #
+    #   cue_i_class <- cue_class_of_matrix(cue_i_v, cue_i_class)
+    #   print(cue_i_class)   # 4debugging: 2. after
+    #
+    # }
+    #
+    # FIXED: Added as.vector() when determining cue_i_class() above.
 
     if (all(is.na(cue_i_v)) == FALSE) { # (A) Some non-missing values:
 
@@ -201,6 +235,73 @@ fftrees_cuerank <- function(x = NULL,
       } # Step 2.
 
 
+      # +++ here now +++
+
+
+      # Handle NA values: ------
+
+      if ( allow_NA_pred | allow_NA_crit ){
+
+        # Detect NA values: ----
+
+        ix_NA_cue  <- is.na(cue_i_v)      # 1. NA in cue_i_v
+        ix_NA_crit <- is.na(criterion_v)  # 2. NA in criterion_v
+
+
+        # Report NA values (prior to removing them): ----
+
+        if (!x$params$quiet$mis) { # Provide user feedback:
+
+          # 1. Report NA in cue_i_v:
+          if (allow_NA_pred & any(ix_NA_cue)){
+
+            sum_NA_cue <- sum(ix_NA_cue)
+
+            # Which corresponding values in criterion_v will be removed?
+            rem_criterion_v <- criterion_v[ix_NA_cue]
+            rem_criterion_s <- paste0(rem_criterion_v, collapse = ", ")
+
+            cli::cli_alert_warning("Dropping {sum_NA_cue} NA value{?s} from {cue_i_name} and {x$criterion_name} = c({rem_criterion_s}).")
+
+          }
+
+          # 2. Report NA in criterion_v:
+          if (allow_NA_crit & any(ix_NA_crit)){
+
+            # d_type <- typeof(criterion_v)  # logical
+            sum_NA_crit <- sum(ix_NA_crit)
+
+            # Which values in cue_i_v will be removed?
+            rem_cue_i_v <- cue_i_v[ix_NA_crit]
+            rem_cue_i_s <- paste0(rem_cue_i_v, collapse = ", ")
+
+            cli::cli_alert_warning("Dropping {sum_NA_crit} NA value{?s} from {x$criterion_name} and {cue_i_name} = c({rem_cue_i_s}).")
+
+          }
+
+        } # if (!x$params$quiet$mis).
+
+
+        # Main: Filter vectors ----
+
+        # # A: Remove NA and infinite values (from both):
+        # both_finite <- is.finite(cue_i_v) & is.finite(criterion_v)
+        #
+        # cue_i_v      <- cue_i_v[both_finite]
+        # criterion_v  <- criterion_v[both_finite]
+
+
+        # B. Remove only NA cases (from both):
+        both_not_NA  <- !ix_NA_cue & !ix_NA_crit
+
+        cue_i_v      <- cue_i_v[both_not_NA]
+        criterion_v  <- criterion_v[both_not_NA]
+
+
+      } # Handle NA: if ( allow_NA_pred | allow_NA_crit ).
+
+
+
       # Step 3: Determine best direction and threshold for cue [cue_i_best]: ----
       {
 
@@ -235,6 +336,7 @@ fftrees_cuerank <- function(x = NULL,
         } # if a. numeric/integer cue.
 
         # b. Factor, character, or logical cue: ----
+
         if (substr(cue_i_class, 1, 1) %in% c("f", "c", "l")) {
 
           # Compute stats for factor cue:
@@ -332,7 +434,6 @@ fftrees_cuerank <- function(x = NULL,
 
   } # for (cue_i).
 
-  # cli::cli_progress_done()
 
 
   # Set rownames: ----
@@ -355,10 +456,19 @@ fftrees_cuerank <- function(x = NULL,
   x$cues$stats[[data]] <- cuerank_df
 
 
+  # Progress bar:
+
+  cli::cli_progress_done()
+
+
   # Provide user feedback:
-  if (!x$params$quiet) {
-    msg <- paste0("Successfully ranked ", cue_n, " cues.\n")
-    cat(u_f_fin(msg))
+  if (!x$params$quiet$fin) {
+
+    # msg <- paste0("Successfully ranked ", cue_n, " cues.\n")
+    # cat(u_f_fin(msg))
+
+    cli::cli_alert_success("Ranked {cue_n} cue{?s} (optimizing '{goal.threshold}').")
+
   }
 
 

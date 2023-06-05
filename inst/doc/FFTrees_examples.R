@@ -11,7 +11,7 @@ knitr::opts_chunk$set(collapse = FALSE,
                       fig.align = 'center',
                       fig.height = 6.0,
                       fig.width  = 6.5, 
-                      out.width = "600px")
+                      out.width = "580px")
 
 ## ----load-pkg-0, echo = FALSE, message = FALSE, results = 'hide'--------------
 library(FFTrees)
@@ -74,7 +74,7 @@ knitr::include_graphics("../inst/virginica.jpg")
 iris_fft <- FFTrees(formula = virginica ~.,
                     data = iris.v,
                     main = "Iris",
-                    decision.labels = c("Not-V", "V"))
+                    decision.labels = c("Not-Vir", "Vir"))
 
 ## ----iris-fft-print, echo = TRUE, eval = FALSE, results = 'hide'--------------
 #  # Inspect resulting FFTs:

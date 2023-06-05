@@ -13,8 +13,16 @@
 #' @param mydata The type of data to which the FFT should be applied (as character, either \code{"train"} or \code{"test"}).
 #' @param newdata New data to which an FFT should be applied (as a data frame).
 #'
-#' @param allNA.pred What should be predicted if all cue values in tree are \code{NA} (as logical)?
-#' Default: \code{allNA.pred = FALSE}.
+#' @param fin_NA_pred What outcome should be predicted if the \emph{final} node in a tree has a cue value of \code{NA}
+#' (as character)? Valid options are:
+#' \describe{
+#'   \item{'noise'}{predict \code{FALSE} (0/left/signal) for all corresponding cases}
+#'   \item{'signal'}{predict \code{TRUE} (1/right/noise) for all corresponding cases}
+#'   \item{'majority'}{predict the more common criterion value (i.e., \code{TRUE} if base rate \code{p(TRUE) > .50} in 'train' data) for all corresponding cases}
+#'   \item{'baseline'}{flip a random coin that is biased by the criterion baseline \code{p(TRUE)} (in 'train' data) for all corresponding cases}
+#'   \item{'dnk'}{yet ToDo: abstain from classifying / decide to 'do not know' / defer (i.e., tertium datur)}
+#'   }
+#' Default: \code{fin_NA_pred = "majority"}.
 #'
 #' @return A modified \code{FFTrees} object (with lists in \code{x$trees} containing information on FFT decisions and statistics).
 #'
@@ -31,7 +39,9 @@
 fftrees_apply <- function(x,
                           mydata = NULL,   # data type (either "train" or "test")
                           newdata = NULL,
-                          allNA.pred = FALSE) {
+                          #
+                          fin_NA_pred = "majority"  # Options available: c("noise", "signal", "baseline", "majority")
+) {
 
   # Prepare: ------
 
@@ -43,9 +53,13 @@ fftrees_apply <- function(x,
 
   # Provide user feedback: ----
 
-  if (!x$params$quiet) {
-    msg <- paste0("Aiming to apply FFTs to '", mydata, "' data:\n")
-    cat(u_f_ini(msg))
+  if (!x$params$quiet$ini) {
+
+    # msg <- paste0("Aiming to apply FFTs to '", mydata, "' data:\n")
+    # cat(u_f_ini(msg))
+
+    n_trees <- x$trees$n
+    cli::cli_alert("Apply {n_trees} FFT{?s} to '{mydata}' data:", class = "alert-start")
   }
 
 
@@ -84,7 +98,7 @@ fftrees_apply <- function(x,
   # Extract key parts from FFTrees object x:
   n_trees <- x$trees$n
   # tree_defs <- x$trees$definition  # df (from object x)
-  tree_defs <- get_fft_definitions(x = x)  # df (using helper fn)
+  tree_defs <- get_fft_df(x = x)  # df (using helper fn)
   # print(tree_defs)  # 4debugging
 
 
@@ -100,7 +114,7 @@ fftrees_apply <- function(x,
       decision = rep(NA, criterion_n),
       levelout = rep(NA, criterion_n),
       cost_cue = rep(NA, criterion_n),
-      cost_decision = rep(NA, criterion_n),
+      cost_dec = rep(NA, criterion_n),
       cost = rep(NA, criterion_n),
       current_decision = rep(NA, criterion_n)
     )
@@ -152,6 +166,43 @@ fftrees_apply <- function(x,
     )
 
   }
+
+
+  # Handle NA values: ------
+
+  if ( allow_NA_pred | allow_NA_crit ){
+
+    if (any(is.na(data))){ # IFF there are NA cases in data:
+
+      # Compute only ONCE (before loop):
+      if ( (fin_NA_pred == "baseline") | (fin_NA_pred == "majority") ){
+
+        criterion_name <- x$criterion_name
+
+        # Compute criterion baseline/base rate (for "train" data ONLY):
+        if (allow_NA_crit){
+          crit_br <- mean(x$data[["train"]][[criterion_name]], na.rm = TRUE)
+        } else { # default:
+          crit_br <- mean(x$data[["train"]][[criterion_name]])  # (from logical, i.e., proportion of TRUE values)
+        }
+
+        crit_br <- round(crit_br, 3)  # rounding
+
+      } # if fin_NA_pred().
+
+    } # if (any(is.na(data))).
+
+    # Initialize some counters:
+    nr_NA_lvl <- 0
+
+    NA_hi <- 0
+    NA_fa <- 0
+    NA_mi <- 0
+    NA_cr <- 0
+
+  } # Handle NA: if ( allow_NA_pred | allow_NA_crit ).
+
+
 
   # LOOPs: ------
 
@@ -266,11 +317,11 @@ fftrees_apply <- function(x,
       threshold_i <- threshold_v[level_i]
 
       # Current cue values from data (as df):
-      cue_values <- data[[cue_i]]
+      cue_values <- as.vector(data[[cue_i]])  # as.vector() turns "matrix" "array" into (numeric) vector
+      cur_class  <- substr(class(cue_values), 1, 1)
 
-      cur_class <- substr(class(cue_values), 1, 1)
-
-      # print(paste0("class_i = ", class_i, "; cur_class = ", cur_class)) # 4debugging
+      # print(paste0("class_i = ", class_i))  # 4debugging
+      # print(paste0("cur_class = ", cur_class))
 
       if (cur_class != class_i){
         warning(paste0("Mismatch: class_i = ", class_i, "; cur_class = ", cur_class))
@@ -279,7 +330,7 @@ fftrees_apply <- function(x,
       decisions_df$current_cue_values <- cue_values
 
 
-      # threshold_i:
+      # threshold_i: ----
 
       if (is.character(threshold_i)) {
         threshold_i <- unlist(strsplit(threshold_i, ","))
@@ -290,7 +341,7 @@ fftrees_apply <- function(x,
       }
 
 
-      # current_decision:
+      # current_decision: ----
 
       if (direction_i == "!=") {
         decisions_df$current_decision <- (decisions_df$current_cue_values %in% threshold_i) == FALSE
@@ -312,38 +363,169 @@ fftrees_apply <- function(x,
       }
 
 
-      # classify_now:
+      # classify_now: ----
 
-      if (isTRUE(all.equal(exit_i, 0))) {
-        classify_now <- decisions_df$current_decision == FALSE & is.na(decisions_df$decision)
+      if (isTRUE(all.equal(exit_i, exit_types[1]))) { # 1: exit_i 0:
+        classify_now <- (decisions_df$current_decision == FALSE) & is.na(decisions_df$decision) # FALSE or NA
       }
-      if (isTRUE(all.equal(exit_i, 1))) {
-        classify_now <- decisions_df$current_decision == TRUE & is.na(decisions_df$decision)
+      if (isTRUE(all.equal(exit_i, exit_types[2]))) { # 2: exit_i 1:
+        classify_now <- (decisions_df$current_decision == TRUE) & is.na(decisions_df$decision)  # FALSE or NA
       }
-      if (isTRUE(all.equal(exit_i, .5))) {
-        classify_now <- is.na(decisions_df$decision)
-      }
-
-
-      # Handle NAs: ----
-
-      # If this is NOT the final node, then don't classify NA cases:
-      if (exit_i %in% c(0, 1)) {
-        classify_now[is.na(classify_now)] <- FALSE
+      if (isTRUE(all.equal(exit_i, exit_types[3]))) { # 3: exit_i .5:
+        classify_now <- is.na(decisions_df$decision)  # TRUE for NA only
       }
 
-      # [was:] If this IS the final node, then classify NA cases into the most common class [?: seems not done here]
 
-      # If this IS the final node, then classify NA cases according to allNA.pred value:
-      if (exit_i %in% .5) {
-        decisions_df$current_decision[is.na(decisions_df$current_decision)] <- allNA.pred
-      }
+      # Handle NA values: ------
 
-      # ToDo: Examine alternative policies for indecision / doxastic abstention:
-      # - predict either TRUE or FALSE (according to allNA.pred)
-      # - predict the most common category (overall baseline or baseline at this level)
-      # - predict a 3rd category (tertium datur: abstention / "don't know" / NA decision)
-      # Results will depend on costs of errors.
+      if ( allow_NA_pred | allow_NA_crit ){
+
+        # Goal: Deal with NA cases at a tree node.
+
+        # 1. If this is an intermediate / NOT the final node, then don't classify NA cases:
+        if (exit_i %in% exit_types[1:2]) {  # exit_types in c(0, 1)
+
+          # NAs on current level (based on classify_now):
+          ix_NA_classify_now <- is.na(classify_now)
+          nr_NA_lvl <- sum(ix_NA_classify_now)
+
+          if (any(ix_NA_classify_now)){ # IFF there ARE NA cases:
+
+            # Assign:
+            classify_now[ix_NA_classify_now] <- FALSE  # Do NOT classify NA cases (which differs from "classify as FALSE")!
+
+            # Classify and count outcomes for NA cases (i.e., sub-2x2 matrix for NA cases):
+            NA_hi <- NA  # not classified = no outcome
+            NA_fa <- NA  # not classified = no outcome
+            NA_mi <- NA  # not classified = no outcome
+            NA_cr <- NA  # not classified = no outcome
+
+            if (!x$params$quiet$mis) { # Provide user feedback:
+
+              cli::cli_alert_warning("Tree {tree_i} node {level_i}: Seeing {nr_NA_lvl} NA value{?s} in intermediate cue '{cue_i}' and proceed.")
+
+            }
+
+          } # if any(ix_NA_classify_now).
+
+        } # if (intermediate exit).
+
+
+        # 2. If this IS the final / terminal node, then classify all NA cases according to fin_NA_pred:
+        if (exit_i %in% exit_types[3]) {  # exit_types = .5:
+
+          # NAs on current level (based on current_decision):
+          ix_NA_current_decision <- is.na(decisions_df$current_decision)
+          nr_NA_lvl <- sum(ix_NA_current_decision)
+
+          if (any(ix_NA_current_decision)){ # IFF there ARE NA cases:
+
+            # Classify NA cases (in final node):
+
+            fin_NA_decisions <- rep(NA, nr_NA_lvl)  # initialize NA decisions
+
+            if (fin_NA_pred == "noise"){
+
+              fin_NA_decisions <- rep(FALSE, nr_NA_lvl)  # all FALSE
+
+            } else if (fin_NA_pred == "signal"){
+
+              fin_NA_decisions <- rep(TRUE, nr_NA_lvl)  # all TRUE
+
+            } else if (fin_NA_pred == "baseline"){
+
+              # Flip baseline coin:
+              fin_NA_decisions <- sample(x = c(TRUE, FALSE), size = nr_NA_lvl, replace = TRUE, prob = c(crit_br, 1 - crit_br))
+
+            } else if (fin_NA_pred == "majority"){
+
+              if (crit_br > .50){
+                fin_NA_decisions <- rep(TRUE, nr_NA_lvl)
+              } else {
+                fin_NA_decisions <- rep(FALSE, nr_NA_lvl)
+              }
+
+            } else { # note unknown option:
+
+              fin_NA_opt_s <- paste0(fin_NA_options, collapse = ", ")
+
+              stop(paste0("The value of fin_NA_pred must be in c('", fin_NA_opt_s, "')."))
+
+            } # if fin_NA_pred.
+
+            # Assign final NA decisions (only ONCE):
+            decisions_df$current_decision[ix_NA_current_decision] <- fin_NA_decisions
+
+            # Get corresponding criterion values:
+            fin_NA_criteria <- decisions_df$criterion[ix_NA_current_decision]
+
+            # Classify and count outcomes for NA cases (i.e., sub-2x2 matrix for NA cases):
+            NA_hi <- sum((fin_NA_criteria == TRUE)  & (fin_NA_decisions == TRUE))
+            NA_fa <- sum((fin_NA_criteria == FALSE) & (fin_NA_decisions == TRUE))
+            NA_mi <- sum((fin_NA_criteria == TRUE)  & (fin_NA_decisions == FALSE))
+            NA_cr <- sum((fin_NA_criteria == FALSE) & (fin_NA_decisions == FALSE))
+
+            if (!x$params$quiet$mis) { # Provide user feedback:
+
+              if ( (fin_NA_pred == "baseline") | (fin_NA_pred == "majority") ){ # crit_br is relevant:
+
+                cli::cli_alert_warning("Tree {tree_i} node {level_i}: Making {nr_NA_lvl} {fin_NA_pred} prediction{?s} (with a 'train' base rate p(TRUE) = {crit_br}): {fin_NA_decisions}.")
+
+              } else { # default:
+
+                cli::cli_alert_warning("Tree {tree_i} node {level_i}: Making {nr_NA_lvl} {fin_NA_pred} prediction{?s}: {fin_NA_decisions}.")
+
+              }
+
+              if (debug) { # Provide debugging feedback:
+
+                NA_mx <- paste0(c(NA_hi, NA_fa, NA_mi, NA_cr), collapse = ", ")
+
+                cli::cli_alert_info("Tree {tree_i} node {level_i}: {nr_NA_lvl} corresponding criterion value{?s}: {fin_NA_criteria} => (hi fa mi cr) for NA cases is ({NA_mx})")
+
+              } # if (debug).
+
+            } # if (!x$params$quiet$mis).
+
+          } # if (any(ix_NA_current_decision)).
+
+        } # if (final exit).
+
+        # +++ here now +++
+
+        # Done:
+        #
+        # - When a final cue is NA: Create the 2x2 matrix for NA cases (true criterion values x decisions made):
+        #   1. hi among NA cases
+        #   2. fa among NA cases
+        #   3. mi among NA cases
+        #   4. cr among NA cases
+        #
+        # Among NA cases:
+        #               Criterion
+        # Decision      TRUE      FALSE
+        # 'true'        hi        fa
+        # 'false'       mi        cr
+
+        # ToDo:
+        #
+        # - When allowing for a 3rd category ("dnk" / abstention / suspension):
+        #   2 new errors (as criterion still IS binary / non-contingent / knowable in principle):
+        #   5. (fa): deciding for "dnk" when criterion is FALSE / missing a true FALSE
+        #   6. (mi): deciding for "dnk" when criterion is TRUE
+        #
+        #               Criterion
+        # Decision      TRUE      FALSE
+        #   'true'       hi        fa
+        #   'dnk'       (mi)      (fa)
+        #   'false'      mi        cr
+
+        # - Consider alternative policies for indecision / doxastic abstention:
+        #   - predict the most common category OF NA CASES in training data (rather than OVERALL baseline or baseline at this level)
+        #   - predict a 3rd category (tertium datur: abstention / dnk: "do not know" / NA decision)
+        #   Corresponding results will depend on the costs of errors.
+
+      } # Handle NA: if ( allow_NA_pred | allow_NA_crit ).
 
 
       # Define critical values for current decisions: ----
@@ -352,29 +534,59 @@ fftrees_apply <- function(x,
       decisions_df$levelout[classify_now] <- level_i
       decisions_df$cost_cue[classify_now] <- cost_cue_level_cum[level_i]
 
-      decisions_df$cost_decision[decisions_df$criterion == TRUE  & decisions_df$decision == TRUE]  <- x$params$cost.outcomes$hi
-      decisions_df$cost_decision[decisions_df$criterion == FALSE & decisions_df$decision == TRUE]  <- x$params$cost.outcomes$fa
-      decisions_df$cost_decision[decisions_df$criterion == TRUE  & decisions_df$decision == FALSE] <- x$params$cost.outcomes$mi
-      decisions_df$cost_decision[decisions_df$criterion == FALSE & decisions_df$decision == FALSE] <- x$params$cost.outcomes$cr
+      decisions_df$cost_dec[decisions_df$criterion == TRUE  & decisions_df$decision == TRUE]  <- x$params$cost.outcomes$hi
+      decisions_df$cost_dec[decisions_df$criterion == FALSE & decisions_df$decision == TRUE]  <- x$params$cost.outcomes$fa
+      decisions_df$cost_dec[decisions_df$criterion == TRUE  & decisions_df$decision == FALSE] <- x$params$cost.outcomes$mi
+      decisions_df$cost_dec[decisions_df$criterion == FALSE & decisions_df$decision == FALSE] <- x$params$cost.outcomes$cr
 
-      decisions_df$cost <- decisions_df$cost_cue + decisions_df$cost_decision
+      decisions_df$cost <- decisions_df$cost_cue + decisions_df$cost_dec
 
 
-      # Get cumulative level stats: ----
+      # Handle NA values: ------
 
-      non_na_decision_ix <- !is.na(decisions_df$decision)
+      if ( allow_NA_pred | allow_NA_crit ){
+
+        # Goal: Create index vector ix_non_NA_deci (to constrain the call to classtable() below).
+
+        # Detect NA values: ----
+
+        ix_NA_deci <- is.na(decisions_df$decision)   # 1. NA in decision
+        # ix_NA_crit <- is.na(decisions_df$criterion)  # 2. NA in criterion
+
+        nr_NA_dec <- sum(ix_NA_deci)
+        # cli::cli_alert_info("Tree {tree_i}, level {level_i}: nr_NA_dec = {nr_NA_dec}, decision = {decisions_df$decision}")
+
+        # Non-NA values:
+        ix_non_NA_deci <- !ix_NA_deci
+
+        # ToDo:
+        # - Add user feedback
+        # - Handle NA in criterion?
+
+      } else { # no NA handling:
+
+        nr_NA_dec <- NA  # (as NA handling not enabled)
+
+        ix_non_NA_deci <- rep(TRUE, length(decisions_df$decision))  # use ALL elements
+
+      } # Handle NA: if ( allow_NA_pred | allow_NA_crit ).
+
+
+      # Get cumulative level stats: ------
 
       my_level_stats_i <- classtable(
-        prediction_v = decisions_df$decision[non_na_decision_ix],
-        criterion_v = decisions_df$criterion[non_na_decision_ix],
+        prediction_v = decisions_df$decision[ix_non_NA_deci],
+        criterion_v  = decisions_df$criterion[ix_non_NA_deci],
         #
         sens.w = x$params$sens.w,
         #
-        cost.outcomes = x$params$cost.outcomes,              # outcome cost (per outcome type)
-        cost_v = decisions_df$cost_cue[non_na_decision_ix],  # cue cost (per decision at level)
+        cost.outcomes = x$params$cost.outcomes,          # outcome cost (per outcome type)
+        cost_v = decisions_df$cost_cue[ix_non_NA_deci],  # cue cost (per decision at level)
         #
         my.goal = x$params$my.goal,
-        my.goal.fun = x$params$my.goal.fun
+        my.goal.fun = x$params$my.goal.fun,
+        #
+        quiet_mis = x$params$quiet$mis  # passed to hide/show NA user feedback
       )
 
       # level_stats_i$costc <- sum(cost_cue[,tree_i], na.rm = TRUE)
@@ -383,8 +595,30 @@ fftrees_apply <- function(x,
 
       # Add cue cost and total cost: ----
 
-      level_stats_i$cost_cue[level_i] <- mean(decisions_df$cost_cue[non_na_decision_ix])
+      level_stats_i$cost_cue[level_i] <- mean(decisions_df$cost_cue[ix_non_NA_deci])
       level_stats_i$cost[level_i]     <- level_stats_i$cost_cue[level_i] + level_stats_i$cost_dec[level_i]
+
+
+      # Handle NA values: ------
+
+      if ( allow_NA_pred | allow_NA_crit ){
+
+        # Goal: Add NA values to level stats.
+
+        # Total NA cases in level_stats_i:
+        level_stats_i$NA_cue[level_i] <- nr_NA_lvl  # nr. of NA in cue values on the current level_i
+
+        # Details: Decision outcomes for NA cases:
+        level_stats_i$NA_hi[level_i] <- NA_hi
+        level_stats_i$NA_fa[level_i] <- NA_fa
+        level_stats_i$NA_mi[level_i] <- NA_mi
+        level_stats_i$NA_cr[level_i] <- NA_cr
+
+        # Total of undecided cases (= data N - n):
+        level_stats_i$NA_dec[level_i] <- nr_NA_dec  # nr. of NA values in decisions / indecisions on level_i
+
+      } # Handle NA: if ( allow_NA_pred | allow_NA_crit ).
+
 
     } # Loop 2: level_i.
 
@@ -393,7 +627,7 @@ fftrees_apply <- function(x,
 
     level_stats_ls[[tree_i]] <- level_stats_i
 
-    decisions_ls[[tree_i]] <- decisions_df[, names(decisions_df) %in% c("current_decision", "current_cue_values") == FALSE]
+    decisions_ls[[tree_i]] <- decisions_df[ , names(decisions_df) %in% c("current_decision", "current_cue_values") == FALSE]
 
   } # Loop 1: tree_i.
 
@@ -444,9 +678,14 @@ fftrees_apply <- function(x,
 
   # Provide user feedback: ----
 
-  if (!x$params$quiet) {
-    msg <- paste0("Successfully applied FFTs to '", mydata, "' data.\n")
-    cat(u_f_fin(msg))
+  if (!x$params$quiet$fin) {
+
+    # msg <- paste0("Successfully applied FFTs to '", mydata, "' data.\n")
+    # cat(u_f_fin(msg))
+
+    n_trees <- x$trees$n
+    cli::cli_alert_success("Applied {n_trees} FFT{?s} to '{mydata}' data.")
+
   }
 
 

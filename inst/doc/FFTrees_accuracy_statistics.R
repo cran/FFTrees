@@ -8,10 +8,10 @@ knitr::opts_chunk$set(collapse = FALSE,
                       warning = FALSE,
                       # Default figure options: 
                       dpi = 100, 
-                      fig.align = 'center', 
-                      fig.width = 7, 
-                      fig.height = 7, 
-                      out.width = "600px")
+                      fig.align = 'center',
+                      fig.height = 6.0, 
+                      fig.width  = 6.5,
+                      out.width = "580px")
 
 ## ----pkgs, echo = FALSE, message = FALSE, results = 'hide'--------------------
 library(FFTrees)

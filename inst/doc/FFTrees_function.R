@@ -11,7 +11,7 @@ knitr::opts_chunk$set(collapse = FALSE,
                       fig.align = 'center',
                       fig.height = 6.0,
                       fig.width  = 6.5, 
-                      out.width = "600px")
+                      out.width = "580px")
 
 ## ----load-pkg, echo = FALSE, message = FALSE, results = 'hide'----------------
 library(FFTrees)
@@ -101,13 +101,13 @@ plot(heart.fft,
 
 ## ----fft-my-tree-def, results = 'hide'----------------------------------------
 # Manually define a tree using the my.tree argument:
-myheart.fft <- FFTrees(diagnosis ~., 
+myheart_fft <- FFTrees(diagnosis ~., 
                        data = heartdisease, 
                        my.tree = "If chol > 300, predict True. 
                                   If thal = {fd,rd}, predict False. 
                                   Otherwise, predict True")
 
 ## ----fft-my-tree-plot---------------------------------------------------------
-plot(myheart.fft, 
-     main = "Specifying an FFT manually")
+plot(myheart_fft, 
+     main = "Specifying a manual FFT")
 

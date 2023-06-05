@@ -61,9 +61,16 @@ fftrees_fitcomp <- function(x) {
   # Provide user feedback: ----
 
   if (do.lr | do.cart | do.rf | do.svm) {
-    if (!x$params$quiet) {
-      msg <- "Aiming to fit comparative algorithms (disable by do.comp = FALSE):\n"
-      cat(u_f_ini(msg))
+    if (!x$params$quiet$ini) {
+
+      # msg <- "Aiming to fit comparative algorithms (disable by do.comp = FALSE):\n"
+      # cat(u_f_ini(msg))
+
+      sum_alg <- sum(c(do.lr, do.cart, do.rf, do.svm))
+
+      cli::cli_alert("Fit {sum_alg} comparative algorithm{?s} (disable by {.code do.comp = FALSE}):",
+                     class = "alert-start")
+
     }
   }
 
@@ -79,7 +86,8 @@ fftrees_fitcomp <- function(x) {
         data.test = x$data$test,
         algorithm = "lr",
         model = NULL,
-        sens.w = sens.w
+        sens.w = sens.w,
+        quiet_mis = x$params$quiet$mis
       )
 
       lr_stats <- lr_acc$accuracy
@@ -113,7 +121,8 @@ fftrees_fitcomp <- function(x) {
         data.test = x$data$test,
         algorithm = "cart",
         model = NULL,
-        sens.w = sens.w
+        sens.w = sens.w,
+        quiet_mis = x$params$quiet$mis
       )
 
       cart_stats <- cart_acc$accuracy
@@ -147,7 +156,8 @@ fftrees_fitcomp <- function(x) {
         data.test = x$data$test,
         algorithm = "rf",
         model = NULL,
-        sens.w = sens.w
+        sens.w = sens.w,
+        quiet_mis = x$params$quiet$mis
       )
 
 
@@ -182,7 +192,8 @@ fftrees_fitcomp <- function(x) {
         data.test = x$data$test,
         algorithm = "svm",
         model = NULL,
-        sens.w = sens.w
+        sens.w = sens.w,
+        quiet_mis = x$params$quiet$mis
       )
 
       svm_stats <- svm_acc$accuracy
@@ -208,8 +219,14 @@ fftrees_fitcomp <- function(x) {
   # Provide user feedback: ----
 
   if (do.lr | do.cart | do.rf | do.svm) {
-    if (!x$params$quiet) {
-      cat(u_f_fin("Successfully fitted comparative algorithms.\n"))
+
+    if (!x$params$quiet$fin) {
+
+      # cat(u_f_fin("Successfully fitted comparative algorithms.\n"))
+
+      sum_alg <- sum(c(do.lr, do.cart, do.rf, do.svm))
+      cli::cli_alert_success("Fitted {sum_alg} comparative algorithm{?s}.")
+
     }
   }
 

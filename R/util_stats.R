@@ -24,11 +24,14 @@
 #'
 #' @param correction numeric. Correction added to all counts for calculating \code{dprime}.
 #' Default: \code{correction = .25}.
+#'
 #' @param sens.w numeric. Sensitivity weight (for computing weighted accuracy, \code{wacc}).
 #' Default: \code{sens.w = NULL} (to ensure that values are passed by calling function).
 #'
-#' @param my.goal Name of an optional, user-defined goal (as character string). Default: \code{my.goal = NULL}.
-#' @param my.goal.fun User-defined goal function (with 4 arguments \code{hi fa mi cr}). Default: \code{my.goal.fun = NULL}.
+#' @param my.goal Name of an optional, user-defined goal (as character string).
+#' Default: \code{my.goal = NULL}.
+#' @param my.goal.fun User-defined goal function (with 4 arguments \code{hi fa mi cr}).
+#' Default: \code{my.goal.fun = NULL}.
 #'
 #' @param cost.outcomes list. A list of length 4 named \code{"hi"}, \code{"fa"}, \code{"mi"}, \code{"cr"}, and
 #' specifying the costs of a hit, false alarm, miss, and correct rejection, respectively.
@@ -189,7 +192,7 @@ add_stats <- function(data, # df with frequency counts of classification outcome
 # classtable (from 2 binary vectors of decisions/predictions): ------
 
 # Outcome statistics based on 2 binary vectors (of logical values)
-# [called by fftrees_grow_fan(), fftrees_apply(), and comp_pred() below]:
+# [called by fftrees_grow_fan(), fftrees_apply(), and comp_pred() utility function below]:
 
 
 #' Compute classification statistics for binary prediction and criterion (e.g.; truth) vectors
@@ -219,7 +222,10 @@ add_stats <- function(data, # df with frequency counts of classification outcome
 #' @param my.goal Name of an optional, user-defined goal (as character string). Default: \code{my.goal = NULL}.
 #' @param my.goal.fun User-defined goal function (with 4 arguments \code{hi fa mi cr}). Default: \code{my.goal.fun = NULL}.
 #'
-#' @param na_prediction_action What happens when no prediction is possible? (experimental).
+#' @param quiet_mis A logical value passed to hide/show \code{NA} user feedback
+#' (usually \code{x$params$quiet$mis} of the calling function).
+#' Default: \code{quiet_mis = FALSE} (i.e., show user feedback).
+#' @param na_prediction_action What happens when no prediction is possible? (Experimental and currently unused.)
 #'
 #' @importFrom stats qnorm
 #' @importFrom caret confusionMatrix
@@ -237,7 +243,8 @@ classtable <- function(prediction_v = NULL,
                        my.goal = NULL,
                        my.goal.fun = NULL,
                        #
-                       na_prediction_action = "ignore"  # is NOT used anywhere?
+                       quiet_mis = FALSE,               # logical arg passed to hide/show NA user feedback
+                       na_prediction_action = "ignore"  # is NOT used anywhere?  (see fin_NA_pred for options)
 ){
 
   #   prediction_v <- sample(c(TRUE, FALSE), size = 20, replace = TRUE)
@@ -263,21 +270,71 @@ classtable <- function(prediction_v = NULL,
     stop("prediction_v and criterion_v must be logical")
   }
 
-  # Remove NA and infinite values (from prediction AND criterion vectors):
-  prediction_v <- prediction_v[is.finite(criterion_v)]
-  criterion_v  <- criterion_v[is.finite(criterion_v)]
+
+  # Handle NA values: ------
+
+  # Note: As NA values in predictors of type character / factor / logical were handled in handle_NA(),
+  #       only NA values in numeric predictors or the criterion variable appear here.
+
+  if ( allow_NA_pred | allow_NA_crit ){
+
+    # Detect NA values: ----
+
+    ix_NA_pred <- is.na(prediction_v)  # 1. NA in prediction_v
+    ix_NA_crit <- is.na(criterion_v)   # 2. NA in criterion_v
 
 
-  # Remove NA prediction values: ----
+    # Report NA values (prior to removing them): ----
 
-  # if(na_prediction_action == "ignore") { # is NOT used anywhere?
-  #
-  #   bad_index <- !is.finite(prediction_v)
-  #
-  #   prediction_v <- prediction_v[-bad_index]
-  #   criterion_v <- criterion_v[-bad_index]
-  #
-  # }
+    if (!quiet_mis) { # Provide user feedback:
+
+      # 1. Report NA in prediction_v:
+      if (allow_NA_pred & any(ix_NA_pred)){
+
+        sum_NA_pred <- sum(ix_NA_pred)
+
+        # Which corresponding values in criterion_v will be removed?
+        rem_criterion_v <- criterion_v[ix_NA_pred]
+        rem_criterion_s <- paste0(rem_criterion_v, collapse = ", ")
+
+        cli::cli_alert_warning("2x2: Ignoring {sum_NA_pred} NA value{?s} in prediction_v and corresponding criterion_v = c({rem_criterion_s}).")
+
+      }
+
+      # 2. Report NA in criterion_v:
+      if (allow_NA_crit & any(ix_NA_crit)){
+
+        sum_NA_crit <- sum(ix_NA_crit)
+
+        # Which values in prediction_v will be removed?
+        rem_prediction_v <- prediction_v[ix_NA_crit]
+        rem_prediction_s <- paste0(rem_prediction_v, collapse = ", ")
+
+        cli::cli_alert_warning("2x2: Ignoring {sum_NA_crit} NA value{?s} in criterion_v and corresponding prediction_v = c({rem_prediction_s}).")
+
+      }
+
+    } # if (!quiet_mis).
+
+
+    # Main: Filter vectors ----
+
+    # # A. Remove NA and infinite values (from both):
+    # both_finite <- is.finite(prediction_v) & is.finite(criterion_v)
+    #
+    # prediction_v <- prediction_v[both_finite]
+    # criterion_v  <- criterion_v[both_finite]
+
+
+    # B. Remove only NA cases (from both):
+    both_not_NA  <- !ix_NA_pred & !ix_NA_crit
+
+    prediction_v <- prediction_v[both_not_NA]
+    criterion_v  <- criterion_v[both_not_NA]
+
+
+  } # Handle NA: if ( allow_NA_pred | allow_NA_crit ).
+
 
   N <- min(length(criterion_v), length(prediction_v))
 
@@ -289,37 +346,48 @@ classtable <- function(prediction_v = NULL,
     var_pred_v <- var(prediction_v)
     var_crit_v <- var(criterion_v)
 
-    if (is.na(var_pred_v)){
 
-      # Provide user feedback:
-      prediction_v_s <- paste(prediction_v, collapse = ", ")
+    quiet_na_var <- TRUE # FALSE  # HACK: as local constant (as object x or quiet list are not passed)
 
-      msg_1a <- "A prediction vector has no variance (NA):\n"
-      msg_2a <- paste0("prediction_v = ", prediction_v_s, ".\n")
+    if (!quiet_na_var) { # Provide user feedback:
 
-      cat(u_f_hig(msg_1a))
-      cat(u_f_hig(msg_2a))
+      if (is.na(var_pred_v)){
 
-      # message("Variance of prediction_v is NA. See print(prediction_v) =")
-      # print(prediction_v)
+        # Provide user feedback:
+        prediction_v_s <- paste(prediction_v, collapse = ", ")
 
-    }
+        # msg_1a <- "A prediction vector has no variance (NA):"
+        # msg_2a <- paste0("prediction_v = ", prediction_v_s, ".")
+        msg_3a <- paste0("\u2014 No variance in 'prediction_v = c(", prediction_v_s, ")'.")
 
-    if (is.na(var_crit_v)){
+        # cat(u_f_hig(msg_1a, "\n"))  # highlighted and non-optional
+        # cat(u_f_hig(msg_2a, "\n"))
+        cat(u_f_hig(msg_3a, "\n"))
 
-      # Provide user feedback:
-      criterion_v_s <- paste(criterion_v, collapse = ", ")
+        # cli::cli_alert_warning(msg_1a)
+        # cli::cli_alert_warning(msg_2a)
 
-      msg_1b <- "A criterion vector has no variance (NA):\n"
-      msg_2b <- paste0("criterion_v = ", criterion_v_s, ".\n")
+      }
 
-      cat(u_f_hig(msg_1b))
-      cat(u_f_hig(msg_2b))
+      if (is.na(var_crit_v)){
 
-      # message("Variance of criterion_v is NA. See print(criterion_v) =")
-      # print(criterion_v)
+        # Provide user feedback:
+        criterion_v_s <- paste(criterion_v, collapse = ", ")
 
-    }
+        # msg_1b <- "A criterion vector has no variance (NA):"
+        # msg_2b <- paste0("criterion_v = ", criterion_v_s, ".")
+        msg_3b <- paste0("\u2014 No variance in 'criterion_v = c(", criterion_v_s, ")'.")
+
+        # cat(u_f_hig(msg_1b, "\n"))  # highlighted and non-optional
+        # cat(u_f_hig(msg_2b, "\n"))
+        cat(u_f_hig(msg_3b, "\n"))
+
+        # cli::cli_alert_warning(msg_1b)
+        # cli::cli_alert_warning(msg_2b)
+
+      }
+
+    } # if (!quiet_na_var).
 
 
     # Main: Compute statistics:
@@ -332,6 +400,7 @@ classtable <- function(prediction_v = NULL,
         stop("Different lengths of prediction_v and criterion_v.\nLength of prediction_v is ", length(prediction_v),
              "and length of criterion_v is ", length(criterion_v))
       }
+
 
       # Use caret::confusionMatrix:
       cm <- caret::confusionMatrix(table(prediction_v, criterion_v),
@@ -410,6 +479,13 @@ classtable <- function(prediction_v = NULL,
 
 
     } else { # Case 2. Compute stats from freq combinations: ----
+
+      if (!quiet_na_var){ # Provide user feedback:
+
+        msg_c2 <- ("\u2014 Computing stats from freq counts, rather than caret::confusionMatrix()")
+        cat(u_f_hig(msg_c2, "\n"))
+
+      }
 
       # Compute freqs as sum of T/F combinations:
       hi <- sum(prediction_v == TRUE  & criterion_v == TRUE)
@@ -560,29 +636,54 @@ classtable <- function(prediction_v = NULL,
 # comp_pred: ------
 
 
-#' A wrapper for competing classification algorithms
+#' Fit and predict competing classification algorithms
 #'
-#' \code{comp_pred} provides the main wrapper for running alternative classification algorithms, such as CART (\code{rpart::rpart}),
-#' logistic regression (\code{glm}), support vector machines (\code{svm::svm}), and random forests (\code{randomForest::randomForest}).
+#' \code{comp_pred} provides a wrapper for running (i.e., fit or predict)
+#' alternative classification algorithms to data
+#' (i.e., \code{data.train} or \code{data.test}, respectively).
+#'
+#' The range of competing algorithms currently available includes
+#' logistic regression (\code{stats::glm}),
+#' CART (\code{rpart::rpart}),
+#' support vector machines (\code{e1071::svm}), and
+#' random forests (\code{randomForest::randomForest}).
+#'
+#' The current support for handling missing data (or \code{NA} values) is only rudimentary.
+#' When enabled (via the global options \code{allow_NA_pred} or \code{allow_NA_crit}),
+#' any rows in \code{data.train} or \code{data.test} with incomplete cases are being removed
+#' prior to fitting or predicting a model (by using \code{na.omit} from \strong{stats}).
+#' See the specifications of each model for more sophisticated ways of handling missing data.
 #'
 #' @param formula A formula (usually \code{x$formula}, for an \code{FFTrees} object \code{x}).
-#' @param data.train A training dataset (as data frame).
-#' @param data.test A testing dataset (as data frame).
+#' @param data.train A training dataset (as a data frame).
+#' @param data.test A testing dataset (as a data frame).
 #'
-#' @param algorithm character string. An algorithm in the set:
-#' "lr" -- logistic regression;
-#' "rlr" -- regularized logistic regression;
-#' "cart" -- decision trees;
-#' "svm" -- support vector machines;
-#' "rf" -- random forests.
+#' @param algorithm A character string specifying an algorithm in the set:
+#' \itemize{
+#'   \item{\code{"lr"}: Logistic regression (using \code{\link{glm}} from \strong{stats} with \code{family = "binomial"});}
+#'   \item{\code{"rlr"}: Regularized logistic regression (currently not supported);}
+#'   \item{\code{"cart"}: Decision trees (using \code{rpart} from \strong{rpart});}
+#'   \item{\code{"svm"}: Support vector machines (using \code{svm} from \strong{e1071});}
+#'   \item{\code{"rf"}: Random forests (using \code{randomForest} from \strong{randomForest}.}
+#' }
 #'
-#' @param model model. An optional existing model, applied to the test data.
-#' @param sens.w Sensitivity weight parameter (from 0 to 1, required to compute \code{wacc}).
-#' @param new.factors string. What should be done if new factor values are discovered in the test set?
-#' "exclude" = exclude (i.e.; remove these cases), "base" = predict the base rate of the criterion.
+#' @param model An optional existing model (as a \code{model}), to be applied to the test data.
+#'
+#' @param sens.w Sensitivity weight parameter (numeric, from \code{0} to \code{1}), required to compute \code{wacc}.
+#'
+#' @param new.factors What should be done if new factor values are discovered in the test set (as a character string)?
+#' Available options:
+#' \itemize{
+#'   \item{\code{"exclude"}: exclude case (i.e., remove these cases, used by default);}
+#'   \item{\code{"base"}: predict the base rate of the criterion.}
+#' }
+#'
+#' @param quiet_mis A logical value passed to hide/show \code{NA} user feedback
+#' (usually \code{x$params$quiet$mis} of the calling function).
+#' Default: \code{quiet_mis = FALSE} (i.e., show user feedback).
 #'
 #' @importFrom dplyr bind_rows
-#' @importFrom stats model.frame formula glm model.matrix
+#' @importFrom stats formula glm model.frame model.matrix na.omit
 #' @importFrom e1071 svm
 #' @importFrom rpart rpart
 #' @importFrom randomForest randomForest
@@ -593,7 +694,9 @@ comp_pred <- function(formula,
                       algorithm = NULL,
                       model = NULL,
                       sens.w = NULL,
-                      new.factors = "exclude") {
+                      new.factors = "exclude",
+                      quiet_mis = FALSE         # logical arg passed to hide/show NA user feedback
+) {
 
   #   formula = x$formula
   #   data.train = x$data$train
@@ -602,98 +705,115 @@ comp_pred <- function(formula,
   #   model = NULL
 
   if (is.null(formula)) {
-    stop("You must enter a valid formula")
+    stop("A valid formula is required")
   }
 
   if (is.null(algorithm)) {
-    stop("Please specify one of the following models: 'lr', 'rlr', 'cart', 'svm', 'rf'")
-    # ToDo: 'rlr' does currently not seem to be implemented (see below).
+    stop("Please specify one of the following models: 'lr', 'cart', 'svm', 'rf'")
+    # Note: 'rlr' is currently not supported (see below).
   }
 
   if (inherits(algorithm, "character")) {
     algorithm <- tolower(algorithm)  # 4robustness
   }
 
+
   # SETUP: ----
-  {
-    if (is.null(data.test) & (is.null(data.train) == FALSE)) {
-      data_all <- data.train
-      train_cases <- 1:nrow(data.train)
-      test_cases <- c()
-    }
 
-    if (is.null(data.test) == FALSE & (is.null(data.train) == FALSE)) {
-      # data_all <- rbind(data.train, data.test)  # Note: fails when both dfs have different variables!
-      data_all <- dplyr::bind_rows(data.train, data.test)  # fills any non-matching columns with NAs.
-      train_cases <- 1:nrow(data.train)
-      test_cases <- (nrow(data.train) + 1):nrow(data_all)
-    }
+  # Get data_all, train_cases, and test_cases:
 
-    if (is.null(data.train) & is.null(data.test) == FALSE) {
-      data_all <- data.test
-      train_cases <- c()
-      test_cases <- 1:nrow(data_all)
-    }
+  if (is.null(data.test) & (is.null(data.train) == FALSE)) { # only train data:
+    data_all <- data.train
+    train_cases <- 1:nrow(data.train)
+    test_cases <- c()
+  }
 
-    data_all <- model.frame(
-      formula = formula,
-      data = data_all
-    )
+  if (is.null(data.test) == FALSE & (is.null(data.train) == FALSE)) { # both train + test data:
+    # data_all <- rbind(data.train, data.test)  # Note: fails when both dfs have different variables!
+    data_all <- dplyr::bind_rows(data.train, data.test)  # fills any non-matching columns with NAs.
+    train_cases <- 1:nrow(data.train)
+    test_cases  <- (nrow(data.train) + 1):nrow(data_all)
+  }
 
-    train_crit <- data_all[train_cases, 1]
+  if (is.null(data.train) & (is.null(data.test) == FALSE)) { # only test data:
+    data_all <- data.test
+    train_cases <- c()
+    test_cases  <- 1:nrow(data_all)
+  }
 
-    # Remove columns with no variance in training data:
-    if (is.null(data.train) == FALSE) {
+  # print(data_all)  # 4debugging
 
-      if (isTRUE(all.equal(length(unique(data_all[train_cases, 1])), 1))) {
+  # Turn data_all into model.frame:
+  data_all <- model.frame(
+    formula = formula,
+    data = data_all,
+    na.action = NULL  # keeps NA cases
+  )
 
-        do_test <- FALSE
+  # print(data_all)  # 4debugging
 
-      } else {
 
-        do_test <- TRUE
 
-      }
+  train_crit <- data_all[train_cases, 1]
 
-    } else {
 
-      do_test <- TRUE
+  # Set a flag:
+  do_test <- TRUE  # default
+
+  # Remove columns with no variance in training data:
+  if (!is.null(data.train)) {
+
+    if (isTRUE(all.equal(length(unique(data_all[train_cases, 1])), 1))) { # no variance in train_cases:
+
+      do_test <- FALSE  # unflag
 
     }
   }
 
 
+  # Pre-process columns in data_all:
+
   if (do_test) {
 
+    # Identify the columns with variance in data_all:
     if (is.null(train_cases) == FALSE) {
+
       ok_cols <- sapply(1:ncol(data_all), FUN = function(x) {
         length(unique(data_all[train_cases, x])) > 1
       })
-      data_all <- data_all[ , ok_cols]
+
+      data_all <- data_all[ , ok_cols]  # select columns
+
     }
 
     # Convert character columns to factors:
     for (col_i in 1:ncol(data_all)) {
+
       if (inherits(data_all[ , col_i], c("logical", "character", "factor"))) {
         data_all[ , col_i] <- factor(data_all[ , col_i])
       }
-    }
+
+    } # for (col_i).
 
   } # if (do_test).
 
 
-  # Get data, cue, crit objects: ----
+  # print(data_all)  # 4debugging: NA cases are still present?
+  # print(data.train)  # 4debugging: NA cases are still present.
 
-  if (is.null(train_cases) == FALSE) {
 
-    data.train <- data_all[train_cases,   ]
-    # cue_train  <- data_all[train_cases, -1]  # is NOT used anywhere?
-    crit_train <- data_all[train_cases,  1]
+  # Get training data (data.train): ----
+
+  if (!is.null(train_cases)) {
+
+    data.train <- data_all[train_cases, ]
+    # cues_train  <- data_all[train_cases, -1]  # is NOT used anywhere?
+    crit_train <- data_all[train_cases, 1]
 
   } else {
 
     data.train <- NULL
-    # cue_train  <- NULL  # is NOT used anywhere?
+    # cues_train  <- NULL  # is NOT used anywhere?
     crit_train <- NULL
 
   }
@@ -701,7 +821,47 @@ comp_pred <- function(formula,
 
   # Build models for training data: ------
 
-  # 1. LR: ----
+
+  # Handle NA values (in data.train): ----
+
+  if (any(is.na(data.train))){ # NAs in data.train:
+
+    nr_NA <- sum(is.na(data.train))  # count (before removal)
+    # ix_NA_row <- rowSums(is.na(data.train)) > 0  # rows with NA values
+
+    if ( allow_NA_pred | allow_NA_crit ){ # Only remove cases with NA values (rather than doing anything fancy):
+
+      # Remove incomplete cases:
+      data.train <- stats::na.omit(data.train)
+
+      # Adjust crit_train accordingly:
+      crit_train <- data.train[ , 1]  # 1st column
+
+      if (!quiet_mis) { # Provide user feedback:
+
+        n_train <- nrow(data.train)
+
+        cli::cli_alert_warning("Fitting {toupper(algorithm)}: Found {nr_NA} NA{?s} in 'data.train'. Removing incomplete cases left {n_train} case{?s}.")
+
+      }
+
+    } else { # do nothing, but warn:
+
+      if (!quiet_mis) { # Provide user feedback:
+
+        n_train <- nrow(data.train)
+
+        cli::cli_alert_warning("Fitting {toupper(algorithm)}: Found {nr_NA} NA{?s} in 'data.train': Keeping all {n_train} case{?s}, but applying default algorithms may yield errors.")
+
+      }
+    }
+  }
+
+  # print(data.train)  # 4debugging: Have NA cases been removed?
+  # print(crit_train)
+
+
+  # 1. LR: binomial LR ----
 
   if (algorithm == "lr") {
 
@@ -791,6 +951,7 @@ comp_pred <- function(formula,
                             data.train,
                             type = "class"
       )
+
     } else {
 
       pred_train <- NULL
@@ -836,20 +997,58 @@ comp_pred <- function(formula,
 
 
 
-  # Get testing data: ------
+  # Get testing data (data.test): ------
 
   pred_test <- NULL
 
-  if (is.null(data.test) == FALSE) {
+  if (!is.null(data.test)) {
 
     data.test <- data_all[test_cases, ]
-    cue_test  <- data_all[test_cases, -1]
-    crit_test <- data_all[test_cases, 1]
+    # cues_test <- data_all[test_cases, -1]  # is NOT used anywhere?
+    crit_test <- data_all[test_cases,  1]
 
-    # Check for new factor values:
+
+    # Handle NA values (in data.test): ----
+
+    if (any(is.na(data.test))){ # NAs in data.test:
+
+      nr_NA <- sum(is.na(data.test))  # count (before removal)
+
+      if ( allow_NA_pred | allow_NA_crit ){ # Only remove cases with NA values (rather than doing anything fancy):
+
+        # Remove incomplete cases:
+        data.test <- stats::na.omit(data.test)
+
+        # Adjust crit_test accordingly:
+        crit_test <- data.test[ , 1]  # 1st column
+
+        if (!quiet_mis) { # Provide user feedback:
+
+          n_test <- nrow(data.test)
+
+          cli::cli_alert_warning("Predicting {toupper(algorithm)}: Found {nr_NA} NA{?s} in 'data.test'. Removing incomplete cases left {n_test} case{?s}.")
+
+        }
+
+      } else { # do nothing, but warn:
+
+        if (!quiet_mis) { # Provide user feedback:
+
+          n_test <- nrow(data.test)
+
+          cli::cli_alert_warning("Aiming to predict {toupper(algorithm)}: Found {nr_NA} NA{?s} in 'data.test': Keeping all {n_test} case{?s}, but applying default algorithms may yield errors.")
+
+        }
+      }
+    }
+
+    # print(data.test)  # 4debugging: Have NA cases been removed?
+
+
+    # Check for new factor values: ----
     {
 
-      if (is.null(train_cases) == FALSE) {
+      if (!is.null(train_cases)) {
         factor_ls <- lapply(1:ncol(data.train), FUN = function(x) {
           unique(data.train[ , x])
         })
@@ -871,6 +1070,7 @@ comp_pred <- function(formula,
         })
       }
 
+
       cannot_pred_mtx <- matrix(0, nrow = nrow(data.test), ncol = ncol(data.test))
 
       for (i in 1:ncol(cannot_pred_mtx)) {
@@ -881,26 +1081,29 @@ comp_pred <- function(formula,
 
       } # for().
 
+
       cannot_pred_vec <- rowSums(cannot_pred_mtx) > 0
 
       if (any(cannot_pred_vec)) {
 
-        if (substr(new.factors, 1, 1) == "e") {
+        if (substr(new.factors, 1, 1) == "e") { # "exclude":
 
           warning(paste(sum(cannot_pred_vec), "cases in the test data could not be predicted by 'e' due to new factor values. These cases will be excluded"))
 
           data.test <- data.test[cannot_pred_vec == FALSE, ]
-          cue_test  <- cue_test[cannot_pred_vec == FALSE, ]
+          # cues_test <- cues_test[cannot_pred_vec == FALSE, ]  # is NOT used anywhere?
           crit_test <- crit_test[cannot_pred_vec == FALSE]
         }
 
-        if (substr(new.factors, 1, 1) == "b") {
+        if (substr(new.factors, 1, 1) == "b") { # "base" rate:
 
           warning(paste(sum(cannot_pred_vec), "cases in the test data could not be predicted by 'b' due to new factor values. They will be predicted to be", mean(train_crit) > .5))
         }
 
       }
-    }
+
+    } # Check for new factor values.
+
 
 
     # Get predictions (pred_test) from each model: ------
@@ -913,7 +1116,7 @@ comp_pred <- function(formula,
 
         pred_test <- rep(0, nrow(data.test))
 
-        if (any(cannot_pred_vec) & substr(new.factors, 1, 1) == "b") {
+        if (any(cannot_pred_vec) & substr(new.factors, 1, 1) == "b") { # "base" rate:
 
           pred_test[cannot_pred_vec] <- mean(train_crit) > .5
           pred_test[cannot_pred_vec == FALSE] <- round(1 / (1 + exp(-predict(train_mod, data.test[cannot_pred_vec == FALSE, ]))), 0)
@@ -967,7 +1170,7 @@ comp_pred <- function(formula,
 
       if (is.null(data.test) == FALSE) {
 
-        if (any(cannot_pred_vec) & substr(new.factors, 1, 1) == "b") {
+        if (any(cannot_pred_vec) & substr(new.factors, 1, 1) == "b") { # "base" rate:
 
           pred_test <- rep(0, nrow(data.test))
           pred_test[cannot_pred_vec] <- mean(train_crit) > .5
@@ -1014,7 +1217,7 @@ comp_pred <- function(formula,
           pred_test <- predict(train_mod, data.test)
         }
 
-        # if(any(cannot_pred_vec) & substr(new.factors, 1, 1) == "b") {
+        # if(any(cannot_pred_vec) & substr(new.factors, 1, 1) == "b") { # "base" rate:
         #
         #   pred_test <- rep(0, nrow(data.test))
         #   pred_test[cannot_pred_vec] <- mean(train_crit) > .5
@@ -1032,7 +1235,7 @@ comp_pred <- function(formula,
   } # if (is.null(data.test) == FALSE)).
 
 
-  # Convert predictions to logical if necessary: ----
+  # Convert predictions to logical (if necessary): ----
 
   if (is.null(pred_train) == FALSE) {
 
@@ -1050,7 +1253,8 @@ comp_pred <- function(formula,
     acc_train <- classtable(
       prediction_v = as.logical(pred_train),
       criterion_v = as.logical(crit_train),
-      sens.w = sens.w
+      sens.w = sens.w,
+      quiet_mis = quiet_mis
     )
   }
 
@@ -1059,7 +1263,8 @@ comp_pred <- function(formula,
     acc_train <- classtable(
       prediction_v = c(TRUE, TRUE, FALSE),
       criterion_v =  c(FALSE, FALSE, TRUE),
-      sens.w = sens.w
+      sens.w = sens.w,
+      quiet_mis = quiet_mis
     )
 
     acc_train[1, ] <- NA
@@ -1079,7 +1284,8 @@ comp_pred <- function(formula,
     acc_test <- classtable(
       prediction_v = as.logical(pred_test),
       criterion_v = as.logical(crit_test),
-      sens.w = sens.w
+      sens.w = sens.w,
+      quiet_mis = quiet_mis
     )
 
   } else {
@@ -1087,7 +1293,8 @@ comp_pred <- function(formula,
     acc_test <- classtable(
       prediction_v = c(TRUE, FALSE, TRUE),
       criterion_v = c(TRUE, TRUE, FALSE),
-      sens.w = sens.w
+      sens.w = sens.w,
+      quiet_mis = quiet_mis
     )
 
     acc_test[1, ] <- NA
@@ -1100,7 +1307,8 @@ comp_pred <- function(formula,
     acc_train <- classtable(
       prediction_v = c(TRUE, FALSE, TRUE),
       criterion_v = c(FALSE, TRUE, TRUE),
-      sens.w = sens.w
+      sens.w = sens.w,
+      quiet_mis = quiet_mis
     )
 
     acc_train[1, ] <- NA
@@ -1108,7 +1316,8 @@ comp_pred <- function(formula,
     acc_test <- classtable(
       prediction_v = c(TRUE, FALSE, TRUE),
       criterion_v = c(FALSE, TRUE, TRUE),
-      sens.w = sens.w
+      sens.w = sens.w,
+      quiet_mis = quiet_mis
     )
 
     acc_test[1, ] <- NA
@@ -1134,8 +1343,8 @@ comp_pred <- function(formula,
 # ToDo: ------
 
 # Reduce redundancy:
-# - Avoid repeated computation of stats in add_stats() and classtable().
-# - Consider re-using stats from add_stats() or classtable()
+# - Avoid repeated computation of same stats in add_stats() and classtable().
+# - Consider re-using the stats from add_stats() or classtable()
 #   when printing (by console_confusionmatrix()) or plotting (by plot.FFTrees()) FFTs.
 
 # eof.

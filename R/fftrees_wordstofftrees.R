@@ -37,8 +37,12 @@ fftrees_wordstofftrees <- function(x,
 
   # Provide user feedback: ----
 
-  if (!x$params$quiet) {
-    cat(u_f_ini("Aiming to create an FFT from 'my.tree' description:\n"))
+  if (!x$params$quiet$ini) {
+
+    # cat(u_f_ini("Aiming to create an FFT from 'my.tree' description:\n"))
+
+    cli::cli_alert("Create an FFT from 'my.tree' description:", class = "alert-start")
+
   }
 
   # Parameters / options: ------
@@ -54,7 +58,7 @@ fftrees_wordstofftrees <- function(x,
 
   # exits_df <- data.frame(     # is NOT used anywhere?
   #   exit.char = x$params$decision.labels,
-  #   exit = c("0", "1"),       # 0:left/noise vs. 1:right/signal
+  #   exit = c("0", "1"),       # 0:FALSE/noise/left vs. 1:TRUE/signal/right
   #   stringsAsFactors = FALSE
   # )
 
@@ -92,20 +96,26 @@ fftrees_wordstofftrees <- function(x,
   # Done: Turn stops into warnings, but provide feedback which exit type is not being mentioned.
 
 
-  # Split my.tree into def parts (dropping "otherwise" clause): ------
+  # Split my.tree into def parts (dropping the final "otherwise" clause): ------
+  {
+    def <- unlist(strsplit(my.tree, split = "if |when |whenever ", fixed = FALSE))  # Note: Also removes trailing " " after "if"!
+    def <- paste0(" ", def)    # add a leading " " again (to include in detecting cue name below)
+    def <- def[2:length(def)]  # remove initial empty string
+    # print(def)  # 4debugging
 
-  def <- unlist(strsplit(my.tree, split = "if ", fixed = TRUE))  # Note: Also removes trailing " " after "if"!
-  def <- paste0(" ", def)    # add leading " " again (to include in detecting cue name below)
-  def <- def[2:length(def)]  # remove initial empty string
-  # print(def)  # 4debugging
+    def_fin_2 <- unlist(strsplit(def[length(def)], split = "else|otherwise|other", fixed = FALSE))
+    # Done: Generalized to include "else", "in other cases", etc.
+    # print(def_fin_2)  # 4debugging
 
-  def_fin_2 <- unlist(strsplit(def[length(def)], split = "otherwise", fixed = TRUE))
-  # ToDo: Could be generalized to include "else", "in other cases", etc.
-  # print(def_fin_2)  # 4debugging
+    # Drop the final sub-sentence (its else/otherwise part):
+    def <- c(def[-length(def)], def_fin_2[1])
 
-  # Drop the final sub-sentence (beginning with "otherwise"):
-  def <- c(def[-length(def)], def_fin_2[1])
-  # print(def)  # 4debugging
+    # Drop trailing spaces (" "):
+    # def <- gsub(pattern = "\\.\\s+$", replacement = "\\.", x = def)  # remove trailing spaces (after ".")
+    def <- gsub(pattern = "\\s+$", replacement = "", x = def)  # remove ANY trailing spaces
+
+    # print(def)  # 4debugging
+  }
 
   nodes_n <- length(def)
 
@@ -136,21 +146,23 @@ fftrees_wordstofftrees <- function(x,
     })))
 
     # Convert cue names back to original (non lower) values:
-    cues_v <- x$cue_names[sapply(cues_v, FUN = function(x) {
-      which(cue_names_l == x)
+    cues_v <- x$cue_names[sapply(cues_v, FUN = function(c_name) {
+      which(cue_names_l == c_name)
     })]
-  }
+  } # 1. cues_v.
 
 
   # 2. classes_v: ----
   {
     classes_v <- rep(NA, nodes_n)
 
-    contains_brack <- stringr::str_detect(def[1:nodes_n], "\\[") | stringr::str_detect(def[1:nodes_n], "\\{")
-    classes_v[contains_brack] <- "c"
-    classes_v[contains_brack == FALSE] <- "n"
+    in_brackets <- stringr::str_detect(def[1:nodes_n], "\\[") | stringr::str_detect(def[1:nodes_n], "\\{")
 
-  }
+    classes_v[ in_brackets] <- "c"  # categorical (character, factor, logical)
+    classes_v[!in_brackets] <- "n"  # numeric (integer, numeric)
+
+  } # 2. classes_v.
+
 
   # 3. exits_v: ----
   {
@@ -158,33 +170,34 @@ fftrees_wordstofftrees <- function(x,
 
       y <- unlist(strsplit(node_sentence, " "))
 
-      false_ix <- grep(tolower(decision_labels[1]), x = y)  # indices of FALSE/noise/0//left
-      true_ix  <- grep(tolower(decision_labels[2]), x = y)  # indices of TRUE/signal/1/right
+      false_ix <- grep(pattern = tolower(decision_labels[1]), x = y)  # indices of labels (for 0 / FALSE / noise / left exits)
+      true_ix  <- grep(pattern = tolower(decision_labels[2]), x = y)  # indices of labels (for 1 / TRUE / signal / right exits)
 
       if (any(grepl(decision_labels[2], x)) & any(grepl(decision_labels[1], y))) {
 
         if (min(true_ix) < min(false_ix)) {
-          return(1)
+          return(exit_types[2])  # == 1 / TRUE / signal / right
         }
 
         if (min(true_ix) > min(false_ix)) {
-          return(0)
+          return(exit_types[1])  # == 0 / FALSE / noise / left
         }
 
       }
 
       if (any(grepl(decision_labels[2], y)) & !any(grepl(decision_labels[1], y))) {
-        return(1)
+        return(exit_types[2])  # == 1 / TRUE / signal / right
       }
 
       if (!any(grepl("v", y)) & any(grepl(decision_labels[1], y))) {
-        return(0)
+        return(exit_types[1])  # == 0 / FALSE / noise / left
       }
 
     }))
 
     # print(exits_v)  # 4debugging
-  }
+  } # 3. exits_v.
+
 
   # 4. thresholds_v: ----
   {
@@ -215,7 +228,7 @@ fftrees_wordstofftrees <- function(x,
       return(threshold_i)
 
     })
-  }
+  } # 4. thresholds_v.
 
 
   # 5. directions_v: ----
@@ -264,17 +277,21 @@ fftrees_wordstofftrees <- function(x,
     # Convert to direction_f (formal symbol/forward direction/to signal):
     directions_v <- directions_df$direction_f[match(directions_v, table = directions_df$direction)]
 
-    # If any directions are 0, flip their direction:
-    flip_direction_ix <- (exits_v == 0)
+    # If any current exit types/directions are 0/FALSE/left/noise, flip their direction:
+    # print(exits_v)    # 4debugging
+    cur_exits <- get_exit_type(exits_v, verify = FALSE)
+    # print(cur_exits)  # 4debugging
+
+    flip_direction_ix <- (cur_exits == exit_types[1])  # exit type == 0 / FALSE / left / noise
 
     directions_v[flip_direction_ix] <- directions_df$negation[match(directions_v[flip_direction_ix], table = directions_df$direction)]
 
-  }
+  } # 5. directions_v.
 
 
-  # Set final exit to .5: ----
+  # Set final exit (to .5): ----
 
-  exits_v[nodes_n] <- ".5"
+  exits_v[nodes_n] <- exit_types[3]
 
 
   # Save result in x$trees$definitions (1 line, as df): ----
@@ -330,9 +347,14 @@ fftrees_wordstofftrees <- function(x,
 
   # Provide user feedback: ----
 
-  if (!x$params$quiet) {
-    cat(u_f_fin("Successfully created an FFT from 'my.tree' description.\n"))
+  if (!x$params$quiet$fin) {
+
+    # cat(u_f_fin("Successfully created an FFT from 'my.tree' description.\n"))
+
+    cli::cli_alert_success("Created an FFT from 'my.tree' description.")
+
   }
+
 
   # Output: ------
 

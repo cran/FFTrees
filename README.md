@@ -2,13 +2,8 @@
 <!-- README.md is generated from README.Rmd. Please only edit the .Rmd file! -->
 <!-- Title, version and logo: -->
 
-# FFTrees 1.9.0 <img src = "./inst/FFTrees_Logo.jpg" align = "right" alt = "FFTrees" width = "225" />
+# FFTrees 2.0.0 <img src = "./inst/FFTrees_Logo.jpg" align = "right" alt = "FFTrees" width = "225" />
 
-<!-- Devel badges start: -->
-<!-- [![CRAN status](https://www.r-pkg.org/badges/version/FFTrees)](https://CRAN.R-project.org/package=FFTrees) -->
-<!-- [![Downloads/month](https://cranlogs.r-pkg.org/badges/FFTrees?color='00a9e0')](https://www.r-pkg.org/pkg/FFTrees) -->
-<!-- [![R-CMD-check](https://github.com/ndphillips/FFTrees/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ndphillips/FFTrees/actions/workflows/R-CMD-check.yaml) -->
-<!-- Devel badges end. -->
 <!-- Release badges start: -->
 
 [![CRAN
@@ -17,6 +12,11 @@ status](https://www.r-pkg.org/badges/version/FFTrees)](https://CRAN.R-project.or
 downloads](https://cranlogs.r-pkg.org/badges/grand-total/FFTrees?color='00a9e0')](https://www.r-pkg.org/pkg/FFTrees)
 <!-- Release badges end. -->
 
+<!-- Devel badges start: -->
+<!-- [![CRAN status](https://www.r-pkg.org/badges/version/FFTrees)](https://CRAN.R-project.org/package=FFTrees) -->
+<!-- [![Downloads/month](https://cranlogs.r-pkg.org/badges/FFTrees?color='00a9e0')](https://www.r-pkg.org/pkg/FFTrees) -->
+<!-- [![R-CMD-check](https://github.com/ndphillips/FFTrees/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ndphillips/FFTrees/actions/workflows/R-CMD-check.yaml) -->
+<!-- Devel badges end. -->
 <!-- ALL badges start: -->
 <!-- [![CRAN status](https://www.r-pkg.org/badges/version/FFTrees)](https://CRAN.R-project.org/package=FFTrees) -->
 <!-- [![Build Status](https://travis-ci.org/ndphillips/FFTrees.svg?branch=master)](https://travis-ci.org/ndphillips/FFTrees) -->
@@ -155,8 +155,8 @@ We use the main `FFTrees()` function to create FFTs for the
   the `heartdisease` data:
 
 ``` r
-# Create an FFTrees object from the heartdisease data: 
-heart_fft <- FFTrees(formula = diagnosis ~., 
+# Create an FFTrees object from the heartdisease data:
+heart_fft <- FFTrees(formula = diagnosis ~.,
                      data = heart.train,
                      data.test = heart.test, 
                      decision.labels = c("Healthy", "Disease"))
@@ -204,16 +204,15 @@ heart_fft$competition$test
     #> 3 cart        153    50    19    23    61 0.685 0.762 0.238  0.725 0.726 0.725
     #> 4 rf          153    59     8    14    72 0.808 0.9   0.1    0.881 0.837 0.856
     #> 5 svm         153    55     7    18    73 0.753 0.912 0.0875 0.887 0.802 0.837
-    #> # … with 6 more variables: bacc <dbl>, wacc <dbl>, dprime <dbl>,
-    #> #   cost_dec <dbl>, cost_cue <dbl>, cost <dbl>
+    #> # ℹ 6 more variables: bacc <dbl>, wacc <dbl>, dprime <dbl>, cost_dec <dbl>,
+    #> #   cost_cue <dbl>, cost <dbl>
 
 <!-- FFTs by verbal description: -->
 
 ### Building FFTs from verbal descriptions
 
 FFTs are so simple that we even can create them ‘from words’ and then
-apply them to data!
-
+apply them to data.  
 For example, let’s create a tree with the following three nodes and
 evaluate its performance on the `heart.test` data:
 
@@ -250,13 +249,14 @@ description.](man/figures/README-example-heart-verbal-1.png)
 **Figure 2**: An FFT predicting heart disease created from a verbal
 description.
 
-As we can see, this particular tree is somewhat biased: It has nearly
-perfect *sensitivity* (i.e., is good at identifying cases of *Disease*)
-but suffers from low *specificity* (i.e., performs poorly in identifying
+The performance measures (in the bottom panel of **Figure 2**) show that
+this particular tree is somewhat biased: It has nearly perfect
+*sensitivity* (i.e., is good at identifying cases of *Disease*) but
+suffers from low *specificity* (i.e., performs poorly in identifying
 *Healthy* cases). Expressed in terms of its errors, `my_fft` incurs few
 misses at the expense of many false alarms. Although the *accuracy* of
 our custom tree still exceeds the data’s baseline by a fair amount, the
-FFTs in `heart_fft` (from above) strike a better balance.
+FFTs in `heart_fft` (created above) strike a better balance.
 
 <!-- A range of options, rather than 1 optimum: -->
 
@@ -268,9 +268,9 @@ package enables us to design and evaluate a range of FFTs.
 
 ## References
 
-We had a lot of fun creating **FFTrees** and hope you like it too! As a
-comprehensive, yet accessible introduction to FFTs, we recommend reading
-our article in the journal *Judgment and Decision Making*
+We had fun creating the **FFTrees** package and hope you like it too! As
+a comprehensive, yet accessible introduction to FFTs, we recommend our
+article in the journal *Judgment and Decision Making*
 ([2017](https://doi.org/10.1017/S1930297500006239)), entitled *FFTrees:
 A toolbox to create, visualize,and evaluate fast-and-frugal decision
 trees* (available in
@@ -334,6 +334,6 @@ Examples include:
 
 ------------------------------------------------------------------------
 
-\[File `README.Rmd` last updated on 2023-02-08.\]
+\[File `README.Rmd` last updated on 2023-06-03.\]
 
 <!-- eof. -->

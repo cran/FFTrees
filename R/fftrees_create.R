@@ -49,7 +49,7 @@
 #' @param do.svm logical.
 #' @param do.rf logical.
 #'
-#' @param quiet logical
+#' @param quiet A list of logical elements.
 #'
 #'
 #' @return A new \code{FFTrees} object.
@@ -104,9 +104,18 @@ fftrees_create <- function(formula = NULL,
 
   # Provide user feedback: ----
 
-  if (!quiet) {
-    msg <- "Aiming to create a new FFTrees object:\n"
-    cat(u_f_ini(msg))
+  if (!quiet$ini) {
+
+    # msg <- "Aiming to create a new FFTrees object:\n"
+    # cat(u_f_ini(msg))
+
+    # basic:
+    cli::cli_alert("Create an FFTrees object:", class = "alert-start")
+
+    # # more:
+    # cli::cli_h2(in_blue("Create FFT"))
+    # cli::cli_alert(in_darkgrey("Create a new FFTrees object:"), class = "alert-start")
+
   }
 
   # 1. Validation tests: ------
@@ -129,9 +138,8 @@ fftrees_create <- function(formula = NULL,
 
   # algorithm: ----
 
-  # algorithm_options <- c("ifan", "dfan")  # as (local) constant
   testthat::expect_true(!is.null(algorithm), info = "algorithm is NULL")
-  testthat::expect_true(algorithm %in% algorithm_options)
+  testthat::expect_true(algorithm %in% algorithm_options)  # use global constant
 
 
   # sens.w: ----
@@ -144,10 +152,15 @@ fftrees_create <- function(formula = NULL,
   # goal: ----
 
   # Current set of valid goals (for FFT selection):
+
   if (!is.null(my.goal)){
+
     valid_goal <- c(goal_options, my.goal)  # add my.goal (name) to default
+
   } else { # default:
-    valid_goal <- goal_options  # use (global) constant
+
+    valid_goal <- goal_options  # use global constant
+
   }
 
   if (is.null(goal)) { # goal NOT set by user:
@@ -155,19 +168,25 @@ fftrees_create <- function(formula = NULL,
     if (!is.null(cost.outcomes) | !is.null(cost.cues)) { # use 'cost' goal per default:
 
       goal <- "cost"
-      if (!quiet) { cat(u_f_msg("\u2014 Setting 'goal = cost'\n")) }
+
+      # Provide user feedback:
+      if (!quiet$set) { cat(u_f_msg("\u2014 Setting 'goal = cost'\n")) }
 
     } else { # use accuracy defaults (bacc/wacc):
 
       if (enable_wacc(sens.w)){ # use wacc:
 
         goal <- "wacc"
-        if (!quiet) { cat(u_f_msg("\u2014 Setting 'goal = wacc'\n")) }
+
+        # Provide user feedback:
+        if (!quiet$set) { cat(u_f_msg("\u2014 Setting 'goal = wacc'\n")) }
 
       } else { # use bacc (as bacc == wacc):
 
         goal <- "bacc"
-        if (!quiet) { cat(u_f_msg("\u2014 Setting 'goal = bacc'\n")) }
+
+        # Provide user feedback:
+        if (!quiet$set) { cat(u_f_msg("\u2014 Setting 'goal = bacc'\n")) }
 
       }
 
@@ -175,9 +194,12 @@ fftrees_create <- function(formula = NULL,
 
   } else { # feedback user setting:
 
-    if (!quiet) {
+    if (!quiet$set) { # Provide user feedback:
+
       msg <- paste0("\u2014 User set 'goal = ", goal, "'\n")
+
       cat(u_f_msg(msg))
+
     }
 
   } # if (is.null(goal)) else.
@@ -188,9 +210,16 @@ fftrees_create <- function(formula = NULL,
 
   if ((goal == "wacc") & (!enable_wacc(sens.w))){ # correct to "bacc":
 
-    if (!quiet) {
-      cat(u_f_hig("\u2014 User set 'goal = wacc', but 'sens.w = 0.50': Setting 'goal = bacc'\n"))
+    if (any(sapply(quiet, isFALSE))) { # Provide user feedback:
+
+      wrn_msg <- "User set 'goal = wacc', but 'sens.w = 0.50': Setting 'goal = bacc'"
+
+      # cat(u_f_hig(wrn_msg, "\n"))
+
+      cli::cli_alert_warning(wrn_msg)
+
     }
+
     goal <- "bacc"
 
   }
@@ -202,27 +231,38 @@ fftrees_create <- function(formula = NULL,
 
     goal.chase <- "cost"
 
-    if (!quiet) { cat(u_f_msg("\u2014 Setting 'goal.chase = cost'\n")) }
+    if (!quiet$set) { # Provide user feedback:
+
+      cat(u_f_msg("\u2014 Setting 'goal.chase = cost'\n"))
+
+    }
 
   } else if (is.null(goal.chase)) { # use accuracy defaults (bacc/wacc):
 
     if (enable_wacc(sens.w)){ # set to 'wacc':
 
       goal.chase <- "wacc"
-      if (!quiet) { cat(u_f_msg("\u2014 Setting 'goal.chase = wacc'\n")) }
+
+      # Provide user feedback:
+      if (!quiet$set) { cat(u_f_msg("\u2014 Setting 'goal.chase = wacc'\n")) }
 
     } else { # set to 'bacc' (as bacc == wacc):
 
       goal.chase <- "bacc"
-      if (!quiet) { cat(u_f_msg("\u2014 Setting 'goal.chase = bacc'\n")) }
+
+      # Provide user feedback:
+      if (!quiet$set) { cat(u_f_msg("\u2014 Setting 'goal.chase = bacc'\n")) }
 
     }
 
-  } else { # feedback user setting:
+  } else { # Note user setting:
 
-    if (!quiet) {
+    if (!quiet$set) { # Provide user feedback:
+
       msg <- paste0("\u2014 User set 'goal.chase = ", goal.chase, "'\n")
+
       cat(u_f_msg(msg))
+
     }
 
   }
@@ -234,9 +274,16 @@ fftrees_create <- function(formula = NULL,
 
   if ((goal.chase == "wacc") & (!enable_wacc(sens.w))){ # correct to "bacc":
 
-    if (!quiet) {
-      cat(u_f_hig("\u2014 User set 'goal.chase = wacc', but 'sens.w = 0.50': Setting 'goal.chase = bacc'\n"))
+    if (any(sapply(quiet, isFALSE))) { # Provide user feedback:
+
+      wrn_msg <- "User set 'goal.chase = wacc', but 'sens.w = 0.50': Setting 'goal.chase = bacc'"
+
+      # cat(u_f_hig(wrn_msg, "\n"))
+
+      cli::cli_alert_warning(wrn_msg)
+
     }
+
     goal.chase <- "bacc"
 
   }
@@ -249,20 +296,30 @@ fftrees_create <- function(formula = NULL,
     if (enable_wacc(sens.w)){ # set to 'wacc':
 
       goal.threshold <- "wacc"
-      if (!quiet) { cat(u_f_msg("\u2014 Setting 'goal.threshold = wacc'\n")) }
+
+      if (!quiet$set) { # Provide user feedback:
+
+        cat(u_f_msg("\u2014 Setting 'goal.threshold = wacc'\n"))
+
+      }
 
     } else { # set to 'bacc' (as bacc == wacc):
 
       goal.threshold <- "bacc"
-      if (!quiet) { cat(u_f_msg("\u2014 Setting 'goal.threshold = bacc'\n")) }
+
+      # Provide user feedback:
+      if (!quiet$set) { cat(u_f_msg("\u2014 Setting 'goal.threshold = bacc'\n")) }
 
     }
 
-  } else { # feedback user setting:
+  } else { # Note user setting:
 
-    if (!quiet) {
+    if (!quiet$set) { # Provide user feedback:
+
       msg <- paste0("\u2014 User set 'goal.threshold = ", goal.threshold, "'\n")
+
       cat(u_f_msg(msg))
+
     }
 
   }
@@ -273,7 +330,7 @@ fftrees_create <- function(formula = NULL,
   # # Note: Default was set to goal.threshold = "bacc" (in FFTrees.R).
   #
   # # Use argument value from FFTrees(), but provide feedback:
-  # if (!quiet) {
+  # if (!quiet$set) {
   #
   #   if (goal.threshold == "bacc"){ # report using bacc (i.e., the default):
   #
@@ -287,7 +344,7 @@ fftrees_create <- function(formula = NULL,
   #
   #   }
   #
-  # } # if (!quiet).
+  # } # if (any(sapply(quiet, isFALSE))).
   #
   #
   # # OLD code end. ----
@@ -300,17 +357,32 @@ fftrees_create <- function(formula = NULL,
 
   if ((goal.threshold == "wacc") & (!enable_wacc(sens.w))){ # correct to "bacc":
 
-    if (!quiet) {
-      cat(u_f_hig("\u2014 User set 'goal.threshold = wacc', but 'sens.w = 0.50': Setting 'goal.threshold = bacc'\n"))
+    if (any(sapply(quiet, isFALSE))) { # Provide user feedback:
+
+      wrn_msg <- "User set 'goal.threshold = wacc', but 'sens.w = 0.50': Setting 'goal.threshold = bacc'"
+
+      # cat(u_f_hig(wrn_msg, "\n"))
+
+      cli::cli_alert_warning(wrn_msg)
+
     }
+
     goal.threshold <- "bacc"
+
   }
 
   if (goal.threshold == "cost") { # note that this only makes sense for outcome costs:
 
-    if (!quiet) {
-      cat(u_f_hig("Optimizing cue thresholds for 'cost' only uses 'cost.outcomes', as 'cost.cues' are constant per cue.\n"))
+    if (any(sapply(quiet, isFALSE))) { # Provide user feedback:
+
+      wrn_msg <- "Optimizing cue thresholds for 'cost' only uses 'cost.outcomes', as 'cost.cues' are constant per cue."
+
+      # cat(u_f_hig(wrn_msg, "\n"))
+
+      cli::cli_alert_warning(wrn_msg)
+
     }
+
   }
 
 
@@ -333,6 +405,7 @@ fftrees_create <- function(formula = NULL,
       invalid_avec <- paste(invalid_args, collapse = ", ")
 
       stop("my.goal.fun must contain 4 arguments (hi, fa, mi, cr), but not ", invalid_avec)
+
     }
 
     if (any(my_goal_arg_valid %in% fn_arg_names == FALSE)){
@@ -341,7 +414,8 @@ fftrees_create <- function(formula = NULL,
       missing_avec <- paste(missing_args, collapse = ", ")
       if (length(missing_args) < 2) {be <- "is"} else { be <- "are"}
 
-      message("my.goal.fun usually contains 4 arguments (hi, fa, mi, cr), but (", missing_avec, ") ", be, " missing")
+      cli::cli_alert_warning("my.goal.fun usually contains 4 arguments (hi, fa, mi, cr), but (", missing_avec, ") ", be, " missing")
+
     }
 
   } # if (my.goal).
@@ -355,9 +429,13 @@ fftrees_create <- function(formula = NULL,
   # If a non-default sens.w has been set, but 'wacc' is not a goal:
   if ((enable_wacc(sens.w)) & (!"wacc" %in% cur_goals)) { # provide feedback:
 
-    if (!quiet) {
-      msg <- paste0("You set 'sens.w = ", sens.w, "': Did you mean to set a goal to 'wacc'?\n")
-      cat(u_f_hig(msg))
+    if (any(sapply(quiet, isFALSE))) { # Provide user feedback:
+
+      wrn_msg <- paste0("You set 'sens.w = ", sens.w, "': Did you mean to set a goal to 'wacc'?")
+
+      # cat(u_f_hig(wrn_msg, "\n"))
+
+      cli::cli_alert_warning(wrn_msg)
     }
   }
 
@@ -386,22 +464,26 @@ fftrees_create <- function(formula = NULL,
   )
 
 
-
   # max.levels: ----
 
   if (is.null(max.levels)) {
 
     max.levels <- 4  # default
 
-    if (!quiet) {
+    if (!quiet$set) { # Provide user feedback:
+
       cat(u_f_msg("\u2014 Setting 'max.levels = 4'\n"))
+
     }
 
   } else { # user set max.levels:
 
-    if (!quiet) {
+    if (!quiet$set) { # Provide user feedback:
+
       msg <- paste0("\u2014 User set 'max.levels = ", max.levels, "'\n")
+
       cat(u_f_msg(msg))
+
     }
 
   }
@@ -414,15 +496,29 @@ fftrees_create <- function(formula = NULL,
 
   if (!is.null(cost.outcomes)) { # A: user set cost.outcomes:
 
-    if (!quiet) {
+    if (any(sapply(quiet, isFALSE))) {
 
       cos <- paste(unlist(cost.outcomes), collapse = " ")
-      msg <- paste0("\u2014 User set 'cost.outcomes' = (", cos, ")\n")
-      cat(u_f_msg(msg))
+
+      if (!quiet$set){ # Provide user feedback:
+
+        msg <- paste0("\u2014 User set 'cost.outcomes' = (", cos, ")\n")
+
+        cat(u_f_msg(msg))
+
+      }
 
       if (!"cost" %in% cur_goals){
-        msg_2 <- paste0("Specified 'cost.outcomes', but no goal = 'cost':\nFFT creation will ignore costs, but report cost statistics.\n")
-        cat(u_f_hig(msg_2))
+
+        cos <- paste(unlist(cost.outcomes), collapse = " ")
+
+        my_sp <- "  "
+        wrn_msg <- paste0("Specified 'cost.outcomes' = {cos}, but no goal = 'cost':\n{my_sp}FFT creation will ignore costs, but report cost statistics.")
+
+        # cat(u_f_hig(wrn_msg, "\n"))
+
+        cli::cli_alert_warning(wrn_msg)
+
       }
 
     }
@@ -432,10 +528,12 @@ fftrees_create <- function(formula = NULL,
     # cost.outcomes <- list(hi = 0, fa = 1, mi = 1, cr = 0)  # default values (analogous to accuracy: r = -1)
     cost.outcomes <- cost_outcomes_default  # use global default
 
-    if (!quiet) {
+    if (!quiet$set) { # Provide user feedback:
+
       cos <- paste(unlist(cost.outcomes), collapse = " ")
       msg <- paste0("\u2014 Using default 'cost.outcomes' = (", cos, ")\n")
       cat(u_f_msg(msg))
+
     }
 
   }
@@ -451,24 +549,41 @@ fftrees_create <- function(formula = NULL,
 
   if (!is.null(cost.cues)) { # A: user set cost.cues:
 
-    if (!quiet) {
+    if (any(sapply(quiet, isFALSE))) {
 
       ccs <- paste(unlist(cost.cues), collapse = " ")
-      msg <- paste0("\u2014 User set 'cost.cues' = (", ccs, ")\n")
-      cat(u_f_msg(msg))
+
+      if (!quiet$set){ # Provide user feedback:
+
+        msg <- paste0("\u2014 User set 'cost.cues' = (", ccs, ")")
+
+        cat(u_f_msg(msg, "\n"))
+
+      }
 
       if (!"cost" %in% cur_goals){
-        msg_2 <- paste0("Specified 'cost.cues', but no goal = 'cost':\nFFT creation will ignore costs, but report cost statistics.\n")
-        cat(u_f_hig(msg_2))
+
+        ccs <- paste(unlist(cost.cues), collapse = " ")
+        my_sp <- "  "
+
+        wrn_msg <- paste0("Specified 'cost.cues' = {ccs}, but no goal = 'cost':\n{my_sp}FFT creation will ignore costs, but report cost statistics.")
+
+        # cat(u_f_hig(wrn_msg, "\n"))
+
+        cli::cli_alert_warning(wrn_msg)
+
       }
 
     }
 
   } else { # B: use default cost.cues:
 
-    if (!quiet) {
+    if (!quiet$set) { # Provide user feedback:
+
       msg <- paste0("\u2014 Using default 'cost.cues' = (", cost_cues_default, " per cue)\n")
+
       cat(u_f_msg(msg))
+
     }
 
   }
@@ -483,20 +598,55 @@ fftrees_create <- function(formula = NULL,
   testthat::expect_true(!is.null(cost.cues), info = "cost.cues is NULL")
   testthat::expect_type(cost.cues, type = "list")
   testthat::expect_true(all(names(cost.cues) %in% names(data)),
-                        info = "At least one of the values specified in cost.cues is not in data")
+                        info = "At least one of the cue names specified in cost.cues is not in data")
 
 
   # stopping.rule: ----
 
-  stopping_rule_valid <- c("exemplars", "levels")
-
-  testthat::expect_true(stopping.rule %in% stopping_rule_valid)
-
+  testthat::expect_true(stopping.rule %in% stopping_rules,  # use global constant
+                        info = paste0("The stopping.rule must be in ('", paste(stopping_rules, collapse = "', '"), "')"))
 
   # stopping.par: ----
 
-  testthat::expect_gt(stopping.par, expected = 0)
-  testthat::expect_lt(stopping.par, expected = 1)
+  if (stopping.rule == "exemplars"){ # default: 0 < stopping.par < 1:
+
+    testthat::expect_gt(stopping.par, expected = 0)
+    testthat::expect_lt(stopping.par, expected = 1)
+
+  } else if (stopping.rule == "levels"){ # stopping.par must be a positive integer:
+
+    stopping.par <- as.integer(stopping.par)  # aim to coerce to integer
+
+    testthat::expect_true(is.integer(stopping.par))
+    testthat::expect_gt(stopping.par, expected = 0)
+
+  } else if (stopping.rule == "statdelta"){ # stopping.par must numeric:
+
+    stopping.par <- as.numeric(stopping.par)  # aim to coerce to numeric
+
+    testthat::expect_true(is.numeric(stopping.par))
+
+  } else { # unknown stopping.rule:
+
+    warning(paste0("Unknown stopping.par constraints for 'stopping.rule = ", stopping.rule, "'"))
+
+  }
+
+
+  if (!quiet$set) { # Provide user feedback:
+
+    msg <- paste0("\u2014 Using 'stopping.rule = ", stopping.rule, "' (with 'stopping.par = ", stopping.par, "')\n")
+
+    cat(u_f_msg(msg))
+
+  }
+
+  # # Disallow some combination:
+  # if (stopping.rule == "statdelta" & goal.chase == "cost"){
+  #
+  #   stop("The stopping.rule 'statdelta' requires an accuracy measure as its 'goal.chase' value (e.g., 'bacc')")
+  #
+  # }
 
 
   # decision.labels: ----
@@ -510,106 +660,124 @@ fftrees_create <- function(formula = NULL,
   testthat::expect_type(repeat.cues, type = "logical")
 
 
+  # 2. Verify and pre-process criterion and data: ------
 
-  # 2. Verify criterion and data: ------
+  # Verify data and criterion: ----
 
-  # Criterion is in data: ----
+  verify_data_and_criterion(data = data, criterion_name = criterion_name, mydata = "train")  # no output
 
-  testthat::expect_true(criterion_name %in% names(data),
-                        info = paste("The criterion", criterion_name, "is not in data")
-  )
-
-  # No missing criterion values: ----
-
-  testthat::expect_true(all(!is.na(data[[criterion_name]])),
-                        info = "At least one of the criterion values are missing. Please remove these cases and try again."
-  )
-
-  # Criterion has two unique values: : ----
-
-  testthat::expect_equal(length(unique(data[[criterion_name]])),
-                         expected = 2,
-                         info = "The criterion variable is non-binary"
-  )
-
-
-  # Make criterion logical: ----
-
-  if (inherits(data[[criterion_name]], "character") |
-      inherits(data[[criterion_name]], "factor")) {
-
-    # Save original values as decision.labels:
-    decision.labels <- unique(data[[criterion_name]])
-
-    # Convert criterion to logical:
-    data[[criterion_name]] <- data[[criterion_name]] == decision.labels[2]
-
-    if (!quiet) {
-      msg <- paste0("\u2014 Setting target to ", criterion_name, " == ", decision.labels[2], "\n")
-      cat(u_f_msg(msg))
-    }
-
+  if (!is.null(data.test)) { # same for test data:
+    verify_data_and_criterion(data = data.test, criterion_name = criterion_name, mydata = "test")  # no output
   }
 
 
-  # Check that criterion is in data.test: ----
+  # # OLD code start: ----
+  #
+  # # Convert (a character or factor) criterion to logical: ----
+  #
+  # if (inherits(data[[criterion_name]], "character") |
+  #     inherits(data[[criterion_name]], "factor")) {
+  #
+  #   # Save original values as decision.labels:
+  #   decision.labels <- unique(data[[criterion_name]])
+  #
+  #   # Remove any NA values from decision.labels (if present):
+  #   decision.labels <- decision.labels[!is.na(decision.labels)]
+  #
+  #   # Main: Convert criterion to logical:
+  #   data[[criterion_name]] <- data[[criterion_name]] == decision.labels[2]  # Note: NA values remain NA
+  #
+  #   if (any(sapply(quiet, isFALSE))) {
+  #
+  #     msg_lgc <- paste0("Converted the criterion to logical by '", criterion_name, " == ", decision.labels[2], "'.")
+  #
+  #     # cat(u_f_hig("\u2014 ", msg_lgc), "\n")
+  #
+  #     cli::cli_alert_warning(msg_lgc)
+  #
+  #   }
+  #
+  # } # Note: Moved into clean_data() TO ALSO repeat for data.test.
+  #
+  # # OLD code end. ----
 
-  if (!is.null(data.test)) {
-    testthat::expect_true(is.data.frame(data),
-                          info = "Object is not a dataframe."
-    )
 
-    testthat::expect_true(criterion_name %in% names(data.test),
-                          info = paste("The criterion", criterion_name, "is not in data.test")
-    )
+  # Clean/pre-process training data: ----
+
+  # # OLD code start: ----
+  #
+  # # A. Remove any cues not in formula:
+  # data <- model.frame(
+  #   formula = formula,
+  #   data = data,
+  #   na.action = NULL
+  # )
+  #
+  # # B. Handle NA cases:
+  # if ( (allow_NA_pred | allow_NA_crit) & any(is.na(data)) ){
+  #   data <- handle_NA_data(data = data, criterion_name = criterion_name,
+  #                          mydata = "train", quiet = quiet)
+  # }
+  #
+  # # C. Convert any factor variables to character variables:
+  # data <- data %>%
+  #   dplyr::mutate_if(is.factor, paste)
+  #
+  # # D. Convert to tibble:
+  # data <- data %>%
+  #   tibble::as_tibble()
+  #
+  # # OLD code end. ----
+
+  data <- clean_data(data = data, criterion_name = criterion_name, formula = formula,
+                     mydata = "train", quiet = quiet)
+
+
+  # Clean/pre-process data.test (same steps): ----
+
+  if (!is.null(data.test)) { # same for test data:
+
+    # # OLD code start: ----
+    #
+    # # A. Remove any cues not in formula:
+    # data.test <- model.frame(
+    #   formula = formula,
+    #   data = data.test,
+    #   na.action = NULL
+    # )
+    #
+    # # B. Handle NA cases:
+    # if ( (allow_NA_pred | allow_NA_crit) & any(is.na(data.test)) ){
+    #   data.test <- handle_NA_data(data = data.test, criterion_name = criterion_name,
+    #                               mydata = "test", quiet = quiet)
+    # }
+    #
+    # # C. Convert any factor variables to character variables:
+    # data.test <- data.test %>%
+    #   dplyr::mutate_if(is.factor, paste)
+    #
+    # # D. Convert to tibble:
+    # data.test <- data.test %>%
+    #   tibble::as_tibble()
+    #
+    # # OLD code end. ----
+
+    data.test <- clean_data(data = data.test, criterion_name = criterion_name, formula = formula,
+                            mydata = "test", quiet = quiet)
+
   }
-
-
-  # Remove cues not included in formula: ----
-
-  data <- model.frame(
-    formula = formula,
-    data = data,
-    na.action = NULL
-  )
-
-
-  # Convert factors to character variables: ----
-
-  data <- data %>%
-    dplyr::mutate_if(is.factor, paste)
-
-  # Do the same to data.test:
-  if (!is.null(data.test)) {
-
-    data.test <- model.frame(
-      formula = formula,
-      data = data.test,
-      na.action = NULL
-    )
-
-    # Convert factor columns to character:
-
-    data.test <- data.test %>%
-      dplyr::mutate_if(is.factor, paste) %>%
-      tibble::as_tibble()
-  }
-
-  # Get cue names: ----
-
-  cue_names <- names(data)[2:ncol(data)]
-
-
-  # Convert data to tibble: ----
-
-  data <- data %>%
-    tibble::as_tibble()
 
 
 
   # 3. Create the FFTrees object: ------
 
+  # Get cue names:
+  cue_names <- names(data)[2:ncol(data)]  # (all except for criterion)
+
+  # Create x (as list):
   x <- list(
+
+    # Names of criterion vs. cues:
     criterion_name = criterion_name,
     cue_names = cue_names,
 
@@ -672,7 +840,6 @@ fftrees_create <- function(formula = NULL,
       quiet = quiet
     ),
 
-
     # One row per algorithm competition:
     competition = list(
 
@@ -697,16 +864,22 @@ fftrees_create <- function(formula = NULL,
       ),
 
       models = list(lr = NULL, cart = NULL, rf = NULL, svm = NULL)
-    )
-  )
+
+    ) # competition.
+
+  ) # x.
 
   class(x) <- "FFTrees"
 
 
   # Provide user feedback: ----
 
-  if (!x$params$quiet) {
-    cat(u_f_fin("Successfully created a new FFTrees object.\n"))
+  if (!quiet$fin) {
+
+    # cat(u_f_fin("Successfully created a new FFTrees object.\n"))
+
+    cli::cli_alert_success("Created an FFTrees object.")
+
   }
 
 

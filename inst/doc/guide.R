@@ -11,10 +11,15 @@ knitr::opts_chunk$set(collapse = FALSE,
                       fig.align = 'center',
                       fig.height = 6.0,
                       fig.width  = 6.5, 
-                      out.width = "600px")
+                      out.width = "580px")
 
 ## ----pkgs, echo = FALSE, message = FALSE, results = 'hide'--------------------
 library(FFTrees)
+library(dplyr)
+library(testthat)
+library(tidyselect)
+library(magrittr)
+library(knitr)
 
 ## ----urls, echo = FALSE, message = FALSE, results = 'hide'--------------------
 # URLs:
@@ -42,6 +47,53 @@ heart.fft <- FFTrees(formula = diagnosis ~.,
 ## ----fig-1, fig.width = 6.5, fig.height = 6.0, out.width = "600px", fig.align = 'center', fig.cap = "A fast-and-frugal tree (FFT) to predict heart disease status."----
 # Visualize predictive performance:
 plot(heart.fft, data = "test")
+
+## ----dataframe for overview data, echo = FALSE--------------------------------
+## Preparations for applying the describe_data() function to all data sets
+## When new data sets are included, add their info so that they will also be shown in the vignette-table!
+
+# List all data sets: 
+data_list <- list(blood, breastcancer, car, contraceptive, creditapproval, fertility, forestfires, 
+                  heartdisease, iris.v, mushrooms, sonar, titanic, voting, wine) 
+
+# Vector with all names of the data sets:
+data_names <- c("blood", "breastcancer", "car", "contraceptive", "creditapproval", "fertility", "forestfires", 
+                "heartdisease", "iris.v", "mushrooms", "sonar", "titanic", "voting", "wine")
+
+# Vector with all criterion names:
+criterion_names <- c("donation.crit", "diagnosis", "acceptability", "cont.crit", "crit", 
+                     "diagnosis","fire.crit", "diagnosis", "virginica", "poisonous", "mine.crit", "survived", "party.crit", "type") 
+
+# Vector with criterion values of interest: 
+baseline_values <- c(1, TRUE, "acc", TRUE, TRUE, TRUE, TRUE, 
+                     TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, "red")
+
+# Use combined lists/vectors and apply describe_data() to each:
+result_list <- mapply(describe_data, data = data_list, 
+                      data_name = data_names, criterion_name = criterion_names, 
+                      baseline_value = baseline_values, SIMPLIFY = FALSE)
+
+# Combine results in df:
+combined_result <- do.call(rbind, result_list)
+
+# Round baseline and NA pct values for brevity:
+combined_result$Baseline_pct<- round(combined_result$Baseline_pct, 1)
+combined_result$NAs_pct<- round(combined_result$NAs_pct, 2)
+
+# Rename columns:
+colnames(combined_result) <- c("Dataset name", 
+                               "Number of cases",
+                               "Criterion name", 
+                               "Baseline (`TRUE`,\\ in\\ %)",
+                               "Number of predictors",
+                               "Number of NAs", 
+                               "NAs (in\\ %)")
+
+# Render the table from the data frame
+# use as many items per page as we have data sets
+# redefine column names as we like them:
+
+knitr::kable(combined_result, format = "html") 
 
 ## ----bibtex-citation, eval = FALSE, highlight = FALSE-------------------------
 #  @article{FFTrees,
